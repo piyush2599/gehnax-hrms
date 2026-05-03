@@ -1,0 +1,80 @@
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+export function formatCurrency(amount: number, currency = "INR") {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
+
+export function formatDate(date: string | Date) {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+export function formatDateTime(date: string | Date) {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date));
+}
+
+export function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+export function calculateDuration(start: string, end: string) {
+  const startTime = new Date(`1970-01-01T${start}`);
+  const endTime = new Date(`1970-01-01T${end}`);
+  const diff = endTime.getTime() - startTime.getTime();
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  return `${hours}h ${minutes}m`;
+}
+
+export function getMonthName(month: number) {
+  return new Intl.DateTimeFormat("en-IN", { month: "long" }).format(
+    new Date(2000, month - 1, 1)
+  );
+}
+
+export const ROLES = {
+  SUPER_ADMIN: "super_admin",
+  HR_ADMIN: "hr_admin",
+  MANAGER: "manager",
+  EMPLOYEE: "employee",
+} as const;
+
+export type Role = (typeof ROLES)[keyof typeof ROLES];
+
+export const LEAVE_TYPES = ["Annual", "Sick", "Casual", "Maternity", "Paternity", "Unpaid"];
+
+export const DEPARTMENTS = [
+  "Engineering",
+  "Human Resources",
+  "Finance",
+  "Marketing",
+  "Sales",
+  "Operations",
+  "Product",
+  "Design",
+  "Legal",
+  "Administration",
+];

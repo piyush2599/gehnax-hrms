@@ -1,0 +1,91 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { connectDB } from "@/lib/mongodb";
+import Leave from "@/models/Leave";
+import Employee from "@/models/Employee";
+import Attendance from "@/models/Attendance";
+
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  await connectDB();
+
+  const body = await req.json();
+  const { status, reviewComments, action } = body;
+
+  const role = (session.user as any).role;
+  const sessionEmployeeId = (session.user as any).employeeId;
+
+  const leave = await Leave.findById(params.id).populate("employeeId");
+  if (!leave) return NextResponse.json({ error: "Leave not found" }, { status: 404 });
+
+  // Employee can cancel their own pending leave
+  if (action === "cancel") {
+    if (leave.employeeId._id.toString() !== sessionEmployeeId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (leave.status !== "pending") {
+      return NextResponse.json({ error: "Can only cancel pending leaves" }, { status: 400 });
+    }
+    leave.status = "cancelled";
+    await leave.save();
+    return NextResponse.json(leave);
+  }
+
+  // Approve/Reject (HR Admin, Manager)
+  if (!["super_admin", "hr_admin", "manager"].includes(role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (!["approved", "rejected"].includes(status)) {
+    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+
+  const employee = leave.employeeId as any;
+
+  if (status === "approved" && leave.status !== "approved") {
+    // Deduct leave balance
+    const balanceKey = leave.leaveType.toLowerCase() as string;
+    if (leave.leaveType !== "Unpaid") {
+      await Employee.findByIdAndUpdate(employee._id, {
+        $inc: { [`leaveBalance.${balanceKey}`]: -leave.totalDays },
+      });
+    }
+
+    // Mark attendance as on_leave for those days
+    const current = new Date(leave.startDate);
+    const end = new Date(leave.endDate);
+    while (current <= end) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) {
+        const d = new Date(current);
+        d.setHours(0, 0, 0, 0);
+        await Attendance.findOneAndUpdate(
+          { employeeId: employee._id, date: d },
+          { status: "on_leave", employeeId: employee._id, date: d },
+          { upsert: true }
+        );
+      }
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  if (status === "rejected" && leave.status === "approved") {
+    // Restore leave balance
+    const balanceKey = leave.leaveType.toLowerCase() as string;
+    if (leave.leaveType !== "Unpaid") {
+      await Employee.findByIdAndUpdate(employee._id, {
+        $inc: { [`leaveBalance.${balanceKey}`]: leave.totalDays },
+      });
+    }
+  }
+
+  leave.status = status;
+  leave.reviewedBy = sessionEmployeeId as any;
+  leave.reviewedOn = new Date();
+  leave.reviewComments = reviewComments;
+  await leave.save();
+
+  return NextResponse.json(leave);
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="144" height="144" viewBox="0 0 144 144" xmlns="http://www.w3.org/2000/svg">
+  <rect width="144" height="144" rx="28.8" fill="#2563eb"/>
+  <text x="72" y="89.28"
+    font-family="Arial, sans-serif"
+    font-size="50.4"
+    font-weight="bold"
+    fill="white"
+    text-anchor="middle">HR</text>
+</svg>

@@ -1,0 +1,50 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { connectDB } from "@/lib/mongodb";
+import HiringDocument from "@/models/HiringDocument";
+import { uploadToFTP } from "@/lib/ftp-upload";
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const role = (session.user as any).role;
+  if (!["super_admin", "hr_admin"].includes(role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  await connectDB();
+
+  const formData = await req.formData();
+  const file       = formData.get("file") as File | null;
+  const candidateId = formData.get("candidateId") as string | null;
+  const docType    = formData.get("docType") as string | null;
+
+  if (!file)        return NextResponse.json({ error: "No file provided" }, { status: 400 });
+  if (!candidateId) return NextResponse.json({ error: "candidateId is required" }, { status: 400 });
+  if (!docType)     return NextResponse.json({ error: "docType is required" }, { status: 400 });
+
+  if (file.size > 10 * 1024 * 1024) {
+    return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
+  }
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { url, fileName } = await uploadToFTP(buffer, file.name, candidateId);
+
+    const document = await HiringDocument.create({
+      candidate:    candidateId,
+      docType,
+      originalName: file.name,
+      fileUrl:      url,
+      fileSize:     file.size,
+      mimeType:     file.type,
+      uploadedBy:   session.user.email ?? "hr",
+    });
+
+    return NextResponse.json({ url, fileName, document }, { status: 201 });
+  } catch (err: any) {
+    console.error("FTP upload error:", err);
+    return NextResponse.json({ error: "Upload failed: " + (err.message ?? "unknown error") }, { status: 500 });
+  }
+}
