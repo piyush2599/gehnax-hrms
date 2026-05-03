@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,9 +23,16 @@ export default function DashboardClient() {
   const { data, isLoading } = useSWR("/api/dashboard", fetcher, { refreshInterval: 60000 });
   const user = session?.user as any;
 
-  const now = new Date();
-  const hour = now.getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const [greeting, setGreeting] = useState("Welcome");
+  const [dateStr, setDateStr] = useState("");
+
+  useEffect(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    setGreeting(hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
+    setDateStr(format(now, "EEEE, MMMM d, yyyy"));
+  }, []);
+
   const firstName = user?.name?.split(" ")[0] || "there";
 
   const isAdminOrHR = ["super_admin", "hr_admin"].includes(role);
@@ -59,7 +67,7 @@ export default function DashboardClient() {
             <h2 className="text-2xl font-bold mt-0.5">{firstName}!</h2>
             <p className="text-blue-200 text-sm mt-2 flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
-              {format(now, "EEEE, MMMM d, yyyy")}
+              {dateStr}
             </p>
           </div>
           {isAdminOrHR && (
