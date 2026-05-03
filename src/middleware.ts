@@ -16,9 +16,15 @@ const protectedRoutes = [
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  const isSecure = req.url.startsWith("https://");
+  const cookieName = isSecure
+    ? "__Secure-authjs.session-token"
+    : "authjs.session-token";
+
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
+    cookieName,
   });
 
   const isAuthenticated = !!token;
