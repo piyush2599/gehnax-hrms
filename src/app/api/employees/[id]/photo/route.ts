@@ -1,37 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
-import OnboardingInvite from "@/models/OnboardingInvite";
+import Employee from "@/models/Employee";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: { id: string } }
 ) {
   const session = await auth();
   if (!session) return new NextResponse("Unauthorized", { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!["super_admin", "hr_admin"].includes(role)) {
-    return new NextResponse("Forbidden", { status: 403 });
-  }
-
   await connectDB();
 
-  const invite = await OnboardingInvite.findOne({ token: params.token }).select(
-    "profilePictureData"
-  );
+  const employee = await Employee.findById(params.id).select("avatarData");
 
-  if (!invite?.profilePictureData) {
-    return new NextResponse("No photo uploaded", { status: 404 });
+  if (!employee?.avatarData) {
+    return new NextResponse("No photo", { status: 404 });
   }
 
-  // profilePictureData is stored as "data:<mime>;base64,<data>"
-  const dataUrl = invite.profilePictureData;
+  const dataUrl = employee.avatarData;
   const commaIdx = dataUrl.indexOf(",");
   if (commaIdx === -1) return new NextResponse("Invalid photo data", { status: 500 });
 
-  const meta = dataUrl.slice(5, commaIdx); // strip "data:"
-  const mimeType = meta.split(";")[0] || "image/jpeg";
+  const mimeType = dataUrl.slice(5, commaIdx).split(";")[0] || "image/jpeg";
   const base64 = dataUrl.slice(commaIdx + 1);
   const buffer = Buffer.from(base64, "base64");
 

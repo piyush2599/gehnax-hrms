@@ -14,6 +14,7 @@ export interface IOnboardingInvite extends Document {
   status: "pending" | "in_progress" | "submitted" | "completed" | "expired";
   expiresAt: Date;
   profilePicture?: string;
+  profilePictureData?: string;
   documents?: {
     panCard?: string;
     aadhaarCard?: string;
@@ -78,6 +79,7 @@ const OnboardingInviteSchema = new Schema<IOnboardingInvite>(
     },
     expiresAt: { type: Date, required: true },
     profilePicture: { type: String },
+    profilePictureData: { type: String },
     documents: {
       panCard: String,
       aadhaarCard: String,

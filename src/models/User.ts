@@ -8,6 +8,7 @@ export interface IUser extends Document {
   role: "super_admin" | "hr_admin" | "manager" | "employee";
   employeeId?: mongoose.Types.ObjectId;
   avatar?: string;
+  avatarData?: string;
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;
@@ -26,6 +27,7 @@ const UserSchema = new Schema<IUser>(
     },
     employeeId: { type: Schema.Types.ObjectId, ref: "Employee" },
     avatar: { type: String },
+    avatarData: { type: String },
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date },
   },

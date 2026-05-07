@@ -42,16 +42,18 @@ export async function POST(
 
   const firstName = (personal as any).firstName || invite.firstName || "";
   const lastName = (personal as any).lastName || invite.lastName || "";
-
   const hashedPassword = await bcrypt.hash(invite.employeeCode, 12);
+
+  // Step 1: create User (employeeId set after employee is created)
   const user = await User.create({
     name: `${firstName} ${lastName}`.trim() || invite.email,
     email: invite.email,
     password: hashedPassword,
     role: "employee",
-    avatar: invite.profilePicture,
+    avatarData: invite.profilePictureData || undefined,
   });
 
+  // Step 2: create Employee
   const employee = await Employee.create({
     employeeCode: invite.employeeCode,
     userId: user._id,
@@ -67,11 +69,19 @@ export async function POST(
     employmentType: invite.employmentType,
     joiningDate: invite.joiningDate,
     bankDetails: bank,
-    avatar: invite.profilePicture,
+    avatarData: invite.profilePictureData || undefined,
     salary: { basic: 0, hra: 0, allowances: 0, deductions: 0 },
   });
 
-  await User.findByIdAndUpdate(user._id, { employeeId: employee._id });
+  // Step 3: set avatar URL now that we have employee._id
+  const avatarPath = invite.profilePictureData
+    ? `/api/employees/${employee._id}/photo`
+    : undefined;
+
+  await Promise.all([
+    Employee.findByIdAndUpdate(employee._id, { avatar: avatarPath }),
+    User.findByIdAndUpdate(user._id, { employeeId: employee._id, avatar: avatarPath }),
+  ]);
 
   invite.status = "completed";
   invite.completedAt = new Date();

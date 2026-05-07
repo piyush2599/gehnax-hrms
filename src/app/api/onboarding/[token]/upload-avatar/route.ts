@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import OnboardingInvite from "@/models/OnboardingInvite";
-import { uploadToFTP } from "@/lib/ftp-upload";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -31,18 +30,18 @@ export async function POST(
     return NextResponse.json({ error: "Image too large (max 5 MB)" }, { status: 400 });
   }
 
-  const ext = file.type.split("/")[1].replace("jpeg", "jpg");
-  const folder = `onboarding/${invite.employeeCode}`;
-  const fileName = `profile.${ext}`;
-
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { url } = await uploadToFTP(buffer, fileName, folder);
+    const base64 = buffer.toString("base64");
+    const mimeType = file.type;
 
-    invite.profilePicture = url;
+    // Store base64 in MongoDB — no FTP dependency
+    invite.profilePictureData = `data:${mimeType};base64,${base64}`;
+    // Set profilePicture to the secure API proxy URL
+    invite.profilePicture = `/api/onboarding/${params.token}/photo`;
     await invite.save();
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url: invite.profilePicture });
   } catch (err: any) {
     console.error("Avatar upload failed:", err);
     return NextResponse.json({ error: "Upload failed: " + (err.message ?? "unknown") }, { status: 500 });

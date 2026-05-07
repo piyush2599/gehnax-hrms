@@ -42,6 +42,7 @@ export interface IEmployee extends Document {
     uploadedAt: Date;
   }>;
   avatar?: string;
+  avatarData?: string;
   isActive: boolean;
   terminationDate?: Date;
   terminationReason?: string;
@@ -105,6 +106,7 @@ const EmployeeSchema = new Schema<IEmployee>(
       },
     ],
     avatar: { type: String },
+    avatarData: { type: String },
     isActive: { type: Boolean, default: true },
     terminationDate: { type: Date },
     terminationReason: { type: String },
