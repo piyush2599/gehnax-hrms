@@ -375,7 +375,7 @@ export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
                 </NativeSelect>
               </Field>
               <Field label="Date of Birth">
-                <Input type="date" value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} />
+                <Input type="date" value={form.dateOfBirth} onChange={(e) => set("dateOfBirth", e.target.value)} max={new Date().toISOString().split("T")[0]} min="1900-01-01" />
               </Field>
             </div>
 

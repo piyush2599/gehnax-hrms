@@ -748,7 +748,7 @@ function CandidateForm({
       const res  = await fetch("/api/public/parse-resume", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) { setParseError(data.error || "Could not parse resume"); return; }
-      setResumeUrl(data.fileUrl);
+      setResumeUrl(data.fileUrl || "");
       const p = data.parsed;
       setForm((f) => ({
         ...f,
@@ -762,6 +762,9 @@ function CandidateForm({
         skills:             f.skills             || p.skills             || "",
       }));
       setAutofilled(true);
+      if (!data.fileUrl) {
+        setParseError("Resume parsed (form auto-filled) but FTP upload failed — file not saved. Check FTP settings in .env.local.");
+      }
     } catch {
       setParseError("Upload failed. Please try again.");
     } finally {
@@ -803,15 +806,19 @@ function CandidateForm({
     <form onSubmit={handleSubmit} className="space-y-4 mt-2">
 
       {/* Resume upload zone */}
-      <div>
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5 text-slate-700">
+          <FileText className="w-3.5 h-3.5" />
+          Attach Resume
+        </Label>
         {!resumeFile ? (
-          <label className="flex items-center gap-3 border-2 border-dashed border-blue-200 rounded-xl p-4 cursor-pointer hover:border-blue-400 hover:bg-blue-50/40 transition-all group">
+          <label className="flex items-center gap-3 border-2 border-dashed border-blue-300 bg-blue-50/50 rounded-xl p-4 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all group">
             <div className="p-2 bg-blue-100 rounded-xl group-hover:bg-blue-200 transition-colors flex-shrink-0">
               <Upload className="w-4 h-4 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-700">Upload Resume to Auto-fill</p>
-              <p className="text-xs text-slate-400 mt-0.5">PDF, DOCX or TXT · Max 5MB</p>
+              <p className="text-sm font-semibold text-blue-700">Click to upload resume</p>
+              <p className="text-xs text-slate-500 mt-0.5">PDF, DOCX or TXT · Max 5MB · Auto-fills the form</p>
             </div>
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleResumeChange} />
           </label>
@@ -829,7 +836,9 @@ function CandidateForm({
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
                 <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-emerald-800">Form auto-filled from resume</p>
+                  <p className="text-sm font-semibold text-emerald-800">
+                    {resumeUrl ? "Resume uploaded to FTP & form auto-filled" : "Form auto-filled (file not saved)"}
+                  </p>
                   <p className="text-xs text-slate-500 truncate">{resumeFile.name}</p>
                 </div>
               </div>

@@ -29,6 +29,7 @@ const PAGE_NAMES: Record<string, string> = {
   "/announcements": "Announcements",
   "/profile": "My Profile",
   "/hiring": "Hiring",
+  "/onboarding": "Onboarding",
 };
 
 const ROLE_LABELS: Record<string, string> = {

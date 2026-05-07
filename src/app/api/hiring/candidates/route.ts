@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
     skills,
     source,
     notes,
+    resumeUrl,
   } = body;
 
   if (!firstName || !lastName || !email || !jobPosting) {
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
     skills: skills || [],
     source,
     notes,
+    resumeUrl: resumeUrl || undefined,
     createdBy: session.user.id,
   });
 

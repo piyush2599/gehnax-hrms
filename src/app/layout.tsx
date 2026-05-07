@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "HRMS Portal",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
   formatDetection: {
     telephone: false,
   },

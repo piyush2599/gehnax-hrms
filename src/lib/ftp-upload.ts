@@ -20,7 +20,8 @@ export async function uploadToFTP(
 
   const uploadDir = process.env.FTP_UPLOAD_DIR ?? "/public_html/uploads/hiring";
   const targetDir = subDir ? `${uploadDir}/${subDir}` : uploadDir;
-  const baseUrl = process.env.FTP_BASE_URL ?? "";
+  // Strip trailing slash so we never get double-slash in the URL
+  const baseUrl = (process.env.FTP_BASE_URL ?? "").replace(/\/+$/, "");
   const publicUrl = subDir
     ? `${baseUrl}/${subDir}/${fileName}`
     : `${baseUrl}/${fileName}`;

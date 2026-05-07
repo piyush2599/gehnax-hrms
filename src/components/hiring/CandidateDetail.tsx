@@ -14,7 +14,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { toast } from "sonner";
 import {
   Mail, Phone, Briefcase, Building2, User, Upload,
-  CheckCircle2, Circle, Printer, Send, FileText,
+  CheckCircle2, Circle, Printer, Send, FileText, Download, X,
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import { calculateCTC, type CTCBreakdown } from "@/lib/ctc-calculator";
@@ -70,6 +70,30 @@ export default function CandidateDetail({ candidate: initialCandidate, jobs, can
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState(candidate.interviewNotes || "");
   const [rejectionReason, setRejectionReason] = useState(candidate.rejectionReason || "");
+  const [resumeUploading, setResumeUploading] = useState(false);
+  const resumeFileRef = useRef<HTMLInputElement>(null);
+
+  const handleResumeUpload = async () => {
+    const file = resumeFileRef.current?.files?.[0];
+    if (!file) { toast.error("Select a PDF or Word file"); return; }
+    setResumeUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("resume", file);
+      const res = await fetch(`/api/hiring/candidates/${candidate._id}/resume`, { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Upload failed"); return; }
+      setCandidate((prev: any) => ({ ...prev, resumeUrl: data.resumeUrl }));
+      mutate("/api/hiring/candidates");
+      onUpdate();
+      toast.success("Resume uploaded successfully");
+      if (resumeFileRef.current) resumeFileRef.current.value = "";
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setResumeUploading(false);
+    }
+  };
 
   const patchCandidate = async (payload: Record<string, unknown>) => {
     setSaving(true);
@@ -213,6 +237,57 @@ export default function CandidateDetail({ candidate: initialCandidate, jobs, can
               </div>
             </div>
           )}
+
+          {/* Resume */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Resume</p>
+            {candidate.resumeUrl ? (
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50">
+                <div className="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-emerald-800">Resume uploaded</p>
+                  <p className="text-xs text-emerald-600 truncate">{candidate.resumeUrl.split("/").pop()}</p>
+                </div>
+                <a
+                  href={candidate.resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors"
+                  title="View / Download Resume"
+                >
+                  <Download className="w-4 h-4" />
+                </a>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50">
+                <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-4 h-4 text-slate-400" />
+                </div>
+                <p className="text-sm text-slate-500">No resume uploaded yet</p>
+              </div>
+            )}
+            {canManage && (
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  ref={resumeFileRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  className="flex-1 text-xs text-slate-600 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:text-xs file:font-medium hover:file:bg-blue-100 cursor-pointer"
+                />
+                <Button
+                  size="sm"
+                  onClick={handleResumeUpload}
+                  disabled={resumeUploading}
+                  className="bg-blue-600 hover:bg-blue-700 gap-1.5 flex-shrink-0"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {resumeUploading ? "Uploading…" : candidate.resumeUrl ? "Replace" : "Upload"}
+                </Button>
+              </div>
+            )}
+          </div>
 
           {/* Stage selector */}
           <div>

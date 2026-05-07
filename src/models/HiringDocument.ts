@@ -3,14 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IHiringDocument extends Document {
   _id: mongoose.Types.ObjectId;
   candidate: mongoose.Types.ObjectId;
-  docType:
-    | "resume"
-    | "aadhar"
-    | "pan"
-    | "degree"
-    | "experience_letter"
-    | "photo"
-    | "other";
+  docType: string;
   originalName: string;
   fileUrl: string;
   fileSize?: number;
@@ -27,11 +20,7 @@ export interface IHiringDocument extends Document {
 const HiringDocumentSchema = new Schema<IHiringDocument>(
   {
     candidate: { type: Schema.Types.ObjectId, ref: "Candidate", required: true },
-    docType: {
-      type: String,
-      enum: ["resume", "aadhar", "pan", "degree", "experience_letter", "photo", "other"],
-      required: true,
-    },
+    docType: { type: String, required: true },
     originalName: { type: String, required: true },
     fileUrl: { type: String, required: true },
     fileSize: { type: Number },

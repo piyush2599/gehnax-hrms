@@ -25,19 +25,22 @@ export async function POST(req: NextRequest) {
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Upload to FTP and parse in parallel
-    const [ftpResult, text] = await Promise.all([
-      uploadToFTP(buffer, file.name, "resumes"),
-      extractTextFromBuffer(buffer, mimeType),
-    ]);
-
+    // Parse text first (always works locally)
+    const text = await extractTextFromBuffer(buffer, mimeType);
     const parsed = parseResumeText(text);
 
-    return NextResponse.json({
-      fileUrl:  ftpResult.url,
-      fileName: ftpResult.fileName,
-      parsed,
-    });
+    // Try FTP upload; if not configured or unavailable, skip gracefully
+    let fileUrl = "";
+    let fileName = "";
+    try {
+      const ftpResult = await uploadToFTP(buffer, file.name, "resumes");
+      fileUrl  = ftpResult.url;
+      fileName = ftpResult.fileName;
+    } catch (ftpErr: any) {
+      console.warn("FTP upload skipped (not configured or unreachable):", ftpErr.message);
+    }
+
+    return NextResponse.json({ fileUrl, fileName, parsed });
   } catch (err: any) {
     console.error("Resume parse error:", err);
     return NextResponse.json({ error: "Failed to process resume: " + (err.message ?? "unknown") }, { status: 500 });

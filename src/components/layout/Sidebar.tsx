@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   LayoutDashboard, Users, Building2, Clock, Calendar,
   FileText, DollarSign, Megaphone, UserCircle,
-  ChevronLeft, ChevronRight, LogOut, Briefcase, CalendarDays, UserPlus,
+  ChevronLeft, ChevronRight, LogOut, Briefcase, CalendarDays, UserPlus, ClipboardCheck,
 } from "lucide-react";
 
 const navGroups = [
@@ -27,6 +27,7 @@ const navGroups = [
     items: [
       { href: "/employees", icon: Users, label: "Employees", roles: ["super_admin", "hr_admin", "manager"] },
       { href: "/hiring", icon: UserPlus, label: "Hiring", roles: ["super_admin", "hr_admin", "manager"] },
+      { href: "/onboarding", icon: ClipboardCheck, label: "Onboarding", roles: ["super_admin", "hr_admin"] },
       { href: "/departments", icon: Building2, label: "Departments", roles: ["super_admin", "hr_admin"] },
       { href: "/attendance", icon: Clock, label: "Attendance", roles: ["super_admin", "hr_admin", "manager", "employee"] },
       { href: "/leaves", icon: Calendar, label: "Leaves", roles: ["super_admin", "hr_admin", "manager", "employee"] },
