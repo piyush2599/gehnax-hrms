@@ -12,11 +12,17 @@ export async function GET(
 
   await connectDB();
 
-  const employee = await Employee.findById(params.id).select("avatarData");
+  const employee = await Employee.findById(params.id).select("avatar avatarData");
 
-  if (!employee?.avatarData) {
-    return new NextResponse("No photo", { status: 404 });
+  if (!employee) return new NextResponse("Not found", { status: 404 });
+
+  // FTP/external URL — redirect directly
+  if (employee.avatar?.startsWith("http")) {
+    return NextResponse.redirect(employee.avatar);
   }
+
+  // Legacy base64 fallback
+  if (!employee.avatarData) return new NextResponse("No photo", { status: 404 });
 
   const dataUrl = employee.avatarData;
   const commaIdx = dataUrl.indexOf(",");

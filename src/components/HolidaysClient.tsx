@@ -82,7 +82,7 @@ export default function HolidaysClient() {
           <p className="text-sm text-slate-500">{list.length} holidays</p>
         </div>
         {canManage && (
-          <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm" onClick={() => setAddOpen(true)}>
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm" onClick={() => setAddOpen(true)}>
             <Plus className="w-4 h-4 mr-1.5" />
             Add Holiday
           </Button>
@@ -161,7 +161,7 @@ export default function HolidaysClient() {
             </div>
             <p className="text-sm font-medium text-slate-600">No holidays for {year}</p>
             {canManage && (
-              <Button onClick={() => setAddOpen(true)} className="mt-4 bg-blue-600 hover:bg-blue-700" size="sm">
+              <Button onClick={() => setAddOpen(true)} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white" size="sm">
                 Add First Holiday
               </Button>
             )}
@@ -300,7 +300,7 @@ function AddHolidayForm({ onSuccess }: { onSuccess: () => void }) {
           onChange={(e) => set("description", e.target.value)}
         />
       </div>
-      <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+      <Button type="submit" loading={loading} className="w-full">
         {loading ? "Adding…" : "Add Holiday"}
       </Button>
     </form>

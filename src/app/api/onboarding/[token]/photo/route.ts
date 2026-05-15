@@ -18,19 +18,24 @@ export async function GET(
   await connectDB();
 
   const invite = await OnboardingInvite.findOne({ token: params.token }).select(
-    "profilePictureData"
+    "profilePicture profilePictureData"
   );
 
-  if (!invite?.profilePictureData) {
-    return new NextResponse("No photo uploaded", { status: 404 });
+  if (!invite) return new NextResponse("No photo uploaded", { status: 404 });
+
+  // FTP/external URL — redirect directly
+  if (invite.profilePicture?.startsWith("http")) {
+    return NextResponse.redirect(invite.profilePicture);
   }
 
-  // profilePictureData is stored as "data:<mime>;base64,<data>"
+  // Legacy base64 fallback
+  if (!invite.profilePictureData) return new NextResponse("No photo uploaded", { status: 404 });
+
   const dataUrl = invite.profilePictureData;
   const commaIdx = dataUrl.indexOf(",");
   if (commaIdx === -1) return new NextResponse("Invalid photo data", { status: 500 });
 
-  const meta = dataUrl.slice(5, commaIdx); // strip "data:"
+  const meta = dataUrl.slice(5, commaIdx);
   const mimeType = meta.split(";")[0] || "image/jpeg";
   const base64 = dataUrl.slice(commaIdx + 1);
   const buffer = Buffer.from(base64, "base64");

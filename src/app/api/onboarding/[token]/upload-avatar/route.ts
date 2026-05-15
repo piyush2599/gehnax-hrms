@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import OnboardingInvite from "@/models/OnboardingInvite";
+import { uploadToFTP } from "@/lib/ftp-upload";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -32,16 +33,14 @@ export async function POST(
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const base64 = buffer.toString("base64");
-    const mimeType = file.type;
+    const ext = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+    const { url } = await uploadToFTP(buffer, `avatar.${ext}`, "profile-photos");
 
-    // Store base64 in MongoDB — no FTP dependency
-    invite.profilePictureData = `data:${mimeType};base64,${base64}`;
-    // Set profilePicture to the secure API proxy URL
-    invite.profilePicture = `/api/onboarding/${params.token}/photo`;
+    invite.profilePicture = url;
+    invite.profilePictureData = undefined;
     await invite.save();
 
-    return NextResponse.json({ url: invite.profilePicture });
+    return NextResponse.json({ url });
   } catch (err: any) {
     console.error("Avatar upload failed:", err);
     return NextResponse.json({ error: "Upload failed: " + (err.message ?? "unknown") }, { status: 500 });

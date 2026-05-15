@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const protectedRoutes = [
-  "/dashboard",
-  "/employees",
-  "/attendance",
-  "/leaves",
-  "/timesheets",
-  "/payroll",
-  "/departments",
-  "/announcements",
-  "/profile",
-];
+function isPublic(pathname: string): boolean {
+  if (pathname === "/login") return true;
+  if (pathname === "/jobs" || pathname.startsWith("/jobs/")) return true;
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts[0] === "onboarding" && parts.length === 2) return true;
+  return false;
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -29,20 +25,52 @@ export async function middleware(req: NextRequest) {
 
   const isAuthenticated = !!token;
 
-  // Redirect authenticated users away from login
-  if (pathname === "/login" && isAuthenticated) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+  if (isPublic(pathname)) {
+    if (pathname === "/login" && isAuthenticated) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+    return NextResponse.next();
   }
 
-  // Protect routes
-  const isProtected = protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
-  );
-
-  if (isProtected && !isAuthenticated) {
+  if (!isAuthenticated) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // ── MFA gate ──────────────────────────────────────────────────────────────
+  // If the MFA API just issued an mfa-complete cookie, honour it once and
+  // delete it — this replaces the unreliable update() + location.replace() approach.
+  // Short-lived cookie set by MFA API routes after success — acts as "MFA cleared
+  // this session" pass, bypassing stale JWT flags until the next token refresh.
+  const mfaComplete = req.cookies.get("mfa-complete")?.value === "1";
+  if (mfaComplete) {
+    if (pathname.startsWith("/mfa/")) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  const mfaPending       = !!(token as any).mfaPending;
+  const mfaSetupRequired = !!(token as any).mfaSetupRequired;
+
+  if (mfaPending) {
+    if (pathname !== "/mfa/verify") {
+      return NextResponse.redirect(new URL("/mfa/verify", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (mfaSetupRequired) {
+    if (pathname !== "/mfa/setup") {
+      return NextResponse.redirect(new URL("/mfa/setup", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Redirect away from /mfa/* when MFA is not needed
+  if (pathname.startsWith("/mfa/")) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   return NextResponse.next();

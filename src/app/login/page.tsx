@@ -5,9 +5,15 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Login" };
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: { callbackUrl?: string };
+}) {
   const session = await auth();
-  if (session) redirect("/dashboard");
+  if (session) redirect(searchParams.callbackUrl || "/dashboard");
+
+  const callbackUrl = searchParams.callbackUrl || "/dashboard";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
@@ -26,7 +32,7 @@ export default async function LoginPage() {
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white">HRMS Portal</h1>
+          <h1 className="text-3xl font-bold text-white">Gehnax HRMS</h1>
           <p className="text-blue-200 mt-1">Human Resource Management System</p>
         </div>
 
@@ -34,11 +40,11 @@ export default async function LoginPage() {
         <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl p-8">
           <h2 className="text-xl font-semibold text-white mb-1">Welcome back</h2>
           <p className="text-blue-200 text-sm mb-6">Sign in to your account to continue</p>
-          <LoginForm />
+          <LoginForm callbackUrl={callbackUrl} />
         </div>
 
         <p className="text-center text-blue-300 text-xs mt-6">
-          © {new Date().getFullYear()} HRMS Portal. All rights reserved.
+          © {new Date().getFullYear()} Gehnax HRMS. All rights reserved.
         </p>
       </div>
     </div>

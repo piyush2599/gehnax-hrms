@@ -54,6 +54,26 @@ export interface IEmployee extends Document {
     paternity: number;
     unpaid: number;
   };
+  resignation?: {
+    submittedAt: Date;
+    lastWorkingDay: Date;
+    reason?: string;
+    status: "pending" | "accepted" | "withdrawn";
+    acceptedBy?: mongoose.Types.ObjectId;
+    acceptedAt?: Date;
+    hrNotes?: string;
+  };
+  pip?: {
+    status: "active" | "completed" | "cancelled";
+    startDate: Date;
+    endDate: Date;
+    goals: string;
+    reviewDate?: Date;
+    notes?: string;
+    initiatedBy?: mongoose.Types.ObjectId;
+    initiatedAt: Date;
+    completedAt?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -117,6 +137,26 @@ const EmployeeSchema = new Schema<IEmployee>(
       maternity: { type: Number, default: 0 },
       paternity: { type: Number, default: 0 },
       unpaid: { type: Number, default: 0 },
+    },
+    resignation: {
+      submittedAt: Date,
+      lastWorkingDay: Date,
+      reason: String,
+      status: { type: String, enum: ["pending", "accepted", "withdrawn"] },
+      acceptedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      acceptedAt: Date,
+      hrNotes: String,
+    },
+    pip: {
+      status: { type: String, enum: ["active", "completed", "cancelled"] },
+      startDate: Date,
+      endDate: Date,
+      goals: String,
+      reviewDate: Date,
+      notes: String,
+      initiatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+      initiatedAt: Date,
+      completedAt: Date,
     },
   },
   { timestamps: true }

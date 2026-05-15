@@ -8,15 +8,15 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: {
-    default: "HRMS Portal",
-    template: "%s | HRMS Portal",
+    default: "Gehnax HRMS",
+    template: "%s | Gehnax HRMS",
   },
   description: "Human Resource Management System",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "HRMS Portal",
+    title: "Gehnax HRMS",
   },
   other: {
     "mobile-web-app-capable": "yes",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    title: "HRMS Portal",
+    title: "Gehnax HRMS",
     description: "Human Resource Management System",
   },
 };

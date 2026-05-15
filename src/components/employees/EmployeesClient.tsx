@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,6 @@ import { Plus, Search, Users, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-import EmployeeDetail from "./EmployeeDetail";
 import CTCCalculator from "./CTCCalculator";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -30,9 +30,9 @@ const EMP_TYPE_COLORS: Record<string, string> = {
 };
 
 export default function EmployeesClient() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  const [viewId, setViewId] = useState<string | null>(null);
   const [deptFilter, setDeptFilter] = useState("all");
   const { data: session } = useSession();
   const role = (session?.user as any)?.role;
@@ -52,7 +52,7 @@ export default function EmployeesClient() {
         </p>
         {canAdd && (
           <Button
-            className="bg-blue-600 hover:bg-blue-700 shadow-sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
             onClick={() => setAddOpen(true)}
           >
             <Plus className="w-4 h-4 mr-1.5" />
@@ -137,7 +137,7 @@ export default function EmployeesClient() {
                   <TableRow
                     key={emp._id}
                     className="hover:bg-slate-50 transition-colors cursor-pointer"
-                    onClick={() => setViewId(emp._id)}
+                    onClick={() => router.push(`/employees/${emp._id}`)}
                   >
                     <TableCell className="pl-5">
                       <div className="flex items-center gap-3">
@@ -189,18 +189,6 @@ export default function EmployeesClient() {
         </CardContent>
       </Card>
 
-      {/* Detail modal */}
-      {viewId && (
-        <Dialog open={!!viewId} onOpenChange={() => setViewId(null)}>
-          <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
-            <EmployeeDetail
-              employeeId={viewId}
-              onClose={() => setViewId(null)}
-              onUpdate={() => mutate(apiUrl)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
@@ -417,7 +405,7 @@ function AddEmployeeForm({
         Default login password: <strong>Welcome@123</strong>
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+      <Button type="submit" loading={loading} className="w-full">
         {loading ? "Adding…" : "Add Employee"}
       </Button>
     </form>

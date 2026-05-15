@@ -41,7 +41,7 @@ export default function AnnouncementsClient() {
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-slate-500">{list.length} announcements</p>
         {isAdminOrHR && (
-          <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm" size="sm" onClick={() => setAddOpen(true)}>
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm" size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="w-4 h-4 mr-1.5" />
             New Announcement
           </Button>
@@ -147,7 +147,7 @@ function AddAnnouncementForm({ onSuccess }: { onSuccess: () => void }) {
           <option value="urgent">Urgent</option>
         </NativeSelect>
       </div>
-      <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+      <Button type="submit" loading={loading} className="w-full">
         {loading ? "Posting…" : "Post Announcement"}
       </Button>
     </form>

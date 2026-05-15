@@ -58,7 +58,7 @@ export default function LeavesClient() {
             </Badge>
           )}
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm" size="sm" onClick={() => setApplyOpen(true)}>
+        <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm" size="sm" onClick={() => setApplyOpen(true)}>
           <Plus className="w-4 h-4 mr-1.5" />
           Apply Leave
         </Button>
@@ -240,7 +240,7 @@ function ApplyLeaveForm({ onSuccess }: { onSuccess: () => void }) {
         <Label>Reason *</Label>
         <Textarea value={form.reason} onChange={(e) => set("reason", e.target.value)} placeholder="Reason for leave…" rows={3} required />
       </div>
-      <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+      <Button type="submit" loading={loading} className="w-full">
         {loading ? "Submitting…" : "Submit Application"}
       </Button>
     </form>

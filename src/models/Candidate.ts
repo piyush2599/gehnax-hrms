@@ -1,5 +1,20 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface IInterview {
+  _id: mongoose.Types.ObjectId;
+  round: number;
+  type: "phone" | "video" | "onsite" | "technical" | "hr_round";
+  scheduledAt: Date;
+  interviewer: string;
+  location?: string;
+  meetingLink?: string;
+  status: "scheduled" | "completed" | "cancelled" | "rescheduled";
+  feedback?: string;
+  rating?: number;
+  recommendation?: "strong_hire" | "hire" | "hold" | "no_hire";
+  completedAt?: Date;
+}
+
 export interface ICandidate extends Document {
   _id: mongoose.Types.ObjectId;
   firstName: string;
@@ -16,34 +31,55 @@ export interface ICandidate extends Document {
   resumeUrl?: string;
   notes?: string;
   interviewNotes?: string;
+  interviews: IInterview[];
   offer?: {
-    ctc?: number;
+    ctcAnnual?: number;
     joiningDate?: Date;
     designation?: string;
+    location?: string;
+    department?: string;
+    reportingManager?: string;
+    offerNumber?: string;
     isMetro: boolean;
     generatedAt?: Date;
     sentAt?: Date;
     acceptedAt?: Date;
+    declinedAt?: Date;
     expiresAt?: Date;
     status: "draft" | "sent" | "accepted" | "declined" | "expired";
   };
   rejectionReason?: string;
+  convertedEmployeeId?: mongoose.Types.ObjectId;
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
+const InterviewSchema = new Schema<IInterview>({
+  round:          { type: Number, required: true },
+  type:           { type: String, enum: ["phone", "video", "onsite", "technical", "hr_round"], required: true },
+  scheduledAt:    { type: Date, required: true },
+  interviewer:    { type: String, required: true },
+  location:       { type: String },
+  meetingLink:    { type: String },
+  status:         { type: String, enum: ["scheduled", "completed", "cancelled", "rescheduled"], default: "scheduled" },
+  feedback:       { type: String },
+  rating:         { type: Number, min: 1, max: 5 },
+  recommendation: { type: String, enum: ["strong_hire", "hire", "hold", "no_hire"] },
+  completedAt:    { type: Date },
+});
+
 const CandidateSchema = new Schema<ICandidate>(
   {
-    firstName: { type: String, required: true, trim: true },
-    lastName: { type: String, required: true, trim: true },
-    email: { type: String, required: true, lowercase: true, trim: true },
-    phone: { type: String },
-    jobPosting: { type: Schema.Types.ObjectId, ref: "JobPosting", required: true },
-    currentCompany: { type: String },
+    firstName:          { type: String, required: true, trim: true },
+    lastName:           { type: String, required: true, trim: true },
+    email:              { type: String, required: true, lowercase: true, trim: true },
+    phone:              { type: String },
+    jobPosting:         { type: Schema.Types.ObjectId, ref: "JobPosting", required: true },
+    currentCompany:     { type: String },
     currentDesignation: { type: String },
-    totalExperience: { type: Number, default: 0 },
-    skills: [{ type: String }],
+    totalExperience:    { type: Number, default: 0 },
+    skills:             [{ type: String }],
     stage: {
       type: String,
       enum: ["applied", "screening", "interview", "offer", "hired", "rejected"],
@@ -54,26 +90,33 @@ const CandidateSchema = new Schema<ICandidate>(
       enum: ["linkedin", "referral", "direct", "job_portal", "other"],
       default: "direct",
     },
-    resumeUrl: { type: String },
-    notes: { type: String },
+    resumeUrl:      { type: String },
+    notes:          { type: String },
     interviewNotes: { type: String },
+    interviews:     [InterviewSchema],
     offer: {
-      ctc: { type: Number },
-      joiningDate: { type: Date },
-      designation: { type: String },
-      isMetro: { type: Boolean, default: true },
-      generatedAt: { type: Date },
-      sentAt: { type: Date },
-      acceptedAt: { type: Date },
-      expiresAt: { type: Date },
+      ctcAnnual:        { type: Number },
+      joiningDate:      { type: Date },
+      designation:      { type: String },
+      location:         { type: String },
+      department:       { type: String },
+      reportingManager: { type: String },
+      offerNumber:      { type: String },
+      isMetro:          { type: Boolean, default: true },
+      generatedAt:      { type: Date },
+      sentAt:           { type: Date },
+      acceptedAt:       { type: Date },
+      declinedAt:       { type: Date },
+      expiresAt:        { type: Date },
       status: {
         type: String,
         enum: ["draft", "sent", "accepted", "declined", "expired"],
         default: "draft",
       },
     },
-    rejectionReason: { type: String },
-    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+    rejectionReason:     { type: String },
+    convertedEmployeeId: { type: Schema.Types.ObjectId, ref: "Employee" },
+    createdBy:           { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );

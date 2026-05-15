@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import useSWR, { mutate } from "swr";
-import { DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,19 +16,22 @@ import { NativeSelect } from "@/components/ui/native-select";
 import {
   Mail, Phone, MapPin, Building2, Calendar,
   User, Briefcase, CreditCard, Pencil, X, Check,
-  ChevronDown, ChevronUp, Sparkles,
+  ChevronDown, ChevronUp, Sparkles, FolderOpen, ChevronLeft,
+  LogOut, Target, AlertTriangle,
 } from "lucide-react";
 import { formatDate, formatCurrency, getInitials, cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import CTCCalculator from "./CTCCalculator";
+import EmployeeDocuments from "./EmployeeDocuments";
+import ResignModal from "./ResignModal";
+import PIPModal from "./PIPModal";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface Props {
   employeeId: string;
-  onClose: () => void;
-  onUpdate: () => void;
+  onUpdate?: () => void;
 }
 
 const EMP_TYPE_COLORS: Record<string, string> = {
@@ -38,10 +41,13 @@ const EMP_TYPE_COLORS: Record<string, string> = {
   intern:    "bg-violet-50 text-violet-700 border-violet-200",
 };
 
-export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
+export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Props) {
+  const router = useRouter();
   const { data: session } = useSession();
   const role = (session?.user as any)?.role;
+  const myEmployeeId = (session?.user as any)?.employeeId?.toString();
   const canEdit = ["super_admin", "hr_admin"].includes(role);
+  const canManageDocs = canEdit || myEmployeeId === employeeId;
 
   const { data: emp, isLoading } = useSWR(`/api/employees/${employeeId}`, fetcher);
   const { data: departments } = useSWR(canEdit ? "/api/departments" : null, fetcher);
@@ -51,6 +57,8 @@ export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
   const [saving, setSaving] = useState(false);
   const [showCTC, setShowCTC] = useState(false);
   const [form, setForm] = useState<any>({});
+  const [showResign, setShowResign] = useState(false);
+  const [showPIP, setShowPIP] = useState(false);
 
   const deptList = Array.isArray(departments) ? departments : [];
   const allEmployees = empList?.employees || [];
@@ -162,7 +170,14 @@ export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
 
   return (
     <div className="space-y-5">
-      <DialogTitle className="sr-only">Employee Details</DialogTitle>
+      {/* Back navigation */}
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors -ml-0.5 mb-1"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Back to Employees
+      </button>
 
       {/* Header */}
       <div className="flex items-start gap-4 pb-1">
@@ -194,46 +209,78 @@ export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
                 {emp.employmentType.replace("_", " ")}
               </Badge>
             )}
+            {emp.pip?.status === "active" && (
+              <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300 gap-1">
+                <Target className="w-2.5 h-2.5" /> PIP Active
+              </Badge>
+            )}
+            {emp.resignation?.status === "pending" && (
+              <Badge variant="outline" className="text-xs bg-red-50 text-red-600 border-red-200 gap-1">
+                <AlertTriangle className="w-2.5 h-2.5" /> Notice Period
+              </Badge>
+            )}
           </div>
         </div>
 
-        {/* Edit / Save / Cancel */}
-        {canEdit && (
-          <div className="flex gap-2 flex-shrink-0">
-            {editing ? (
-              <>
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-emerald-600 hover:bg-emerald-700 gap-1.5"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  {saving ? "Saving…" : "Save"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setEditing(false)}
-                  className="border-slate-200 gap-1.5"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  Cancel
-                </Button>
-              </>
-            ) : (
+        {/* Actions */}
+        <div className="flex flex-wrap gap-2 flex-shrink-0">
+          {canEdit && !editing && (
+            <>
+              {/* PIP button */}
               <Button
                 size="sm"
                 variant="outline"
-                onClick={startEdit}
-                className="border-slate-200 gap-1.5"
+                onClick={() => setShowPIP(true)}
+                className={cn(
+                  "gap-1.5",
+                  emp.pip?.status === "active"
+                    ? "border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100"
+                    : "border-slate-200"
+                )}
               >
+                <Target className="w-3.5 h-3.5" />
+                {emp.pip?.status === "active" ? "View PIP" : "Initiate PIP"}
+              </Button>
+
+              {/* Resign / Resignation status */}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowResign(true)}
+                className={cn(
+                  "gap-1.5",
+                  emp.resignation?.status === "pending"
+                    ? "border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100"
+                    : emp.resignation?.status === "accepted"
+                    ? "border-red-200 text-red-600 bg-red-50 hover:bg-red-100"
+                    : "border-slate-200"
+                )}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                {emp.resignation?.status === "pending" ? "Review Resignation"
+                  : emp.resignation?.status === "accepted" ? "Resignation Accepted"
+                  : "Resignation"}
+              </Button>
+
+              <Button size="sm" variant="outline" onClick={startEdit} className="border-slate-200 gap-1.5">
                 <Pencil className="w-3.5 h-3.5" />
                 Edit
               </Button>
-            )}
-          </div>
-        )}
+            </>
+          )}
+          {canEdit && editing && (
+            <>
+              <Button size="sm" onClick={handleSave} loading={saving} variant="success" className="gap-1.5">
+                <Check className="w-3.5 h-3.5" />
+                Save
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="border-slate-200 gap-1.5">
+                <X className="w-3.5 h-3.5" />
+                Cancel
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <Separator />
@@ -241,7 +288,7 @@ export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
       {/* ── VIEW MODE: tabs ── */}
       {!editing && (
         <Tabs defaultValue="info">
-          <TabsList className="grid grid-cols-3 w-full bg-slate-100">
+          <TabsList className="grid grid-cols-4 w-full bg-slate-100">
             <TabsTrigger value="info" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
               <User className="w-3.5 h-3.5" />
               Personal
@@ -253,6 +300,10 @@ export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
             <TabsTrigger value="salary" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
               <CreditCard className="w-3.5 h-3.5" />
               Salary
+            </TabsTrigger>
+            <TabsTrigger value="docs" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
+              <FolderOpen className="w-3.5 h-3.5" />
+              Docs
             </TabsTrigger>
           </TabsList>
 
@@ -344,6 +395,11 @@ export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Documents */}
+          <TabsContent value="docs" className="mt-4">
+            <EmployeeDocuments employeeId={employeeId} canUpload={canManageDocs} />
           </TabsContent>
         </Tabs>
       )}
@@ -550,12 +606,13 @@ export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
           {/* Bottom action bar */}
           <div className="flex gap-3 pt-2 border-t border-slate-100">
             <Button
+              variant="success"
               onClick={handleSave}
-              disabled={saving}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 gap-2"
+              loading={saving}
+              className="flex-1 gap-2"
             >
               <Check className="w-4 h-4" />
-              {saving ? "Saving…" : "Save Changes"}
+              Save Changes
             </Button>
             <Button
               variant="outline"
@@ -567,6 +624,25 @@ export default function EmployeeDetail({ employeeId, onUpdate }: Props) {
             </Button>
           </div>
         </div>
+      )}
+
+      {showResign && (
+        <ResignModal
+          employeeId={employeeId}
+          employeeName={`${emp.firstName} ${emp.lastName}`}
+          resignation={emp.resignation}
+          isHR={canEdit}
+          isOwner={myEmployeeId === employeeId}
+          onClose={() => setShowResign(false)}
+        />
+      )}
+      {showPIP && (
+        <PIPModal
+          employeeId={employeeId}
+          employeeName={`${emp.firstName} ${emp.lastName}`}
+          pip={emp.pip}
+          onClose={() => setShowPIP(false)}
+        />
       )}
     </div>
   );

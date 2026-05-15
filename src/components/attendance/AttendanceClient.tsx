@@ -342,7 +342,7 @@ function ManualAttendanceForm({ onSuccess }: { onSuccess: () => void }) {
         <Label>Notes</Label>
         <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Optional notes" />
       </div>
-      <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+      <Button type="submit" loading={loading} className="w-full">
         {loading ? "Saving…" : "Save Attendance"}
       </Button>
     </form>

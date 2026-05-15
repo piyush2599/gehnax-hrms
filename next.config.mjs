@@ -32,6 +32,8 @@ const nextConfig = {
       "mongoose",
       "mongodb-memory-server",
       "mongodb-memory-server-core",
+      "otplib",
+      "qrcode",
     ],
   },
 };

@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/utils";
 import { useSidebar } from "./sidebar-context";
@@ -12,40 +11,46 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   LayoutDashboard, Users, Building2, Clock, Calendar,
   FileText, DollarSign, Megaphone, UserCircle,
-  ChevronLeft, ChevronRight, LogOut, Briefcase, CalendarDays, UserPlus, ClipboardCheck,
+  ChevronLeft, ChevronRight, LogOut, Briefcase,
+  CalendarDays, UserPlus, ClipboardCheck, ShieldCheck, X,
 } from "lucide-react";
 
 const navGroups = [
   {
     label: "Overview",
+    color: { dot: "bg-blue-500", label: "text-blue-400/80" },
     items: [
-      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin", "hr_admin", "manager", "employee"] },
+      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ["super_admin","hr_admin","manager","employee"] },
     ],
   },
   {
     label: "HR Management",
+    color: { dot: "bg-violet-500", label: "text-violet-400/80" },
     items: [
-      { href: "/employees", icon: Users, label: "Employees", roles: ["super_admin", "hr_admin", "manager"] },
-      { href: "/hiring", icon: UserPlus, label: "Hiring", roles: ["super_admin", "hr_admin", "manager"] },
-      { href: "/onboarding", icon: ClipboardCheck, label: "Onboarding", roles: ["super_admin", "hr_admin"] },
-      { href: "/departments", icon: Building2, label: "Departments", roles: ["super_admin", "hr_admin"] },
-      { href: "/attendance", icon: Clock, label: "Attendance", roles: ["super_admin", "hr_admin", "manager", "employee"] },
-      { href: "/leaves", icon: Calendar, label: "Leaves", roles: ["super_admin", "hr_admin", "manager", "employee"] },
+      { href: "/employees",   icon: Users,          label: "Employees",   roles: ["super_admin","hr_admin","manager"] },
+      { href: "/hiring",      icon: UserPlus,       label: "Hiring",      roles: ["super_admin","hr_admin","manager"] },
+      { href: "/onboarding",  icon: ClipboardCheck, label: "Onboarding",  roles: ["super_admin","hr_admin"] },
+      { href: "/departments", icon: Building2,      label: "Departments", roles: ["super_admin","hr_admin"] },
+      { href: "/roles",       icon: ShieldCheck,    label: "Roles",       roles: ["super_admin","hr_admin"] },
+      { href: "/attendance",  icon: Clock,          label: "Attendance",  roles: ["super_admin","hr_admin","manager","employee"] },
+      { href: "/leaves",      icon: Calendar,       label: "Leaves",      roles: ["super_admin","hr_admin","manager","employee"] },
     ],
   },
   {
     label: "Work",
+    color: { dot: "bg-emerald-500", label: "text-emerald-400/80" },
     items: [
-      { href: "/timesheets", icon: FileText, label: "Timesheets", roles: ["super_admin", "hr_admin", "manager", "employee"] },
-      { href: "/payroll", icon: DollarSign, label: "Payroll", roles: ["super_admin", "hr_admin", "employee"] },
+      { href: "/timesheets", icon: FileText,    label: "Timesheets", roles: ["super_admin","hr_admin","manager","employee"] },
+      { href: "/payroll",    icon: DollarSign,  label: "Payroll",    roles: ["super_admin","hr_admin","employee"] },
     ],
   },
   {
     label: "General",
+    color: { dot: "bg-amber-500", label: "text-amber-400/80" },
     items: [
-      { href: "/holidays", icon: CalendarDays, label: "Holidays", roles: ["super_admin", "hr_admin", "manager", "employee"] },
-      { href: "/announcements", icon: Megaphone, label: "Announcements", roles: ["super_admin", "hr_admin", "manager", "employee"] },
-      { href: "/profile", icon: UserCircle, label: "My Profile", roles: ["super_admin", "hr_admin", "manager", "employee"] },
+      { href: "/holidays",      icon: CalendarDays, label: "Holidays",      roles: ["super_admin","hr_admin","manager","employee"] },
+      { href: "/announcements", icon: Megaphone,    label: "Announcements", roles: ["super_admin","hr_admin","manager","employee"] },
+      { href: "/profile",       icon: UserCircle,   label: "My Profile",    roles: ["super_admin","hr_admin","manager","employee"] },
     ],
   },
 ];
@@ -57,67 +62,87 @@ const roleLabels: Record<string, string> = {
   employee: "Employee",
 };
 
-function SidebarInner({ collapsed }: { collapsed: boolean }) {
-  const { setMobileOpen } = useSidebar();
+const ROLE_BADGE: Record<string, string> = {
+  super_admin: "bg-red-500/20 text-red-300 border-red-500/20",
+  hr_admin:    "bg-violet-500/20 text-violet-300 border-violet-500/20",
+  manager:     "bg-blue-500/20 text-blue-300 border-blue-500/20",
+  employee:    "bg-emerald-500/20 text-emerald-300 border-emerald-500/20",
+};
+
+function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role || "employee";
   const user = session?.user as any;
-  const userRole = user?.role || "employee";
 
   return (
     <div className="flex flex-col h-full">
       {/* Brand */}
       <div className={cn(
-        "flex items-center h-16 border-b border-slate-700/60 px-4 flex-shrink-0 gap-3",
-        collapsed && "justify-center px-2"
+        "flex items-center h-16 px-4 flex-shrink-0 gap-3 border-b border-white/6",
+        collapsed && "justify-center px-0"
       )}>
-        <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
-          <Briefcase className="w-[18px] h-[18px] text-white" />
+        <div className="relative w-9 h-9 flex-shrink-0">
+          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/40 animate-glow-ring">
+            <Briefcase className="w-[18px] h-[18px] text-white" />
+          </div>
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0d1117] shadow-sm" />
         </div>
         {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-white font-bold text-sm leading-none tracking-tight">HRMS Portal</p>
-            <p className="text-slate-400 text-xs mt-1 capitalize leading-none">
-              {roleLabels[userRole] ?? userRole.replace("_", " ")}
+          <div className="min-w-0 flex-1">
+            <p className="text-white font-bold text-sm leading-none tracking-tight">Gehnax HRMS</p>
+            <p className={cn("text-xs mt-1.5 leading-none font-medium px-1.5 py-0.5 rounded-md border w-fit", ROLE_BADGE[userRole] ?? "bg-slate-500/20 text-slate-300 border-slate-500/20")}>
+              {roleLabels[userRole] ?? userRole.replace("_"," ")}
             </p>
           </div>
         )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-0.5 scrollbar-thin">
         {navGroups.map((group) => {
           const visible = group.items.filter((i) => i.roles.includes(userRole));
           if (!visible.length) return null;
           return (
-            <div key={group.label} className="mb-3">
+            <div key={group.label} className="mb-1">
               {!collapsed && (
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 mb-1">
-                  {group.label}
-                </p>
+                <div className="flex items-center gap-1.5 px-2.5 mb-1 mt-2">
+                  <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", group.color.dot)} />
+                  <p className={cn("text-[9px] font-bold uppercase tracking-widest", group.color.label)}>
+                    {group.label}
+                  </p>
+                </div>
               )}
               {visible.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setMobileOpen(false)}
+                    onClick={onNav}
                     title={collapsed ? item.label : undefined}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group",
+                      "relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 group mb-0.5",
                       isActive
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
-                        : "text-slate-400 hover:bg-slate-700/50 hover:text-white",
-                      collapsed && "justify-center px-2"
+                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30"
+                        : "text-slate-400 hover:bg-white/6 hover:text-white",
+                      collapsed && "justify-center px-0 py-3"
                     )}
                   >
                     <item.icon className={cn(
-                      "w-[18px] h-[18px] flex-shrink-0 transition-colors",
-                      isActive ? "text-white" : "text-slate-500 group-hover:text-slate-200"
+                      "flex-shrink-0 transition-all duration-200",
+                      isActive ? "w-[17px] h-[17px] text-white" : "w-[17px] h-[17px] text-slate-500 group-hover:text-slate-200"
                     )} />
                     {!collapsed && (
-                      <span className="text-sm font-medium leading-none">{item.label}</span>
+                      <>
+                        <span className="text-sm font-medium leading-none flex-1">{item.label}</span>
+                        {isActive && (
+                          <ChevronRight className="w-3 h-3 text-white/60 ml-auto" />
+                        )}
+                      </>
+                    )}
+                    {isActive && collapsed && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-blue-400 rounded-r-full" />
                     )}
                   </Link>
                 );
@@ -127,41 +152,31 @@ function SidebarInner({ collapsed }: { collapsed: boolean }) {
         })}
       </nav>
 
-      {/* User + sign out */}
-      <div className="border-t border-slate-700/60 p-3 space-y-1 flex-shrink-0">
-        {!collapsed && (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl mb-1">
-            <Avatar className="w-8 h-8 flex-shrink-0">
-              <AvatarFallback className="bg-blue-600/20 text-blue-400 text-xs font-bold border border-blue-500/20">
+      {/* User footer */}
+      <div className="border-t border-white/6 p-3 flex-shrink-0">
+        {!collapsed ? (
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-white/5 transition-colors mb-1 group cursor-default">
+            <Avatar className="w-8 h-8 flex-shrink-0 ring-2 ring-white/10">
+              <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white text-xs font-bold">
                 {user?.name ? getInitials(user.name) : "?"}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white leading-none truncate">{user?.name}</p>
-              <p className="text-xs text-slate-400 mt-1 truncate">{user?.email}</p>
+              <p className="text-xs text-slate-500 mt-1 truncate">{user?.email}</p>
             </div>
           </div>
-        )}
+        ) : null}
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); signOut({ callbackUrl: "/login" }); }}
           title={collapsed ? "Sign Out" : undefined}
           className={cn(
-            "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm font-medium",
+            "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/8 transition-all text-sm font-medium",
             collapsed && "justify-center"
           )}
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
           {!collapsed && <span>Sign Out</span>}
-        </button>
-      </div>
-
-      {/* Collapse toggle (desktop only) */}
-      <div className="hidden md:block border-t border-slate-700/60 p-2 flex-shrink-0">
-        <button
-          onClick={() => {}}
-          className="w-full flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-all"
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </div>
     </div>
@@ -175,43 +190,24 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop */}
-      <aside
-        className={cn(
-          "hidden md:flex flex-col bg-slate-900 border-r border-slate-700/60 transition-all duration-300 flex-shrink-0",
-          collapsed ? "w-16" : "w-60"
-        )}
-      >
-        <div className="flex flex-col h-full" onClick={(e) => {
-          const btn = (e.target as HTMLElement).closest("[data-collapse]");
-          if (btn) setCollapsed((c) => !c);
-        }}>
-          {/* Override collapse button to use local state */}
-          <div className="flex flex-col h-full">
-            <div className={cn(
-              "flex items-center h-16 border-b border-slate-700/60 px-4 flex-shrink-0 gap-3",
-              collapsed && "justify-center px-2"
-            )}>
-              <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/30">
-                <Briefcase className="w-[18px] h-[18px] text-white" />
-              </div>
-              {!collapsed && (
-                <div className="min-w-0">
-                  <p className="text-white font-bold text-sm leading-none tracking-tight">HRMS Portal</p>
-                  <DesktopRole collapsed={collapsed} />
-                </div>
-              )}
-            </div>
-            <DesktopNav collapsed={collapsed} />
-            <DesktopUser collapsed={collapsed} />
-            <div className="border-t border-slate-700/60 p-2 flex-shrink-0">
-              <button
-                onClick={() => setCollapsed((c) => !c)}
-                className="w-full flex items-center justify-center p-2 rounded-xl text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-all"
-                title={collapsed ? "Expand" : "Collapse"}
-              >
-                {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-              </button>
-            </div>
+      <aside className={cn(
+        "hidden md:flex flex-col bg-[#0d1117] border-r border-white/6 transition-all duration-300 ease-in-out flex-shrink-0",
+        collapsed ? "w-[60px]" : "w-[220px]"
+      )}>
+        <div className="flex flex-col h-full">
+          <NavContent collapsed={collapsed} />
+          {/* Collapse toggle */}
+          <div className="border-t border-white/6 p-2 flex-shrink-0">
+            <button
+              onClick={() => setCollapsed((c) => !c)}
+              className="w-full flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all"
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed
+                ? <ChevronRight className="w-4 h-4" />
+                : <ChevronLeft className="w-4 h-4" />
+              }
+            </button>
           </div>
         </div>
       </aside>
@@ -220,108 +216,20 @@ export default function Sidebar() {
       {mobileOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/60 z-40 md:hidden"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 md:hidden animate-fade-in"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 w-64 bg-slate-900 z-50 shadow-2xl md:hidden">
-            <SidebarInner collapsed={false} />
+          <aside className="fixed inset-y-0 left-0 w-[240px] bg-[#0d1117] z-50 shadow-2xl md:hidden animate-slide-right">
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <NavContent collapsed={false} onNav={() => setMobileOpen(false)} />
           </aside>
         </>
       )}
     </>
-  );
-}
-
-function DesktopRole({ collapsed }: { collapsed: boolean }) {
-  const { data: session } = useSession();
-  const user = session?.user as any;
-  if (collapsed) return null;
-  return (
-    <p className="text-slate-400 text-xs mt-1 capitalize leading-none">
-      {roleLabels[user?.role] ?? (user?.role || "employee").replace("_", " ")}
-    </p>
-  );
-}
-
-function DesktopNav({ collapsed }: { collapsed: boolean }) {
-  const { setMobileOpen } = useSidebar();
-  const pathname = usePathname();
-  const { data: session } = useSession();
-  const userRole = (session?.user as any)?.role || "employee";
-
-  return (
-    <nav className="flex-1 overflow-y-auto py-4 px-3">
-      {navGroups.map((group) => {
-        const visible = group.items.filter((i) => i.roles.includes(userRole));
-        if (!visible.length) return null;
-        return (
-          <div key={group.label} className="mb-3">
-            {!collapsed && (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 mb-1">
-                {group.label}
-              </p>
-            )}
-            {visible.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  title={collapsed ? item.label : undefined}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group mb-0.5",
-                    isActive
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
-                      : "text-slate-400 hover:bg-slate-700/50 hover:text-white",
-                    collapsed && "justify-center px-2"
-                  )}
-                >
-                  <item.icon className={cn(
-                    "w-[18px] h-[18px] flex-shrink-0",
-                    isActive ? "text-white" : "text-slate-500 group-hover:text-slate-200"
-                  )} />
-                  {!collapsed && <span className="text-sm font-medium leading-none">{item.label}</span>}
-                </Link>
-              );
-            })}
-          </div>
-        );
-      })}
-    </nav>
-  );
-}
-
-function DesktopUser({ collapsed }: { collapsed: boolean }) {
-  const { data: session } = useSession();
-  const user = session?.user as any;
-
-  return (
-    <div className="border-t border-slate-700/60 p-3 space-y-1 flex-shrink-0">
-      {!collapsed && (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-xl mb-1">
-          <Avatar className="w-8 h-8 flex-shrink-0">
-            <AvatarFallback className="bg-blue-600/20 text-blue-400 text-xs font-bold border border-blue-500/20">
-              {user?.name ? getInitials(user.name) : "?"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white leading-none truncate">{user?.name}</p>
-            <p className="text-xs text-slate-400 mt-1 truncate">{user?.email}</p>
-          </div>
-        </div>
-      )}
-      <button
-        onClick={() => signOut({ callbackUrl: "/login" })}
-        title={collapsed ? "Sign Out" : undefined}
-        className={cn(
-          "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm font-medium",
-          collapsed && "justify-center"
-        )}
-      >
-        <LogOut className="w-4 h-4 flex-shrink-0" />
-        {!collapsed && <span>Sign Out</span>}
-      </button>
-    </div>
   );
 }

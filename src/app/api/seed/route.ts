@@ -76,7 +76,7 @@ export async function POST() {
   /* ── Create all employees ──────────────────────────── */
   const { employee: adminEmp } = await createEmployee({
     code: "EMP0001", firstName: "Rahul", lastName: "Sharma",
-    email: "admin@hrms.com", password: "Admin@123", role: "super_admin",
+    email: "admin@gehnax.com", password: "Admin@123", role: "super_admin",
     dept: "HR", designation: "System Administrator",
     joiningDate: new Date("2020-01-15"),
     salary: { basic: 90000, hra: 36000, allowances: 12000, deductions: 0 },
@@ -85,7 +85,7 @@ export async function POST() {
 
   const { employee: hrEmp } = await createEmployee({
     code: "EMP0002", firstName: "Priya", lastName: "Nair",
-    email: "hr@hrms.com", password: "Hr@123456", role: "hr_admin",
+    email: "hr@gehnax.com", password: "Hr@123456", role: "hr_admin",
     dept: "HR", designation: "HR Manager",
     joiningDate: new Date("2021-06-01"),
     salary: { basic: 65000, hra: 26000, allowances: 9000, deductions: 0 },
@@ -94,7 +94,7 @@ export async function POST() {
 
   const { employee: johnEmp } = await createEmployee({
     code: "EMP0003", firstName: "John", lastName: "Doe",
-    email: "john@hrms.com", password: "Emp@123456", role: "employee",
+    email: "john@gehnax.com", password: "Emp@123456", role: "employee",
     dept: "ENG", designation: "Software Engineer",
     joiningDate: new Date("2022-03-15"),
     salary: { basic: 55000, hra: 22000, allowances: 6000, deductions: 0 },
@@ -103,7 +103,7 @@ export async function POST() {
 
   const { employee: mgr1Emp } = await createEmployee({
     code: "EMP0004", firstName: "Rohan", lastName: "Verma",
-    email: "rohan.verma@hrms.com", password: "Welcome@123", role: "manager",
+    email: "rohan.verma@gehnax.com", password: "Welcome@123", role: "manager",
     dept: "ENG", designation: "Engineering Manager",
     joiningDate: new Date("2019-08-01"),
     salary: { basic: 120000, hra: 48000, allowances: 15000, deductions: 0 },
@@ -112,7 +112,7 @@ export async function POST() {
 
   const { employee: emp5 } = await createEmployee({
     code: "EMP0005", firstName: "Ananya", lastName: "Singh",
-    email: "ananya.singh@hrms.com", password: "Welcome@123", role: "employee",
+    email: "ananya.singh@gehnax.com", password: "Welcome@123", role: "employee",
     dept: "ENG", designation: "Frontend Developer",
     joiningDate: new Date("2022-09-01"),
     salary: { basic: 60000, hra: 24000, allowances: 7000, deductions: 0 },
@@ -121,7 +121,7 @@ export async function POST() {
 
   const { employee: emp6 } = await createEmployee({
     code: "EMP0006", firstName: "Vikram", lastName: "Patel",
-    email: "vikram.patel@hrms.com", password: "Welcome@123", role: "employee",
+    email: "vikram.patel@gehnax.com", password: "Welcome@123", role: "employee",
     dept: "ENG", designation: "DevOps Engineer",
     joiningDate: new Date("2021-11-10"),
     salary: { basic: 70000, hra: 28000, allowances: 8000, deductions: 0 },
@@ -130,7 +130,7 @@ export async function POST() {
 
   const { employee: emp7 } = await createEmployee({
     code: "EMP0007", firstName: "Neha", lastName: "Joshi",
-    email: "neha.joshi@hrms.com", password: "Welcome@123", role: "manager",
+    email: "neha.joshi@gehnax.com", password: "Welcome@123", role: "manager",
     dept: "FIN", designation: "Finance Manager",
     joiningDate: new Date("2020-04-01"),
     salary: { basic: 85000, hra: 34000, allowances: 10000, deductions: 0 },
@@ -139,7 +139,7 @@ export async function POST() {
 
   const { employee: emp8 } = await createEmployee({
     code: "EMP0008", firstName: "Arjun", lastName: "Kumar",
-    email: "arjun.kumar@hrms.com", password: "Welcome@123", role: "employee",
+    email: "arjun.kumar@gehnax.com", password: "Welcome@123", role: "employee",
     dept: "FIN", designation: "Senior Accountant",
     joiningDate: new Date("2021-07-15"),
     salary: { basic: 50000, hra: 20000, allowances: 6000, deductions: 0 },
@@ -148,7 +148,7 @@ export async function POST() {
 
   const { employee: emp9 } = await createEmployee({
     code: "EMP0009", firstName: "Sneha", lastName: "Reddy",
-    email: "sneha.reddy@hrms.com", password: "Welcome@123", role: "manager",
+    email: "sneha.reddy@gehnax.com", password: "Welcome@123", role: "manager",
     dept: "MKT", designation: "Marketing Manager",
     joiningDate: new Date("2020-10-01"),
     salary: { basic: 80000, hra: 32000, allowances: 9000, deductions: 0 },
@@ -157,7 +157,7 @@ export async function POST() {
 
   const { employee: emp10 } = await createEmployee({
     code: "EMP0010", firstName: "Raj", lastName: "Mehta",
-    email: "raj.mehta@hrms.com", password: "Welcome@123", role: "employee",
+    email: "raj.mehta@gehnax.com", password: "Welcome@123", role: "employee",
     dept: "MKT", designation: "Marketing Executive",
     joiningDate: new Date("2023-01-02"),
     salary: { basic: 40000, hra: 16000, allowances: 5000, deductions: 0 },
@@ -166,7 +166,7 @@ export async function POST() {
 
   const { employee: emp11 } = await createEmployee({
     code: "EMP0011", firstName: "Amit", lastName: "Tiwari",
-    email: "amit.tiwari@hrms.com", password: "Welcome@123", role: "manager",
+    email: "amit.tiwari@gehnax.com", password: "Welcome@123", role: "manager",
     dept: "OPS", designation: "Operations Manager",
     joiningDate: new Date("2019-03-01"),
     salary: { basic: 75000, hra: 30000, allowances: 9000, deductions: 0 },
@@ -175,7 +175,7 @@ export async function POST() {
 
   const { employee: emp12 } = await createEmployee({
     code: "EMP0012", firstName: "Kavya", lastName: "Nair",
-    email: "kavya.nair@hrms.com", password: "Welcome@123", role: "employee",
+    email: "kavya.nair@gehnax.com", password: "Welcome@123", role: "employee",
     dept: "OPS", designation: "Operations Executive",
     joiningDate: new Date("2023-06-01"),
     salary: { basic: 38000, hra: 15200, allowances: 4500, deductions: 0 },
@@ -424,10 +424,10 @@ export async function POST() {
     departments: Object.keys(departments).length,
     holidays: holidays2026.length,
     credentials: [
-      { role: "Super Admin",        email: "admin@hrms.com",       password: "Admin@123" },
-      { role: "HR Admin",           email: "hr@hrms.com",          password: "Hr@123456" },
-      { role: "Employee",           email: "john@hrms.com",        password: "Emp@123456" },
-      { role: "Eng Manager",        email: "rohan.verma@hrms.com", password: "Welcome@123" },
+      { role: "Super Admin",        email: "admin@gehnax.com",       password: "Admin@123" },
+      { role: "HR Admin",           email: "hr@gehnax.com",          password: "Hr@123456" },
+      { role: "Employee",           email: "john@gehnax.com",        password: "Emp@123456" },
+      { role: "Eng Manager",        email: "rohan.verma@gehnax.com", password: "Welcome@123" },
       { role: "All others",         email: "(see above list)",     password: "Welcome@123" },
     ],
   });

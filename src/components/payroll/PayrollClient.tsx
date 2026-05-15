@@ -61,7 +61,7 @@ export default function PayrollClient() {
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-slate-500">{getMonthName(month)} {year}</p>
         {isAdminOrHR && (
-          <Button onClick={handleRunPayroll} disabled={processing} className="bg-blue-600 hover:bg-blue-700 shadow-sm">
+          <Button onClick={handleRunPayroll} disabled={processing} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
             <Play className="w-4 h-4 mr-1.5" />
             {processing ? "Processing…" : "Run Payroll"}
           </Button>
@@ -117,7 +117,7 @@ export default function PayrollClient() {
               </div>
               <p className="text-sm font-medium text-slate-600">No payroll records for this period</p>
               {isAdminOrHR && (
-                <Button onClick={handleRunPayroll} disabled={processing} className="mt-4 bg-blue-600 hover:bg-blue-700" size="sm">
+                <Button onClick={handleRunPayroll} disabled={processing} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white" size="sm">
                   Run Payroll
                 </Button>
               )}

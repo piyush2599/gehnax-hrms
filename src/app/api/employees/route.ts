@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -95,6 +96,9 @@ export async function POST(req: NextRequest) {
 
   // Link employee to user
   await User.findByIdAndUpdate(user._id, { employeeId: employee._id });
+
+  // Send welcome email with credentials (fire-and-forget — don't fail the request if email fails)
+  sendWelcomeEmail(email, `${firstName} ${lastName}`, password).catch(() => {});
 
   return NextResponse.json({ employee, user }, { status: 201 });
 }

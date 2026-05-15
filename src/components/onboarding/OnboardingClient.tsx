@@ -1,17 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   UserPlus, Link2, Trash2, CheckCircle, Clock, Eye,
-  AlertCircle, ClipboardCheck, User, Phone, MapPin,
-  CreditCard, Shield, HeartPulse,
-  Mail, FileText, BadgeCheck, KeyRound, RefreshCw,
+  AlertCircle, ClipboardCheck,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import React from "react";
-import { X } from "lucide-react";
 
 interface Invite {
   _id: string;
@@ -68,17 +66,13 @@ const EMP_TYPE_LABELS: Record<string, string> = {
 const FILTERS = ["all", "pending", "in_progress", "submitted", "completed", "expired"] as const;
 
 export default function OnboardingClient() {
+  const router = useRouter();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [selectedInvite, setSelectedInvite] = useState<Invite | null>(null);
-  const [panelVisible, setPanelVisible] = useState(false);
-  const [avatarError, setAvatarError] = useState(false);
-  const [completing, setCompleting] = useState(false);
-  const [completedCreds, setCompletedCreds] = useState<{ email: string; password: string } | null>(null);
 
   const [form, setForm] = useState({
     employeeCode: "",
@@ -106,44 +100,8 @@ export default function OnboardingClient() {
       .then((d) => setDepartments(Array.isArray(d) ? d : []));
   }, [fetchInvites]);
 
-  // Animate panel open whenever selectedInvite is freshly set
-  useEffect(() => {
-    if (selectedInvite) {
-      requestAnimationFrame(() => setPanelVisible(true));
-    }
-  }, [selectedInvite]);
-
-  const closePanel = () => {
-    setPanelVisible(false);
-    setTimeout(() => {
-      setSelectedInvite(null);
-      setCompletedCreds(null);
-    }, 320);
-  };
-
-  const openPanel = async (inv: Invite) => {
-    setPanelVisible(false);
-    setCompletedCreds(null);
-    setAvatarError(false);
-    // Fetch fresh data so profilePicture / formData are up-to-date
-    try {
-      const res = await fetch(`/api/onboarding/${inv.token}/detail`);
-      const data = await res.json();
-      setSelectedInvite(res.ok ? data.invite : inv);
-    } catch {
-      setSelectedInvite(inv);
-    }
-  };
-
-  const refreshPanel = async () => {
-    if (!selectedInvite) return;
-    setAvatarError(false);
-    try {
-      const res = await fetch(`/api/onboarding/${selectedInvite.token}/detail`);
-      const data = await res.json();
-      if (res.ok) setSelectedInvite(data.invite);
-    } catch { /* keep current */ }
-    fetchInvites();
+  const openDetail = (inv: Invite) => {
+    router.push(`/onboarding/invites/${inv.token}`);
   };
 
   const filtered = filter === "all" ? invites : invites.filter((i) => i.status === filter);
@@ -184,19 +142,6 @@ export default function OnboardingClient() {
     const res = await fetch(`/api/onboarding/${invite.token}`, { method: "DELETE" });
     if (res.ok) { toast.success("Invite cancelled"); fetchInvites(); }
     else { const d = await res.json(); toast.error(d.error); }
-  };
-
-  const handleComplete = async () => {
-    if (!selectedInvite) return;
-    setCompleting(true);
-    const res = await fetch(`/api/onboarding/${selectedInvite.token}/complete`, { method: "POST" });
-    const data = await res.json();
-    setCompleting(false);
-    if (!res.ok) { toast.error(data.error); return; }
-    toast.success("Employee account created successfully!");
-    setCompletedCreds(data.credentials);
-    fetchInvites();
-    setSelectedInvite({ ...selectedInvite, status: "completed" });
   };
 
   const displayName = (inv: Invite) => {
@@ -310,15 +255,13 @@ export default function OnboardingClient() {
                               <Link2 className="w-3.5 h-3.5" />
                             </button>
                           )}
-                          {["submitted", "completed"].includes(inv.status) && (
-                            <button
-                              onClick={() => openPanel(inv)}
-                              title="View details"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-violet-600 hover:bg-violet-50 transition-colors"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => openDetail(inv)}
+                            title="View details"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
                           {inv.status !== "completed" && inv.status !== "expired" && (
                             <button
                               onClick={() => handleDelete(inv)}
@@ -462,294 +405,6 @@ export default function OnboardingClient() {
         </DialogContent>
       </Dialog>
 
-      {/* Details Side Panel */}
-      {selectedInvite && (
-        <>
-          {/* Backdrop */}
-          <div
-            className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${panelVisible ? "opacity-100" : "opacity-0"}`}
-            onClick={closePanel}
-          />
-
-          {/* Panel */}
-          <div
-            className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[680px] xl:w-[780px] bg-slate-50 shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-out ${panelVisible ? "translate-x-0" : "translate-x-full"}`}
-          >
-            {/* ── Sticky hero header ── */}
-            <div className="flex-shrink-0 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-700 px-7 pt-5 pb-5 shadow-lg z-10">
-              {/* Top row: label + actions */}
-              <div className="flex items-center justify-between mb-5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Onboarding Details</p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={refreshPanel}
-                    title="Refresh"
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={closePanel}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center text-white transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Profile row */}
-              <div className="flex items-center gap-5">
-                {selectedInvite.profilePicture && !avatarError ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={`/api/onboarding/${selectedInvite.token}/photo`}
-                    alt="Profile"
-                    onError={() => setAvatarError(true)}
-                    className="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl flex-shrink-0"
-                  />
-                ) : (
-                  <div className={`w-20 h-20 rounded-2xl border-2 flex items-center justify-center flex-shrink-0 ${
-                    avatarError ? "bg-red-900/20 border-red-400/30" : "bg-white/10 border-white/10"
-                  }`}>
-                    <User className={`w-9 h-9 ${avatarError ? "text-red-300" : "text-white/40"}`} />
-                  </div>
-                )}
-
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-xl font-bold text-white leading-tight">
-                    {displayName(selectedInvite) || selectedInvite.email}
-                  </h2>
-                  <p className="text-slate-300 text-sm mt-0.5">{selectedInvite.designation}</p>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className="font-mono text-[11px] bg-white/10 text-white/80 px-2.5 py-1 rounded-lg font-semibold">
-                      {selectedInvite.employeeCode}
-                    </span>
-                    <span className="text-[11px] bg-blue-500/20 text-blue-200 border border-blue-400/20 px-2.5 py-1 rounded-lg font-medium">
-                      {selectedInvite.department?.name}
-                    </span>
-                    <span className="text-[11px] bg-white/10 text-white/70 border border-white/10 px-2.5 py-1 rounded-lg font-medium">
-                      {EMP_TYPE_LABELS[selectedInvite.employmentType]}
-                    </span>
-                    <Badge className={`text-xs border ${STATUS_CONFIG[selectedInvite.status].color}`}>
-                      {STATUS_CONFIG[selectedInvite.status].label}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* Info strip — inside header, always visible */}
-              <div className="grid grid-cols-3 gap-0 mt-5 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 text-center">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Employee ID</p>
-                  <p className="text-sm font-mono font-bold text-white mt-1">{selectedInvite.employeeCode}</p>
-                </div>
-                <div className="px-4 py-3 text-center border-x border-white/10">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Email</p>
-                  <p className="text-sm font-medium text-white/90 mt-1 truncate">{selectedInvite.email}</p>
-                </div>
-                <div className="px-4 py-3 text-center">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Joining Date</p>
-                  <p className="text-sm font-bold text-white mt-1">
-                    {new Date(selectedInvite.joiningDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Scrollable body ── */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="px-7 pb-8 space-y-4 pt-5">
-                {/* ── Credentials banner ── */}
-                {completedCreds && (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <BadgeCheck className="w-5 h-5 text-emerald-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-emerald-800">Employee Account Created!</p>
-                        <p className="text-xs text-emerald-600 mt-0.5">Share these login credentials with the employee</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white rounded-xl px-4 py-3 border border-emerald-100">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <Mail className="w-3.5 h-3.5 text-slate-400" />
-                          <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wide">Email</p>
-                        </div>
-                        <p className="text-sm font-mono font-semibold text-slate-900 break-all">{completedCreds.email}</p>
-                      </div>
-                      <div className="bg-white rounded-xl px-4 py-3 border border-emerald-100">
-                        <div className="flex items-center gap-1.5 mb-1.5">
-                          <KeyRound className="w-3.5 h-3.5 text-slate-400" />
-                          <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wide">Password</p>
-                        </div>
-                        <p className="text-sm font-mono font-semibold text-slate-900">{completedCreds.password}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Personal Details ── */}
-                <DetailCard icon={<User className="w-4 h-4" />} title="Personal Details" color="blue">
-                  <TwoCol>
-                    <InfoRow label="First Name" value={selectedInvite.formData?.personal?.firstName} />
-                    <InfoRow label="Last Name" value={selectedInvite.formData?.personal?.lastName} />
-                    <InfoRow label="Date of Birth" value={selectedInvite.formData?.personal?.dateOfBirth
-                      ? new Date(selectedInvite.formData.personal.dateOfBirth).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })
-                      : undefined} />
-                    <InfoRow label="Gender" value={selectedInvite.formData?.personal?.gender} capitalize />
-                  </TwoCol>
-                  <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                        <Phone className="w-3.5 h-3.5 text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Phone</p>
-                        <p className="text-sm text-slate-900 font-semibold mt-0.5">{selectedInvite.formData?.personal?.phone || "—"}</p>
-                      </div>
-                    </div>
-                    {selectedInvite.formData?.personal?.address && (
-                      <div className="flex items-start gap-2.5 col-span-1">
-                        <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Address</p>
-                          <p className="text-sm text-slate-900 font-semibold mt-0.5 leading-relaxed">
-                            {[
-                              selectedInvite.formData.personal.address.street,
-                              selectedInvite.formData.personal.address.city,
-                              selectedInvite.formData.personal.address.state,
-                              selectedInvite.formData.personal.address.country,
-                              selectedInvite.formData.personal.address.pincode,
-                            ].filter(Boolean).join(", ") || "—"}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </DetailCard>
-
-                {/* ── Identity Documents ── */}
-                <DetailCard icon={<Shield className="w-4 h-4" />} title="Identity Documents" color="violet">
-                  <TwoCol>
-                    <InfoRow label="PAN Number" value={selectedInvite.formData?.identity?.pan} mono />
-                    <InfoRow label="Aadhaar Number" value={selectedInvite.formData?.identity?.aadhaar} mono />
-                  </TwoCol>
-                  <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-2 gap-3">
-                    <DocStatus label="PAN Card PDF" uploaded={!!selectedInvite.documents?.panCard} />
-                    <DocStatus label="Aadhaar Card PDF" uploaded={!!selectedInvite.documents?.aadhaarCard} />
-                  </div>
-                </DetailCard>
-
-                {/* ── Bank Details ── */}
-                <DetailCard icon={<CreditCard className="w-4 h-4" />} title="Bank Details" color="emerald">
-                  <TwoCol>
-                    <InfoRow label="Account Holder" value={selectedInvite.formData?.bank?.accountHolderName} />
-                    <InfoRow label="Bank Name" value={selectedInvite.formData?.bank?.bankName} />
-                    <InfoRow label="Account Number" value={selectedInvite.formData?.bank?.accountNumber} mono />
-                    <InfoRow label="IFSC Code" value={selectedInvite.formData?.bank?.ifscCode} mono />
-                  </TwoCol>
-                </DetailCard>
-
-                {/* ── Emergency Contact ── */}
-                <DetailCard icon={<HeartPulse className="w-4 h-4" />} title="Emergency Contact" color="rose">
-                  <TwoCol>
-                    <InfoRow label="Name" value={selectedInvite.formData?.emergency?.name} />
-                    <InfoRow label="Relation" value={selectedInvite.formData?.emergency?.relation} />
-                    <InfoRow label="Phone" value={selectedInvite.formData?.emergency?.phone} />
-                  </TwoCol>
-                </DetailCard>
-
-                {/* ── Complete Onboarding CTA ── */}
-                {selectedInvite.status === "submitted" && !completedCreds && (
-                  <div className="flex items-center gap-5 bg-violet-600 rounded-2xl p-5 shadow-lg shadow-violet-200">
-                    <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <ClipboardCheck className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-white">Ready to complete onboarding</p>
-                      <p className="text-xs text-violet-200 mt-0.5">Review all details above, then activate the employee account</p>
-                    </div>
-                    <button
-                      onClick={handleComplete}
-                      disabled={completing}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-white text-violet-700 rounded-xl text-sm font-bold hover:bg-violet-50 transition-colors disabled:opacity-60 shadow-sm flex-shrink-0"
-                    >
-                      {completing ? <Clock className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                      {completing ? "Creating…" : "Complete Onboarding"}
-                    </button>
-                  </div>
-                )}
-
-                {selectedInvite.status === "completed" && !completedCreds && (
-                  <div className="flex items-center gap-3 bg-emerald-600 rounded-2xl p-5">
-                    <CheckCircle className="w-5 h-5 text-white flex-shrink-0" />
-                    <p className="text-sm font-semibold text-white">Onboarding completed — employee account is active</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-const CARD_COLORS: Record<string, string> = {
-  blue:   "bg-blue-50 text-blue-600 border-blue-100",
-  violet: "bg-violet-50 text-violet-600 border-violet-100",
-  emerald:"bg-emerald-50 text-emerald-600 border-emerald-100",
-  rose:   "bg-rose-50 text-rose-600 border-rose-100",
-};
-
-function DetailCard({ icon, title, color, children }: {
-  icon: React.ReactNode; title: string; color: string; children: React.ReactNode;
-}) {
-  const cls = CARD_COLORS[color] ?? CARD_COLORS.blue;
-  return (
-    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-      <div className={`flex items-center gap-2.5 px-4 py-3 border-b ${cls.split(" ").pop()} bg-gradient-to-r from-slate-50 to-white`}>
-        <div className={`w-7 h-7 rounded-lg border flex items-center justify-center ${cls}`}>
-          {icon}
-        </div>
-        <p className="text-sm font-bold text-slate-800">{title}</p>
-      </div>
-      <div className="p-4">{children}</div>
-    </div>
-  );
-}
-
-function TwoCol({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-x-6 gap-y-3">{children}</div>;
-}
-
-function InfoRow({ label, value, mono, capitalize }: { label: string; value?: string; mono?: boolean; capitalize?: boolean }) {
-  return (
-    <div>
-      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
-      <p className={`text-sm text-slate-900 font-medium mt-0.5 ${mono ? "font-mono" : ""} ${capitalize ? "capitalize" : ""}`}>
-        {value || "—"}
-      </p>
-    </div>
-  );
-}
-
-function DocStatus({ label, uploaded }: { label: string; uploaded: boolean }) {
-  return (
-    <div className={`flex items-center gap-2 rounded-xl px-3 py-2.5 border ${
-      uploaded ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-200"
-    }`}>
-      <FileText className={`w-4 h-4 flex-shrink-0 ${uploaded ? "text-emerald-500" : "text-slate-400"}`} />
-      <div>
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
-        <p className={`text-xs font-semibold mt-0.5 ${uploaded ? "text-emerald-700" : "text-slate-400"}`}>
-          {uploaded ? "Uploaded & Encrypted" : "Not Uploaded"}
-        </p>
-      </div>
     </div>
   );
 }

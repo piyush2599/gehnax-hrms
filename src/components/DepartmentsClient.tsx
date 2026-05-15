@@ -46,7 +46,7 @@ export default function DepartmentsClient() {
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-slate-500">{deptList.length} departments</p>
         {canManage && (
-          <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm" size="sm" onClick={() => setAddOpen(true)}>
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm" size="sm" onClick={() => setAddOpen(true)}>
             <Plus className="w-4 h-4 mr-1.5" />
             Add Department
           </Button>
@@ -197,7 +197,7 @@ function AddDepartmentForm({ employees, onSuccess }: { employees: any[]; onSucce
           ))}
         </NativeSelect>
       </div>
-      <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+      <Button type="submit" loading={loading} className="w-full">
         {loading ? "Creating…" : "Create Department"}
       </Button>
     </form>
@@ -254,7 +254,7 @@ function EditDepartmentForm({ dept, employees, onSuccess }: { dept: any; employe
           ))}
         </NativeSelect>
       </div>
-      <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+      <Button type="submit" loading={loading} className="w-full">
         {loading ? "Saving…" : "Save Changes"}
       </Button>
     </form>

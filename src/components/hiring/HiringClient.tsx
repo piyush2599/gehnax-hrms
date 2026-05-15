@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { formatDate, cn } from "@/lib/utils";
-import CandidateDetail from "./CandidateDetail";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -67,8 +67,8 @@ export default function HiringClient() {
   const [addJobOpen, setAddJobOpen] = useState(false);
   const [editJob, setEditJob] = useState<any>(null);
 
+  const router = useRouter();
   const [addCandidateOpen, setAddCandidateOpen] = useState(false);
-  const [viewCandidate, setViewCandidate] = useState<any>(null);
 
   // Filters
   const [jobFilter, setJobFilter] = useState("");
@@ -139,7 +139,7 @@ export default function HiringClient() {
               </p>
               {canManage && (
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700 shadow-sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                   size="sm"
                   onClick={() => setAddJobOpen(true)}
                 >
@@ -217,7 +217,7 @@ export default function HiringClient() {
               </NativeSelect>
               {canManage && (
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700 shadow-sm flex-shrink-0"
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex-shrink-0"
                   size="sm"
                   onClick={() => setAddCandidateOpen(true)}
                 >
@@ -296,7 +296,7 @@ export default function HiringClient() {
                               size="sm"
                               variant="outline"
                               className="border-slate-200 gap-1.5 h-7 text-xs"
-                              onClick={() => setViewCandidate(c)}
+                              onClick={() => router.push(`/hiring/candidates/${c._id}`)}
                             >
                               <Eye className="w-3 h-3" />
                               View
@@ -356,22 +356,6 @@ export default function HiringClient() {
         </Dialog>
       )}
 
-      {viewCandidate && (
-        <Dialog open={!!viewCandidate} onOpenChange={() => setViewCandidate(null)} disablePointerDismissal>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CandidateDetail
-              candidate={viewCandidate}
-              jobs={jobs}
-              canManage={canManage}
-              onUpdate={() => {
-                mutate("/api/hiring/candidates");
-                // refresh the candidate data
-                mutate(`/api/hiring/candidates/${viewCandidate._id}`, undefined, { revalidate: true });
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
@@ -691,7 +675,7 @@ function JobForm({
       </div>
 
       <div className="flex gap-3 pt-2">
-        <Button type="submit" disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700">
+        <Button type="submit" loading={loading} className="flex-1">
           {loading ? "Saving…" : job ? "Save Changes" : "Create Job"}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
@@ -934,7 +918,7 @@ function CandidateForm({
       </div>
 
       <div className="flex gap-3 pt-2">
-        <Button type="submit" disabled={loading || parsing} className="flex-1 bg-blue-600 hover:bg-blue-700">
+        <Button type="submit" disabled={loading || parsing} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
           {loading ? "Adding…" : "Add Candidate"}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>

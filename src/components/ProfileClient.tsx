@@ -12,8 +12,10 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getInitials, formatDate, formatCurrency } from "@/lib/utils";
-import { User, Phone, MapPin, Building2, Calendar, Pencil } from "lucide-react";
+import { User, Phone, MapPin, Building2, Calendar, Pencil, FolderOpen, LogOut } from "lucide-react";
 import { useSession } from "next-auth/react";
+import EmployeeDocuments from "@/components/employees/EmployeeDocuments";
+import ResignModal from "@/components/employees/ResignModal";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -22,6 +24,7 @@ export default function ProfileClient() {
   const employeeId = (session?.user as any)?.employeeId || "";
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showResign, setShowResign] = useState(false);
 
   const { data: emp, isLoading } = useSWR(
     employeeId ? `/api/employees/${employeeId}` : null,
@@ -104,10 +107,35 @@ export default function ProfileClient() {
               </div>
             </div>
             {!editing && (
-              <Button onClick={startEdit} variant="outline" size="sm" className="border-slate-200 flex-shrink-0">
-                <Pencil className="w-3.5 h-3.5 mr-1.5" />
-                Edit Profile
-              </Button>
+              <div className="flex gap-2 flex-shrink-0">
+                <Button onClick={startEdit} variant="outline" size="sm" className="border-slate-200">
+                  <Pencil className="w-3.5 h-3.5 mr-1.5" />
+                  Edit Profile
+                </Button>
+                {emp.resignation?.status === "pending" || emp.resignation?.status === "accepted" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className={emp.resignation.status === "accepted"
+                      ? "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                      : "border-amber-200 text-amber-700 hover:bg-amber-50"}
+                    onClick={() => setShowResign(true)}
+                  >
+                    <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                    {emp.resignation.status === "accepted" ? "Resignation Accepted" : "View Resignation"}
+                  </Button>
+                ) : emp.resignation?.status !== "withdrawn" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-red-200 text-red-600 hover:bg-red-50"
+                    onClick={() => setShowResign(true)}
+                  >
+                    <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                    Resign
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
@@ -115,10 +143,14 @@ export default function ProfileClient() {
 
       {/* Tabs */}
       <Tabs defaultValue="personal">
-        <TabsList className="grid grid-cols-3 max-w-sm bg-slate-100">
-          <TabsTrigger value="personal">Personal</TabsTrigger>
-          <TabsTrigger value="work">Work</TabsTrigger>
-          <TabsTrigger value="salary">Salary</TabsTrigger>
+        <TabsList className="grid grid-cols-4 max-w-lg bg-slate-100">
+          <TabsTrigger value="personal" className="">Personal</TabsTrigger>
+          <TabsTrigger value="work" className="">Work</TabsTrigger>
+          <TabsTrigger value="salary" className="">Salary</TabsTrigger>
+          <TabsTrigger value="docs" className="gap-1.5 ">
+            <FolderOpen className="w-3.5 h-3.5" />
+            Docs
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="personal" className="mt-4">
@@ -145,8 +177,8 @@ export default function ProfileClient() {
                     ))}
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-                      {saving ? "Saving…" : "Save Changes"}
+                    <Button onClick={handleSave} loading={saving}>
+                      Save Changes
                     </Button>
                     <Button onClick={() => setEditing(false)} variant="outline" className="border-slate-200">Cancel</Button>
                   </div>
@@ -225,7 +257,29 @@ export default function ProfileClient() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="docs" className="mt-4">
+          <Card className="border-slate-200 shadow-sm">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-semibold text-slate-700">My Documents</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <EmployeeDocuments employeeId={employeeId} canUpload={true} />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {showResign && (
+        <ResignModal
+          employeeId={employeeId}
+          employeeName={`${emp.firstName} ${emp.lastName}`}
+          resignation={emp.resignation}
+          isHR={false}
+          isOwner={true}
+          onClose={() => setShowResign(false)}
+        />
+      )}
     </div>
   );
 }

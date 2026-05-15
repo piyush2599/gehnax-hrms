@@ -9,7 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
 
-export default function LoginForm() {
+interface Props {
+  callbackUrl?: string;
+}
+
+export default function LoginForm({ callbackUrl = "/dashboard" }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +39,7 @@ export default function LoginForm() {
         toast.error("Invalid email or password");
       } else {
         toast.success("Login successful!");
-        router.push("/dashboard");
+        router.push(callbackUrl);
         router.refresh();
       }
     } catch {
@@ -96,7 +100,7 @@ export default function LoginForm() {
 
       <Button
         type="submit"
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold h-11 mt-2"
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-white font-semibold h-11 mt-2"
         disabled={loading}
       >
         {loading ? (

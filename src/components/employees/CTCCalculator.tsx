@@ -216,7 +216,7 @@ export default function CTCCalculator({ onApply, initialCTC = 0 }: Props) {
               "w-full gap-2 transition-all",
               applied
                 ? "bg-emerald-600 hover:bg-emerald-700"
-                : "bg-blue-600 hover:bg-blue-700"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
             )}
           >
             <Sparkles className="w-4 h-4" />

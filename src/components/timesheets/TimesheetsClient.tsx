@@ -125,7 +125,7 @@ export default function TimesheetsClient() {
                   <Clock className="w-6 h-6 text-slate-400" />
                 </div>
                 <p className="text-sm font-medium text-slate-600 mb-3">No timesheet for this week</p>
-                <Button size="sm" onClick={() => setEditOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Button size="sm" onClick={() => setEditOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
                   <Plus className="w-4 h-4 mr-1.5" />
                   Create Timesheet
                 </Button>
@@ -291,7 +291,7 @@ function TimesheetEntryForm({ weekStart, existingTs, onSuccess }: { weekStart: D
         <Button variant="outline" onClick={() => handleSave("save")} disabled={loading} className="flex-1 border-slate-200">
           <Save className="w-4 h-4 mr-1.5" /> Save Draft
         </Button>
-        <Button onClick={() => handleSave("submit")} disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => handleSave("submit")} loading={loading} className="flex-1">
           <Send className="w-4 h-4 mr-1.5" /> Submit
         </Button>
       </div>
