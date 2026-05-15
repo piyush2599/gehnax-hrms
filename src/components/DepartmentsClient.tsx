@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Building2, Users, Pencil } from "lucide-react";
+import { Plus, Building2, Users, Pencil, Trash2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -30,6 +30,8 @@ export default function DepartmentsClient() {
 
   const [addOpen, setAddOpen] = useState(false);
   const [editDept, setEditDept] = useState<any>(null);
+  const [deleteDept, setDeleteDept] = useState<any>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const { data: departments, isLoading } = useSWR("/api/departments", fetcher);
   const { data: employees } = useSWR("/api/employees?limit=200", fetcher);
@@ -39,6 +41,17 @@ export default function DepartmentsClient() {
 
   const getHeadcount = (deptId: string) =>
     empList.filter((e: any) => e.department?._id === deptId || e.department === deptId).length;
+
+  const handleDelete = async () => {
+    if (!deleteDept) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/departments/${deleteDept._id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) toast.error(data.error || "Failed to delete");
+      else { toast.success("Department deleted"); setDeleteDept(null); mutate("/api/departments"); }
+    } finally { setDeleteLoading(false); }
+  };
 
   return (
     <div className="space-y-6">
@@ -82,6 +95,32 @@ export default function DepartmentsClient() {
         </Dialog>
       )}
 
+      {/* Delete Confirmation Dialog */}
+      {canManage && role === "super_admin" && (
+        <Dialog open={!!deleteDept} onOpenChange={() => setDeleteDept(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Delete Department</DialogTitle></DialogHeader>
+            <div className="mt-2 space-y-4">
+              <p className="text-sm text-slate-600">
+                Are you sure you want to delete <span className="font-semibold text-slate-900">{deleteDept?.name}</span>? This action cannot be undone.
+              </p>
+              {deleteDept && getHeadcount(deleteDept._id) > 0 && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                  <span>⚠️</span>
+                  <span>This department has <strong>{getHeadcount(deleteDept._id)} employee(s)</strong>. Consider reassigning them before deleting.</span>
+                </div>
+              )}
+              <div className="flex gap-3 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setDeleteDept(null)}>Cancel</Button>
+                <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" loading={deleteLoading} onClick={handleDelete}>
+                  {deleteLoading ? "Deleting…" : "Delete"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -121,6 +160,15 @@ export default function DepartmentsClient() {
                               title="Edit department"
                             >
                               <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {role === "super_admin" && (
+                            <button
+                              onClick={() => setDeleteDept(dept)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                              title="Delete department"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
