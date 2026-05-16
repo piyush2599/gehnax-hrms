@@ -1,33 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { KeyRound, Eye, EyeOff, ShieldCheck, LogOut } from "lucide-react";
+import { KeyRound, Eye, EyeOff, ShieldCheck, LogOut, Check, X } from "lucide-react";
+import { validatePassword } from "@/lib/password";
 
 export default function ChangePasswordPage() {
-  const router = useRouter();
-  const { data: session, update } = useSession();
+  const { data: session } = useSession();
 
-  const [newPassword, setNewPassword]       = useState("");
+  const [newPassword, setNewPassword]         = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNew, setShowNew]               = useState(false);
-  const [showConfirm, setShowConfirm]       = useState(false);
-  const [loading, setLoading]               = useState(false);
-  const [errors, setErrors]                 = useState<{ new?: string; confirm?: string }>({});
+  const [showNew, setShowNew]                 = useState(false);
+  const [showConfirm, setShowConfirm]         = useState(false);
+  const [loading, setLoading]                 = useState(false);
+  const [confirmError, setConfirmError]       = useState("");
+  const [submitError, setSubmitError]         = useState("");
+
+  const { rules, valid: pwValid } = validatePassword(newPassword);
 
   const validate = () => {
-    const e: typeof errors = {};
-    if (!newPassword || newPassword.length < 6) e.new = "Password must be at least 6 characters";
-    if (!confirmPassword) e.confirm = "Please confirm your password";
-    else if (newPassword !== confirmPassword) e.confirm = "Passwords do not match";
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    setConfirmError("");
+    setSubmitError("");
+    if (!pwValid) { setSubmitError("Please meet all password requirements"); return false; }
+    if (!confirmPassword) { setConfirmError("Please confirm your password"); return false; }
+    if (newPassword !== confirmPassword) { setConfirmError("Passwords do not match"); return false; }
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,10 +45,10 @@ export default function ChangePasswordPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.error?.toLowerCase().includes("confirm") || data.error?.toLowerCase().includes("match")) {
-          setErrors({ confirm: data.error });
+        if (data.error?.toLowerCase().includes("match") || data.error?.toLowerCase().includes("confirm")) {
+          setConfirmError(data.error);
         } else {
-          setErrors({ new: data.error });
+          setSubmitError(data.error);
         }
         return;
       }
@@ -65,8 +67,12 @@ export default function ChangePasswordPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
-            <KeyRound className="w-7 h-7 text-white" />
+          <div className="flex justify-center mb-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-9 w-auto" />
+          </div>
+          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+            <KeyRound className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Set a new password</h1>
           <p className="text-sm text-slate-500">
@@ -85,23 +91,31 @@ export default function ChangePasswordPage() {
                 <div className="relative">
                   <Input
                     type={showNew ? "text" : "password"}
-                    placeholder="Minimum 6 characters"
+                    placeholder="Min. 12 chars with complexity"
                     value={newPassword}
-                    onChange={(e) => { setNewPassword(e.target.value); setErrors(v => ({ ...v, new: undefined })); }}
-                    className={`pr-10 ${errors.new ? "border-red-400" : ""}`}
+                    onChange={(e) => { setNewPassword(e.target.value); setSubmitError(""); }}
+                    className={`pr-10 ${submitError && !pwValid ? "border-red-400" : ""}`}
                     disabled={loading}
                     autoFocus
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowNew(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    tabIndex={-1}
-                  >
+                  <button type="button" onClick={() => setShowNew(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" tabIndex={-1}>
                     {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {errors.new && <p className="text-xs text-red-600">{errors.new}</p>}
+
+                {/* Live rule checklist */}
+                {newPassword.length > 0 && (
+                  <ul className="space-y-1 mt-2">
+                    {rules.map((r) => (
+                      <li key={r.label} className={`flex items-center gap-1.5 text-xs ${r.pass ? "text-emerald-600" : "text-slate-400"}`}>
+                        {r.pass ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                        {r.label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {submitError && <p className="text-xs text-red-600">{submitError}</p>}
               </div>
 
               {/* Confirm password */}
@@ -112,27 +126,17 @@ export default function ChangePasswordPage() {
                     type={showConfirm ? "text" : "password"}
                     placeholder="Re-enter your new password"
                     value={confirmPassword}
-                    onChange={(e) => { setConfirmPassword(e.target.value); setErrors(v => ({ ...v, confirm: undefined })); }}
-                    className={`pr-10 ${errors.confirm ? "border-red-400" : ""}`}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setConfirmError(""); }}
+                    className={`pr-10 ${confirmError ? "border-red-400" : ""}`}
                     disabled={loading}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    tabIndex={-1}
-                  >
+                  <button type="button" onClick={() => setShowConfirm(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" tabIndex={-1}>
                     {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {errors.confirm && <p className="text-xs text-red-600">{errors.confirm}</p>}
+                {confirmError && <p className="text-xs text-red-600">{confirmError}</p>}
               </div>
-
-              {/* Password rules hint */}
-              <ul className="text-xs text-slate-400 space-y-0.5 pl-4 list-disc">
-                <li>At least 6 characters long</li>
-                <li>Must be different from your current password</li>
-              </ul>
 
               <Button
                 type="submit"

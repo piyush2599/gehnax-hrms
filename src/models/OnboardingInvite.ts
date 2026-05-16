@@ -5,6 +5,7 @@ export interface IOnboardingInvite extends Document {
   token: string;
   employeeCode: string;
   email: string;
+  personalEmail?: string;
   firstName?: string;
   lastName?: string;
   department: mongoose.Types.ObjectId;
@@ -26,6 +27,7 @@ export interface IOnboardingInvite extends Document {
       dateOfBirth?: string;
       gender?: string;
       phone?: string;
+      personalEmail?: string;
       address?: {
         street?: string;
         city?: string;
@@ -62,6 +64,7 @@ const OnboardingInviteSchema = new Schema<IOnboardingInvite>(
     token: { type: String, required: true, unique: true },
     employeeCode: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
+    personalEmail: { type: String, lowercase: true, trim: true },
     firstName: { type: String, trim: true },
     lastName: { type: String, trim: true },
     department: { type: Schema.Types.ObjectId, ref: "Department", required: true },

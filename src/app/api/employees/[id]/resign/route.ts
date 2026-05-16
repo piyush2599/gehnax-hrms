@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Employee from "@/models/Employee";
+import User from "@/models/User";
+import { sendResignationNotificationEmail } from "@/lib/email";
 
 type Ctx = { params: { id: string } };
 
@@ -41,6 +43,24 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     status: "pending",
   };
   await emp.save();
+
+  // Notify HR admins and super admins by email (fire-and-forget)
+  try {
+    const hrUsers = await User.find({ role: { $in: ["hr_admin", "super_admin"] }, isActive: true }).select("email");
+    const hrEmails = hrUsers.map((u) => u.email).filter(Boolean);
+    if (hrEmails.length > 0) {
+      await sendResignationNotificationEmail(
+        hrEmails,
+        `${emp.firstName} ${emp.lastName}`,
+        emp.employeeCode,
+        emp.designation,
+        new Date(lastWorkingDay).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+        reason?.trim()
+      );
+    }
+  } catch (emailErr) {
+    console.error("[Resign] Failed to send notification email:", emailErr);
+  }
 
   return NextResponse.json({ resignation: emp.resignation });
 }

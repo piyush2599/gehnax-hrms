@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import { CheckCircle, AlertCircle, ChevronRight, ChevronLeft, Loader2, UploadCloud, FileCheck, X, ChevronDown, Camera as CameraIcon } from "lucide-react";
+import { CheckCircle, AlertCircle, ChevronRight, ChevronLeft, Loader2, UploadCloud, FileCheck, X, ChevronDown, Camera, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import { INDIA_STATES, INDIA_CITIES } from "@/lib/india-geo";
 
 // ─── Country list ────────────────────────────────────────────────────────────
@@ -53,6 +54,50 @@ const COUNTRIES = [
   { name: "Portugal",             dialCode: "+351", flag: "🇵🇹" },
   { name: "Poland",               dialCode: "+48",  flag: "🇵🇱" },
 ];
+
+/** Checks image clarity, resolution and brightness. Returns list of warning strings. */
+async function checkImageQuality(file: File): Promise<string[]> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const warnings: string[] = [];
+
+      if (img.width < 600 || img.height < 300) {
+        warnings.push(`Resolution too low (${img.width}×${img.height}px) — minimum 600×300 for a readable ID.`);
+      }
+      if (file.size < 30 * 1024) {
+        warnings.push("File size is very small — image may be over-compressed or too low quality.");
+      }
+
+      // Brightness check: scale down for perf, compute luminance
+      try {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, 250 / Math.max(img.width, img.height));
+        canvas.width  = Math.max(1, Math.round(img.width  * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          let sum = 0;
+          const n = data.length / 4;
+          for (let i = 0; i < data.length; i += 4) {
+            sum += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+          }
+          const avg = sum / n;
+          if (avg < 50)  warnings.push("Image appears too dark — retake in better lighting.");
+          if (avg > 230) warnings.push("Image appears overexposed — retake avoiding direct light/glare.");
+        }
+      } catch { /* canvas check is best-effort */ }
+
+      resolve(warnings);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve([]); };
+    img.src = url;
+  });
+}
 
 /** Returns actual dial prefix string (+91, +1, +1, etc.) */
 function realDialCode(dialCode: string) {
@@ -210,8 +255,6 @@ export default function OnboardingFormPage() {
 
   const [docs, setDocs] = useState<{ panCard?: string; aadhaarCard?: string }>({});
   const [uploading, setUploading] = useState<{ panCard?: boolean; aadhaarCard?: boolean }>({});
-  const panRef = useRef<HTMLInputElement>(null);
-  const aadhaarRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<FormData>({
     personal: {
@@ -343,11 +386,11 @@ export default function OnboardingFormPage() {
     try {
       const res = await fetch(`/api/onboarding/${token}/upload-docs`, { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || "Upload failed"); return; }
+      if (!res.ok) { toast.error(data.error || "Upload failed"); return; }
       setDocs((d) => ({ ...d, [key]: data.url }));
       clearErr(`docs.${key}`);
     } catch {
-      alert("Upload failed. Please try again.");
+      toast.error("Upload failed. Please try again.");
     } finally {
       setUploading((u) => ({ ...u, [key]: false }));
     }
@@ -487,7 +530,7 @@ export default function OnboardingFormPage() {
                       <Loader2 className="w-7 h-7 animate-spin text-blue-500" />
                     ) : (
                       <div className="flex flex-col items-center gap-1">
-                        <CameraIcon className={`w-7 h-7 ${errors["profilePicture"] ? "text-red-400" : "text-slate-400"}`} />
+                        <Camera className={`w-7 h-7 ${errors["profilePicture"] ? "text-red-400" : "text-slate-400"}`} />
                         <span className={`text-[10px] font-semibold ${errors["profilePicture"] ? "text-red-500" : "text-slate-400"}`}>Upload</span>
                       </div>
                     )}
@@ -575,7 +618,6 @@ export default function OnboardingFormPage() {
                 onNumberChange={(n) => { setPersonalPhoneNumber(n); clearErr("personal.phone"); }}
               />
             </Field>
-
             <p className="text-xs font-semibold text-slate-600 pt-2 border-t border-slate-100">Current Address</p>
             <Field label="Street / Flat No." required error={errors["personal.address.street"]}>
               <input className={iCls(!!errors["personal.address.street"])} value={formData.personal.address.street} onChange={(e) => upAddr("street", e.target.value)} placeholder="123, Street Name" />
@@ -657,14 +699,14 @@ export default function OnboardingFormPage() {
             <Field label="PAN Number" required error={errors["identity.pan"]}>
               <input className={`${iCls(!!errors["identity.pan"])} uppercase`} value={formData.identity.pan} onChange={(e) => { clearErr("identity.pan"); setFormData((f) => ({ ...f, identity: { ...f.identity, pan: e.target.value.toUpperCase() } })); }} placeholder="ABCDE1234F" maxLength={10} />
             </Field>
-            <Field label="PAN Card PDF" required error={errors["docs.panCard"]}>
-              <DocUpload label="PAN Card" inputRef={panRef} uploaded={!!docs.panCard} uploading={!!uploading.panCard} hasError={!!errors["docs.panCard"]} onSelect={(f) => uploadDoc(f, "pan_card")} onClear={() => setDocs((d) => ({ ...d, panCard: undefined }))} />
+            <Field label="PAN Card" required error={errors["docs.panCard"]}>
+              <DocUpload label="PAN Card" uploaded={!!docs.panCard} uploading={!!uploading.panCard} hasError={!!errors["docs.panCard"]} onSelect={(f) => uploadDoc(f, "pan_card")} onClear={() => setDocs((d) => ({ ...d, panCard: undefined }))} />
             </Field>
             <Field label="Aadhaar Number" required error={errors["identity.aadhaar"]}>
               <input className={iCls(!!errors["identity.aadhaar"])} value={formData.identity.aadhaar} onChange={(e) => { clearErr("identity.aadhaar"); setFormData((f) => ({ ...f, identity: { ...f.identity, aadhaar: e.target.value.replace(/\D/g, "") } })); }} placeholder="123456789012" maxLength={12} />
             </Field>
-            <Field label="Aadhaar Card PDF" required error={errors["docs.aadhaarCard"]}>
-              <DocUpload label="Aadhaar Card" inputRef={aadhaarRef} uploaded={!!docs.aadhaarCard} uploading={!!uploading.aadhaarCard} hasError={!!errors["docs.aadhaarCard"]} onSelect={(f) => uploadDoc(f, "aadhaar_card")} onClear={() => setDocs((d) => ({ ...d, aadhaarCard: undefined }))} />
+            <Field label="Aadhaar Card" required error={errors["docs.aadhaarCard"]}>
+              <DocUpload label="Aadhaar Card" uploaded={!!docs.aadhaarCard} uploading={!!uploading.aadhaarCard} hasError={!!errors["docs.aadhaarCard"]} onSelect={(f) => uploadDoc(f, "aadhaar_card")} onClear={() => setDocs((d) => ({ ...d, aadhaarCard: undefined }))} />
             </Field>
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
               <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
@@ -742,7 +784,7 @@ export default function OnboardingFormPage() {
                   <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                    <CameraIcon className="w-6 h-6 text-slate-300" />
+                    <Camera className="w-6 h-6 text-slate-300" />
                   </div>
                 )}
               </div>
@@ -876,13 +918,14 @@ function PhoneInput({
   );
 }
 
-function Field({ label, children, required, error }: { label: string; children: React.ReactNode; required?: boolean; error?: string }) {
+function Field({ label, children, required, error, hint }: { label: string; children: React.ReactNode; required?: boolean; error?: string; hint?: string }) {
   return (
     <div>
       <label className="block text-xs font-semibold text-slate-700 mb-1">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       {children}
+      {hint && !error && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
   );
@@ -1098,35 +1141,146 @@ function CropModal({
   );
 }
 
-function DocUpload({ label, inputRef, uploaded, uploading, hasError, onSelect, onClear }: {
-  label: string; inputRef: React.RefObject<HTMLInputElement>; uploaded: boolean;
+function DocUpload({ label, uploaded, uploading, hasError, onSelect, onClear }: {
+  label: string; uploaded: boolean;
   uploading: boolean; hasError: boolean; onSelect: (f: File) => void; onClear: () => void;
 }) {
+  const fileRef   = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview]           = useState<string | null>(null);
+  const [qualityWarnings, setWarnings]  = useState<string[]>([]);
+  const [checkingQuality, setChecking]  = useState(false);
+
+  // Clear preview when parent marks as uploaded or cleared
+  useEffect(() => {
+    if (uploaded) { setPreview(null); setWarnings([]); }
+  }, [uploaded]);
+
+  const handleFile = async (file: File) => {
+    setWarnings([]);
+    if (file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      setPreview(url);
+      setChecking(true);
+      const warnings = await checkImageQuality(file);
+      setChecking(false);
+      setWarnings(warnings);
+    } else {
+      if (preview) URL.revokeObjectURL(preview);
+      setPreview(null);
+    }
+    onSelect(file);
+  };
+
+  const clearAll = () => {
+    if (preview) URL.revokeObjectURL(preview);
+    setPreview(null);
+    setWarnings([]);
+    onClear();
+  };
+
   if (uploaded) {
     return (
-      <div className="flex items-center justify-between border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-2.5">
+      <div className="flex items-center justify-between border border-emerald-200 bg-emerald-50 rounded-xl px-3 py-2.5">
         <div className="flex items-center gap-2 text-emerald-700 text-sm">
           <FileCheck className="w-4 h-4" />
           <span className="font-medium">{label} uploaded &amp; encrypted</span>
         </div>
-        <button onClick={onClear} className="p-1 rounded text-slate-400 hover:text-red-500 transition-colors">
+        <button onClick={clearAll} className="p-1 rounded text-slate-400 hover:text-red-500 transition-colors">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
     );
   }
+
   return (
-    <div
-      onClick={() => !uploading && inputRef.current?.click()}
-      className={`flex items-center gap-3 border-2 border-dashed rounded-lg px-4 py-3 cursor-pointer transition-all ${
-        hasError ? "border-red-400 bg-red-50" : "border-slate-200 hover:border-blue-300 hover:bg-blue-50"
-      }`}
-    >
-      {uploading ? <Loader2 className="w-5 h-5 animate-spin text-blue-500 flex-shrink-0" /> : <UploadCloud className={`w-5 h-5 flex-shrink-0 ${hasError ? "text-red-400" : "text-slate-400"}`} />}
-      <span className={`text-sm ${hasError ? "text-red-500" : "text-slate-500"}`}>
-        {uploading ? "Uploading & encrypting…" : `Click to upload ${label} PDF (max 5 MB)`}
-      </span>
-      <input ref={inputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onSelect(f); e.target.value = ""; }} />
+    <div className="space-y-2">
+      {/* Upload zone */}
+      <div
+        onClick={() => !uploading && fileRef.current?.click()}
+        className={`flex items-center gap-3 border-2 border-dashed rounded-xl px-4 py-3 cursor-pointer transition-all ${
+          hasError ? "border-red-400 bg-red-50" : "border-slate-200 hover:border-blue-300 hover:bg-blue-50"
+        }`}
+      >
+        {uploading
+          ? <Loader2 className="w-5 h-5 animate-spin text-blue-500 flex-shrink-0" />
+          : <UploadCloud className={`w-5 h-5 flex-shrink-0 ${hasError ? "text-red-400" : "text-slate-400"}`} />}
+        <div className="min-w-0">
+          <p className={`text-sm font-medium ${hasError ? "text-red-500" : "text-slate-600"}`}>
+            {uploading ? "Uploading & encrypting…" : `Upload ${label}`}
+          </p>
+          {!uploading && (
+            <p className={`text-xs mt-0.5 ${hasError ? "text-red-400" : "text-slate-400"}`}>
+              PDF, PNG or JPG · max 5 MB
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Camera button — opens rear camera on mobile, file picker on desktop */}
+      {!uploading && (
+        <button
+          type="button"
+          onClick={() => cameraRef.current?.click()}
+          className="w-full flex items-center justify-center gap-2 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-all"
+        >
+          <Camera className="w-4 h-4" />
+          Take Photo with Camera
+        </button>
+      )}
+
+      {/* Hidden inputs */}
+      <input
+        ref={fileRef} type="file"
+        accept="application/pdf,image/jpeg,image/jpg,image/png,.pdf,.jpg,.jpeg,.png"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+      />
+      {/* capture="environment" opens rear camera on mobile devices */}
+      <input
+        ref={cameraRef} type="file"
+        accept="image/*" capture="environment"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+      />
+
+      {/* Image preview */}
+      {preview && (
+        <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="Document preview" className="w-full max-h-48 object-contain" />
+          <button
+            type="button" onClick={clearAll}
+            className="absolute top-2 right-2 p-1 bg-white rounded-full shadow text-slate-400 hover:text-red-500 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Quality checking spinner */}
+      {checkingQuality && (
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Checking image quality…
+        </div>
+      )}
+
+      {/* Quality warnings — shown as amber alerts, don't block upload */}
+      {qualityWarnings.map((w, i) => (
+        <div key={i} className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          {w}
+        </div>
+      ))}
+
+      {/* Good quality indicator */}
+      {preview && !checkingQuality && qualityWarnings.length === 0 && (
+        <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+          <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
+          Image quality looks good
+        </div>
+      )}
     </div>
   );
 }

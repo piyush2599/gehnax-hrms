@@ -32,6 +32,10 @@ export default async function JobsPage() {
     <div className="space-y-8">
       {/* Hero */}
       <div className="text-center space-y-3 py-6">
+        <div className="flex justify-center mb-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-10 w-auto" />
+        </div>
         <h1 className="text-3xl font-black text-slate-900">Join Our Team</h1>
         <p className="text-slate-500 max-w-xl mx-auto">
           We're building something great at Gehnax Technologies. Explore open roles and apply directly — we'd love to hear from you.

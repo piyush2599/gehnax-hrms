@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import OnboardingInvite from "@/models/OnboardingInvite";
 import crypto from "crypto";
+import { sendOnboardingInviteEmail } from "@/lib/email";
 
 export async function GET() {
   const session = await auth();
@@ -40,11 +41,11 @@ export async function POST(req: NextRequest) {
   await connectDB();
 
   const body = await req.json();
-  const { employeeCode, email, firstName, lastName, department, designation, employmentType, joiningDate } = body;
+  const { employeeCode, email, personalEmail, firstName, lastName, department, designation, employmentType, joiningDate } = body;
 
-  if (!employeeCode || !email || !department || !designation || !joiningDate) {
+  if (!employeeCode || !email || !personalEmail || !department || !designation || !joiningDate) {
     return NextResponse.json(
-      { error: "Employee ID, email, department, designation and joining date are required" },
+      { error: "Employee ID, work email, personal email, department, designation and joining date are required" },
       { status: 400 }
     );
   }
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
     token,
     employeeCode,
     email,
+    personalEmail: personalEmail.trim().toLowerCase(),
     firstName: firstName || undefined,
     lastName: lastName || undefined,
     department,
@@ -77,6 +79,15 @@ export async function POST(req: NextRequest) {
     expiresAt,
     createdBy: session.user.id,
   });
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const inviteLink = `${appUrl}/onboarding/${token}`;
+  const displayName = [firstName, lastName].filter(Boolean).join(" ");
+  try {
+    await sendOnboardingInviteEmail(personalEmail.trim().toLowerCase(), displayName, inviteLink, employeeCode, designation);
+  } catch (emailErr) {
+    console.error("[Onboarding] Failed to send invite email to", personalEmail, emailErr);
+  }
 
   return NextResponse.json({ invite }, { status: 201 });
 }

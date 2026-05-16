@@ -5,6 +5,7 @@ import OnboardingInvite from "@/models/OnboardingInvite";
 import User from "@/models/User";
 import Employee from "@/models/Employee";
 import bcrypt from "bcryptjs";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function POST(
   _req: NextRequest,
@@ -42,9 +43,11 @@ export async function POST(
 
   const firstName = (personal as any).firstName || invite.firstName || "";
   const lastName = (personal as any).lastName || invite.lastName || "";
+  const personalEmail = invite.personalEmail || "";
   const hashedPassword = await bcrypt.hash(invite.employeeCode, 12);
 
-  const avatarUrl = invite.profilePicture || undefined;
+  // profilePicture is now stored as a data URL (base64) — will be served via /api/employees/[id]/photo
+  const hasProfilePic = !!invite.profilePicture;
 
   // Step 1: create User (employeeId set after employee is created)
   const user = await User.create({
@@ -52,9 +55,18 @@ export async function POST(
     email: invite.email,
     password: hashedPassword,
     role: "employee",
-    avatar: avatarUrl,
     mustChangePassword: true,
+    isActive: true,
   });
+
+  // Build documents array from onboarding uploads (PAN + Aadhaar)
+  const onboardingDocs: Array<{ name: string; type: string; fileUrl: string; uploadedAt: Date }> = [];
+  if (invite.documents?.panCard) {
+    onboardingDocs.push({ name: "PAN Card", type: "pan_card", fileUrl: invite.documents.panCard, uploadedAt: new Date() });
+  }
+  if (invite.documents?.aadhaarCard) {
+    onboardingDocs.push({ name: "Aadhaar Card", type: "aadhaar_card", fileUrl: invite.documents.aadhaarCard, uploadedAt: new Date() });
+  }
 
   // Step 2: create Employee
   const employee = await Employee.create({
@@ -63,6 +75,7 @@ export async function POST(
     firstName: firstName || "—",
     lastName: lastName || "—",
     email: invite.email,
+    personalEmail: personalEmail || undefined,
     phone: (personal as any).phone,
     dateOfBirth: (personal as any).dateOfBirth ? new Date((personal as any).dateOfBirth) : undefined,
     gender: (personal as any).gender,
@@ -72,17 +85,30 @@ export async function POST(
     employmentType: invite.employmentType,
     joiningDate: invite.joiningDate,
     bankDetails: bank,
-    avatar: avatarUrl,
+    avatarData: hasProfilePic ? invite.profilePicture : undefined,
+    documents: onboardingDocs,
     salary: { basic: 0, hra: 0, allowances: 0, deductions: 0 },
   });
 
-  // Step 3: link employeeId back to user
-  await User.findByIdAndUpdate(user._id, { employeeId: employee._id });
+  // Step 3: link employeeId back to user, and set avatar API route if they uploaded a photo
+  const avatarApiUrl = hasProfilePic ? `/api/employees/${employee._id}/photo` : undefined;
+  await User.findByIdAndUpdate(user._id, { employeeId: employee._id, ...(avatarApiUrl ? { avatar: avatarApiUrl } : {}) });
+  if (avatarApiUrl) {
+    await Employee.findByIdAndUpdate(employee._id, { avatar: avatarApiUrl });
+  }
 
   invite.status = "completed";
   invite.completedAt = new Date();
   invite.employeeId = employee._id;
   await invite.save();
+
+  const fullName = `${firstName} ${lastName}`.trim() || invite.email;
+  const emailTarget = personalEmail || invite.email;
+  try {
+    await sendWelcomeEmail(emailTarget, fullName, invite.employeeCode);
+  } catch (emailErr) {
+    console.error("[Onboarding] Failed to send welcome email to", emailTarget, emailErr);
+  }
 
   return NextResponse.json(
     { employee, credentials: { email: invite.email, password: invite.employeeCode } },

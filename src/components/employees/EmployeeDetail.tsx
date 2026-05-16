@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import useSWR, { mutate } from "swr";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +17,7 @@ import {
   Mail, Phone, MapPin, Building2, Calendar,
   User, Briefcase, CreditCard, Pencil, X, Check,
   ChevronDown, ChevronUp, Sparkles, FolderOpen, ChevronLeft,
-  LogOut, Target, AlertTriangle, IdCard,
+  LogOut, Target, AlertTriangle, IdCard, Camera, Loader2,
 } from "lucide-react";
 import { formatDate, formatCurrency, getInitials, cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -60,6 +60,9 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
   const [form, setForm] = useState<any>({});
   const [showResign, setShowResign] = useState(false);
   const [showPIP, setShowPIP] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   const deptList = Array.isArray(departments) ? departments : [];
   const allEmployees = empList?.employees || [];
@@ -129,6 +132,19 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
     }
   };
 
+  const handlePhotoUpload = async (file: File) => {
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/employees/${employeeId}/photo`, { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Photo upload failed"); return; }
+      toast.success("Profile photo updated");
+      mutate(`/api/employees/${employeeId}`);
+    } finally { setUploadingPhoto(false); }
+  };
+
   const set = (key: string, value: any) =>
     setForm((f: any) => ({ ...f, [key]: value }));
 
@@ -182,12 +198,41 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
 
       {/* Header */}
       <div className="flex items-start gap-4 pb-1">
-        <Avatar className="w-16 h-16 ring-2 ring-slate-100 flex-shrink-0">
-          <AvatarImage src={emp.avatar} />
-          <AvatarFallback className="bg-blue-600 text-white text-xl font-bold">
-            {getInitials(`${emp.firstName} ${emp.lastName}`)}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative flex-shrink-0">
+          <Avatar key={emp.avatar || "no-photo"} className="w-16 h-16 ring-2 ring-slate-100">
+            <AvatarImage src={emp.avatar} />
+            <AvatarFallback className="bg-blue-600 text-white text-xl font-bold">
+              {getInitials(`${emp.firstName} ${emp.lastName}`)}
+            </AvatarFallback>
+          </Avatar>
+          {canManageDocs && (
+            <button
+              type="button"
+              onClick={() => !uploadingPhoto && photoRef.current?.click()}
+              className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+              title="Change photo"
+            >
+              {uploadingPhoto
+                ? <Loader2 className="w-4 h-4 text-white animate-spin" />
+                : <Camera className="w-4 h-4 text-white" />}
+            </button>
+          )}
+          <input
+            ref={photoRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = ""; }}
+          />
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = ""; }}
+          />
+        </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-bold text-slate-900 leading-tight">
             {emp.firstName} {emp.lastName}

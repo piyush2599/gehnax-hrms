@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import {
-  ShieldCheck, Copy, RefreshCw, Loader2,
+  Copy, RefreshCw, Loader2,
   AlertTriangle, CheckCircle2, SkipForward, Shield, KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -196,8 +196,9 @@ export default function MfaSetupPage() {
 
         {/* Header */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl mb-3 shadow-lg shadow-blue-500/40">
-            <ShieldCheck className="w-7 h-7 text-white" />
+          <div className="inline-flex items-center justify-center bg-white rounded-2xl px-5 py-2.5 mb-3 shadow-lg shadow-black/20">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-8 w-auto" />
           </div>
           <h1 className="text-2xl font-bold text-white">Set Up Two-Factor Auth</h1>
           <p className="text-blue-300 mt-1 text-sm">Scan the QR code, then enter the code to verify</p>

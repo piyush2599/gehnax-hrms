@@ -77,6 +77,7 @@ export default function OnboardingClient() {
   const [form, setForm] = useState({
     employeeCode: "",
     email: "",
+    personalEmail: "",
     firstName: "",
     lastName: "",
     department: "",
@@ -112,7 +113,7 @@ export default function OnboardingClient() {
   }, {} as Record<string, number>);
 
   const handleCreate = async () => {
-    if (!form.employeeCode || !form.email || !form.department || !form.designation || !form.joiningDate) {
+    if (!form.employeeCode || !form.email || !form.personalEmail || !form.department || !form.designation || !form.joiningDate) {
       toast.error("Please fill all required fields");
       return;
     }
@@ -127,7 +128,7 @@ export default function OnboardingClient() {
     if (!res.ok) { toast.error(data.error); return; }
     toast.success("Onboarding invite created");
     setShowCreate(false);
-    setForm({ employeeCode: "", email: "", firstName: "", lastName: "", department: "", designation: "", employmentType: "full_time", joiningDate: "" });
+    setForm({ employeeCode: "", email: "", personalEmail: "", firstName: "", lastName: "", department: "", designation: "", employmentType: "full_time", joiningDate: "" });
     fetchInvites();
   };
 
@@ -300,15 +301,27 @@ export default function OnboardingClient() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Email <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Work Email <span className="text-red-500">*</span></label>
                 <input
                   type="email"
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="employee@company.com"
+                  placeholder="employee@gehnax.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Personal Email <span className="text-red-500">*</span></label>
+              <input
+                type="email"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="employee@gmail.com"
+                value={form.personalEmail}
+                onChange={(e) => setForm({ ...form, personalEmail: e.target.value })}
+              />
+              <p className="text-xs text-slate-400 mt-1">Login credentials will be sent to this email</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

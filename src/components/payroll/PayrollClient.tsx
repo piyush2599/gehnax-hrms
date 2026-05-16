@@ -184,10 +184,8 @@ function PaySlip({ payroll }: { payroll: any }) {
       <div className="flex justify-between items-start pb-4 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-4 h-4 text-white" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-900">Gehnax Technologies</h2>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-8 w-auto" />
           </div>
           <p className="text-xs text-slate-500">Salary Slip — {getMonthName(payroll.month)} {payroll.year}</p>
         </div>

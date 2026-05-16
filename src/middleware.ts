@@ -39,38 +39,36 @@ export async function middleware(req: NextRequest) {
   }
 
   // ── MFA gate ──────────────────────────────────────────────────────────────
-  // If the MFA API just issued an mfa-complete cookie, honour it once and
-  // delete it — this replaces the unreliable update() + location.replace() approach.
   // Short-lived cookie set by MFA API routes after success — acts as "MFA cleared
-  // this session" pass, bypassing stale JWT flags until the next token refresh.
+  // this session" pass, bypassing stale JWT MFA flags until the next token refresh.
   const mfaComplete = req.cookies.get("mfa-complete")?.value === "1";
   if (mfaComplete) {
     if (pathname.startsWith("/mfa/")) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
-    return NextResponse.next();
-  }
+    // fall through — still enforce mustChangePassword gate below
+  } else {
+    const mfaPending       = !!(token as any).mfaPending;
+    const mfaSetupRequired = !!(token as any).mfaSetupRequired;
 
-  const mfaPending       = !!(token as any).mfaPending;
-  const mfaSetupRequired = !!(token as any).mfaSetupRequired;
-
-  if (mfaPending) {
-    if (pathname !== "/mfa/verify") {
-      return NextResponse.redirect(new URL("/mfa/verify", req.url));
+    if (mfaPending) {
+      if (pathname !== "/mfa/verify") {
+        return NextResponse.redirect(new URL("/mfa/verify", req.url));
+      }
+      return NextResponse.next();
     }
-    return NextResponse.next();
-  }
 
-  if (mfaSetupRequired) {
-    if (pathname !== "/mfa/setup") {
-      return NextResponse.redirect(new URL("/mfa/setup", req.url));
+    if (mfaSetupRequired) {
+      if (pathname !== "/mfa/setup") {
+        return NextResponse.redirect(new URL("/mfa/setup", req.url));
+      }
+      return NextResponse.next();
     }
-    return NextResponse.next();
-  }
 
-  // Redirect away from /mfa/* when MFA is not needed
-  if (pathname.startsWith("/mfa/")) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    // Redirect away from /mfa/* when MFA is not needed
+    if (pathname.startsWith("/mfa/")) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
   }
 
   // ── Must-change-password gate ─────────────────────────────────────────────

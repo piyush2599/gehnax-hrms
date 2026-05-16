@@ -136,14 +136,14 @@ export default function CandidateDetail({ candidate: initialCandidate, jobs, can
       {/* Back navigation */}
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors -ml-0.5 mb-1"
+        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors -ml-0.5 mb-1 print:hidden"
       >
         <ChevronLeft className="w-4 h-4" />
         Back to Hiring
       </button>
 
       {/* Header */}
-      <div className="flex items-start gap-4 pb-1">
+      <div className="flex items-start gap-4 pb-1 print:hidden">
         <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
           <User className="w-7 h-7 text-white" />
         </div>
@@ -168,11 +168,11 @@ export default function CandidateDetail({ candidate: initialCandidate, jobs, can
         </div>
       </div>
 
-      <Separator />
+      <Separator className="print:hidden" />
 
       {/* Tabs */}
       <Tabs defaultValue="overview">
-        <TabsList className="grid grid-cols-4 w-full bg-slate-100">
+        <TabsList className="grid grid-cols-4 w-full bg-slate-100 print:hidden">
           <TabsTrigger value="overview" className="gap-1 text-xs data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
             <User className="w-3.5 h-3.5" />
             Overview
@@ -808,7 +808,7 @@ function OfferLetterPreview({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 justify-end">
+      <div className="flex items-center gap-2 justify-end print:hidden">
         <Button size="sm" variant="outline" onClick={onClose} className="border-slate-200">Back to Form</Button>
         <Button size="sm" variant="outline" onClick={onPrint} className="border-slate-200 gap-1.5">
           <Printer className="w-3.5 h-3.5" /> Print
@@ -823,7 +823,10 @@ function OfferLetterPreview({
       <div ref={printRef} className="border border-slate-200 rounded-xl p-6 bg-white space-y-4 text-sm print:border-0" id="offer-letter-print">
         {/* Letterhead */}
         <div className="text-center border-b border-slate-200 pb-4">
-          <h1 className="text-2xl font-bold text-blue-700">Gehnax Technologies LLP</h1>
+          <div className="flex justify-center mb-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-10 w-auto" />
+          </div>
           <p className="text-slate-500 text-xs mt-1">Human Resources Department</p>
           {offer.location && <p className="text-slate-400 text-xs">{offer.location}</p>}
         </div>

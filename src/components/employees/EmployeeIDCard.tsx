@@ -90,7 +90,7 @@ export default function EmployeeIDCard({ emp }: Props) {
 
           {/* Avatar */}
           <div className="relative mt-2">
-            <Avatar className="w-24 h-24 ring-4 ring-white shadow-xl">
+            <Avatar key={emp.avatar || "no-photo"} className="w-24 h-24 ring-4 ring-white shadow-xl">
               <AvatarImage src={emp.avatar} />
               <AvatarFallback className="bg-blue-700 text-white text-3xl font-bold">
                 {getInitials(fullName)}

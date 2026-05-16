@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { Shield, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function OtpTimer({ onExpire }: { onExpire: () => void }) {
@@ -135,8 +135,9 @@ export default function MfaVerifyPage() {
 
       <div className="relative w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/40">
-            <Shield className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center bg-white rounded-2xl px-6 py-3 mb-4 shadow-lg shadow-black/20">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-10 w-auto" />
           </div>
           <h1 className="text-3xl font-bold text-white">Two-Factor Auth</h1>
           <p className="text-blue-200 mt-2 text-sm max-w-xs mx-auto">

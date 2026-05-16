@@ -12,7 +12,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getInitials, formatDate, formatCurrency } from "@/lib/utils";
-import { User, Phone, MapPin, Building2, Calendar, Pencil, FolderOpen, LogOut, IdCard } from "lucide-react";
+import { User, Phone, MapPin, Building2, Calendar, Pencil, FolderOpen, LogOut, IdCard, ShieldCheck, Eye, EyeOff, Check, X as XIcon } from "lucide-react";
+import { validatePassword } from "@/lib/password";
 import { useSession } from "next-auth/react";
 import EmployeeDocuments from "@/components/employees/EmployeeDocuments";
 import ResignModal from "@/components/employees/ResignModal";
@@ -26,6 +27,12 @@ export default function ProfileClient() {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showResign, setShowResign] = useState(false);
+
+  // Password change state
+  const [pwForm, setPwForm] = useState({ current: "", new: "", confirm: "" });
+  const [pwErrors, setPwErrors] = useState<{ current?: string; new?: string; confirm?: string }>({});
+  const [pwLoading, setPwLoading] = useState(false);
+  const [showPw, setShowPw] = useState({ current: false, new: false, confirm: false });
 
   const { data: emp, isLoading } = useSWR(
     employeeId ? `/api/employees/${employeeId}` : null,
@@ -57,6 +64,37 @@ export default function ProfileClient() {
       if (!res.ok) toast.error(data.error);
       else { toast.success("Profile updated"); setEditing(false); mutate(`/api/employees/${employeeId}`); }
     } finally { setSaving(false); }
+  };
+
+  const { rules: pwRules, valid: pwValid } = validatePassword(pwForm.new);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: typeof pwErrors = {};
+    if (!pwForm.current) errs.current = "Current password is required";
+    if (!pwValid) errs.new = "Please meet all password requirements";
+    if (!pwForm.confirm) errs.confirm = "Please confirm your new password";
+    else if (pwForm.new !== pwForm.confirm) errs.confirm = "Passwords do not match";
+    if (Object.keys(errs).length) { setPwErrors(errs); return; }
+
+    setPwLoading(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.new, confirmPassword: pwForm.confirm }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error?.toLowerCase().includes("current")) setPwErrors({ current: data.error });
+        else if (data.error?.toLowerCase().includes("match") || data.error?.toLowerCase().includes("confirm")) setPwErrors({ confirm: data.error });
+        else setPwErrors({ new: data.error });
+        return;
+      }
+      toast.success("Password changed successfully");
+      setPwForm({ current: "", new: "", confirm: "" });
+      setPwErrors({});
+    } finally { setPwLoading(false); }
   };
 
   if (isLoading) {
@@ -144,10 +182,10 @@ export default function ProfileClient() {
 
       {/* Tabs */}
       <Tabs defaultValue="personal">
-        <TabsList className="grid grid-cols-5 max-w-xl bg-slate-100">
-          <TabsTrigger value="personal" className="">Personal</TabsTrigger>
-          <TabsTrigger value="work" className="">Work</TabsTrigger>
-          <TabsTrigger value="salary" className="">Salary</TabsTrigger>
+        <TabsList className="grid grid-cols-6 max-w-2xl bg-slate-100">
+          <TabsTrigger value="personal">Personal</TabsTrigger>
+          <TabsTrigger value="work">Work</TabsTrigger>
+          <TabsTrigger value="salary">Salary</TabsTrigger>
           <TabsTrigger value="docs" className="gap-1.5">
             <FolderOpen className="w-3.5 h-3.5" />
             Docs
@@ -155,6 +193,10 @@ export default function ProfileClient() {
           <TabsTrigger value="idcard" className="gap-1.5">
             <IdCard className="w-3.5 h-3.5" />
             ID Card
+          </TabsTrigger>
+          <TabsTrigger value="security" className="gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Security
           </TabsTrigger>
         </TabsList>
 
@@ -277,6 +319,93 @@ export default function ProfileClient() {
         {/* ID Card */}
         <TabsContent value="idcard" className="mt-4">
           <EmployeeIDCard emp={emp} />
+        </TabsContent>
+
+        {/* Security — change password */}
+        <TabsContent value="security" className="mt-4">
+          <Card className="border-slate-200 shadow-sm max-w-md">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-semibold text-slate-700">Change Password</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                {/* Current password */}
+                <div className="space-y-1.5">
+                  <Label>Current Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPw.current ? "text" : "password"}
+                      placeholder="Enter your current password"
+                      value={pwForm.current}
+                      onChange={(e) => { setPwForm((f) => ({ ...f, current: e.target.value })); setPwErrors((v) => ({ ...v, current: undefined })); }}
+                      className={`pr-10 ${pwErrors.current ? "border-red-400" : ""}`}
+                      disabled={pwLoading}
+                    />
+                    <button type="button" onClick={() => setShowPw((v) => ({ ...v, current: !v.current }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" tabIndex={-1}>
+                      {showPw.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {pwErrors.current && <p className="text-xs text-red-600">{pwErrors.current}</p>}
+                </div>
+
+                {/* New password with live checklist */}
+                <div className="space-y-1.5">
+                  <Label>New Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPw.new ? "text" : "password"}
+                      placeholder="Min. 12 chars with complexity"
+                      value={pwForm.new}
+                      onChange={(e) => { setPwForm((f) => ({ ...f, new: e.target.value })); setPwErrors((v) => ({ ...v, new: undefined })); }}
+                      className={`pr-10 ${pwErrors.new ? "border-red-400" : ""}`}
+                      disabled={pwLoading}
+                    />
+                    <button type="button" onClick={() => setShowPw((v) => ({ ...v, new: !v.new }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" tabIndex={-1}>
+                      {showPw.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {pwForm.new.length > 0 && (
+                    <ul className="space-y-1 mt-2">
+                      {pwRules.map((r) => (
+                        <li key={r.label} className={`flex items-center gap-1.5 text-xs ${r.pass ? "text-emerald-600" : "text-slate-400"}`}>
+                          {r.pass ? <Check className="w-3 h-3" /> : <XIcon className="w-3 h-3" />}
+                          {r.label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {pwErrors.new && <p className="text-xs text-red-600">{pwErrors.new}</p>}
+                </div>
+
+                {/* Confirm password */}
+                <div className="space-y-1.5">
+                  <Label>Confirm New Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPw.confirm ? "text" : "password"}
+                      placeholder="Re-enter new password"
+                      value={pwForm.confirm}
+                      onChange={(e) => { setPwForm((f) => ({ ...f, confirm: e.target.value })); setPwErrors((v) => ({ ...v, confirm: undefined })); }}
+                      className={`pr-10 ${pwErrors.confirm ? "border-red-400" : ""}`}
+                      disabled={pwLoading}
+                    />
+                    <button type="button" onClick={() => setShowPw((v) => ({ ...v, confirm: !v.confirm }))}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" tabIndex={-1}>
+                      {showPw.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {pwErrors.confirm && <p className="text-xs text-red-600">{pwErrors.confirm}</p>}
+                </div>
+
+                <Button type="submit" loading={pwLoading} className="w-full gap-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  {pwLoading ? "Updating…" : "Update Password"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

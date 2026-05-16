@@ -60,6 +60,76 @@ export function sendWelcomeEmail(to: string, name: string, password: string) {
   });
 }
 
+export function sendOnboardingInviteEmail(to: string, name: string, inviteLink: string, employeeCode: string, designation: string) {
+  return sendMail({
+    to,
+    subject: "You're invited to join Gehnax Technologies — Complete Your Onboarding",
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
+          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px" />
+          <p style="color:#bfdbfe;margin:4px 0 0;font-size:14px">Human Resource Management System</p>
+        </div>
+        <div style="padding:32px">
+          <h2 style="color:#1e293b;margin-top:0">Welcome${name ? `, ${name}` : ""}!</h2>
+          <p style="color:#475569">You have been invited to join <strong>Gehnax Technologies LLP</strong> as <strong>${designation}</strong>.</p>
+          <p style="color:#475569">Please complete your onboarding by clicking the button below and filling in your details.</p>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0">
+            <p style="margin:0 0 8px;color:#64748b;font-size:13px">EMPLOYEE ID</p>
+            <p style="margin:0 0 16px;color:#1e293b;font-weight:600;font-family:monospace">${employeeCode}</p>
+            <p style="margin:0 0 8px;color:#64748b;font-size:13px">ONBOARDING LINK (valid for 7 days)</p>
+            <a href="${inviteLink}" style="color:#1e40af;font-weight:600;word-break:break-all">${inviteLink}</a>
+          </div>
+          <a href="${inviteLink}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px">Start Onboarding</a>
+          <p style="color:#94a3b8;font-size:12px;margin-top:24px">This link expires in 7 days. If you did not expect this email, please ignore it.</p>
+        </div>
+        <div style="background:#f1f5f9;padding:16px;text-align:center;color:#94a3b8;font-size:12px">
+          © ${new Date().getFullYear()} Gehnax Technologies LLP. This is an automated email, please do not reply.
+        </div>
+      </div>
+    `,
+  });
+}
+
+export function sendResignationNotificationEmail(
+  to: string | string[],
+  employeeName: string,
+  employeeCode: string,
+  designation: string,
+  lastWorkingDay: string,
+  reason?: string
+) {
+  return sendMail({
+    to,
+    subject: `Resignation Notice — ${employeeName} (${employeeCode})`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:24px">Gehnax HRMS</h1>
+          <p style="color:#bfdbfe;margin:8px 0 0">Resignation Notification</p>
+        </div>
+        <div style="padding:32px">
+          <h2 style="color:#1e293b;margin-top:0">Resignation Submitted</h2>
+          <p style="color:#475569">An employee has submitted their resignation. Please review the details below.</p>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0">
+            <p style="margin:0 0 8px;color:#64748b;font-size:13px">EMPLOYEE</p>
+            <p style="margin:0 0 16px;color:#1e293b;font-weight:600">${employeeName} <span style="color:#64748b;font-weight:400">(${employeeCode})</span></p>
+            <p style="margin:0 0 8px;color:#64748b;font-size:13px">DESIGNATION</p>
+            <p style="margin:0 0 16px;color:#1e293b;font-weight:600">${designation}</p>
+            <p style="margin:0 0 8px;color:#64748b;font-size:13px">LAST WORKING DAY</p>
+            <p style="margin:0 0 ${reason ? "16px" : "0"};color:#ef4444;font-weight:600">${lastWorkingDay}</p>
+            ${reason ? `<p style="margin:0 0 8px;color:#64748b;font-size:13px">REASON</p><p style="margin:0;color:#475569">${reason}</p>` : ""}
+          </div>
+          <p style="color:#475569;font-size:14px">Please log in to the HRMS to review and take action on this resignation.</p>
+        </div>
+        <div style="background:#f1f5f9;padding:16px;text-align:center;color:#94a3b8;font-size:12px">
+          © ${new Date().getFullYear()} Gehnax HRMS. This is an automated email, please do not reply.
+        </div>
+      </div>
+    `,
+  });
+}
+
 export function sendPasswordResetEmail(to: string, name: string, newPassword: string) {
   return sendMail({
     to,

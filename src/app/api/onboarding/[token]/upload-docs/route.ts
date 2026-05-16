@@ -4,8 +4,14 @@ import OnboardingInvite from "@/models/OnboardingInvite";
 import { uploadToFTP } from "@/lib/ftp-upload";
 import { encryptBuffer } from "@/lib/encrypt";
 
-const ALLOWED_TYPES = ["application/pdf"];
+const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+
+function fileExt(mimeType: string): string {
+  if (mimeType === "application/pdf") return "pdf";
+  if (mimeType === "image/png") return "png";
+  return "jpg";
+}
 
 function safeFolderName(invite: any): string {
   const code = invite.employeeCode ?? "unknown";
@@ -37,7 +43,7 @@ export async function POST(
     return NextResponse.json({ error: "docType must be pan_card or aadhaar_card" }, { status: 400 });
   }
   if (!ALLOWED_TYPES.includes(file.type)) {
-    return NextResponse.json({ error: "Only PDF files are allowed" }, { status: 400 });
+    return NextResponse.json({ error: "Only PDF, PNG or JPG files are allowed" }, { status: 400 });
   }
   if (file.size > MAX_SIZE) {
     return NextResponse.json({ error: "File too large (max 5 MB)" }, { status: 400 });
@@ -47,7 +53,7 @@ export async function POST(
   const encryptedBuffer = encryptBuffer(rawBuffer);
 
   const folder = `onboarding/${safeFolderName(invite)}`;
-  const encFileName = `${docType}.pdf.enc`;
+  const encFileName = `${docType}.${fileExt(file.type)}.enc`;
 
   try {
     const { url } = await uploadToFTP(encryptedBuffer, encFileName, folder);

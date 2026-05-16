@@ -7,6 +7,7 @@ export interface IEmployee extends Document {
   firstName: string;
   lastName: string;
   email: string;
+  personalEmail?: string;
   phone?: string;
   dateOfBirth?: Date;
   gender?: "male" | "female" | "other";
@@ -85,6 +86,7 @@ const EmployeeSchema = new Schema<IEmployee>(
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true },
+    personalEmail: { type: String, lowercase: true, trim: true },
     phone: { type: String },
     dateOfBirth: { type: Date },
     gender: { type: String, enum: ["male", "female", "other"] },

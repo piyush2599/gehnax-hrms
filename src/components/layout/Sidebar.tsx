@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   LayoutDashboard, Users, Building2, Clock, Calendar,
   FileText, DollarSign, Megaphone, UserCircle,
-  ChevronLeft, ChevronRight, LogOut, Briefcase,
+  ChevronLeft, ChevronRight, LogOut,
   CalendarDays, UserPlus, ClipboardCheck, ShieldCheck, X,
 } from "lucide-react";
 
@@ -82,9 +82,17 @@ function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => vo
         "flex items-center h-16 px-4 flex-shrink-0 gap-3 border-b border-white/6",
         collapsed && "justify-center px-0"
       )}>
-        <div className="relative w-9 h-9 flex-shrink-0">
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/40 animate-glow-ring">
-            <Briefcase className="w-[18px] h-[18px] text-white" />
+        <div className="relative flex-shrink-0">
+          <div className={cn(
+            "bg-white rounded-xl flex items-center justify-center shadow-md overflow-hidden",
+            collapsed ? "w-9 h-9 p-1" : "h-9 px-2.5 py-1"
+          )}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://www.gehnax.com/Gehnax-logo.png"
+              alt="Gehnax"
+              className={collapsed ? "w-full h-full object-contain" : "h-full w-auto"}
+            />
           </div>
           <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0d1117] shadow-sm" />
         </div>

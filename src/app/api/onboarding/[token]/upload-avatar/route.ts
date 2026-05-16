@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import OnboardingInvite from "@/models/OnboardingInvite";
-import { uploadToFTP } from "@/lib/ftp-upload";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -31,18 +30,12 @@ export async function POST(
     return NextResponse.json({ error: "Image too large (max 5 MB)" }, { status: 400 });
   }
 
-  try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
-    const { url } = await uploadToFTP(buffer, `avatar.${ext}`, "profile-photos");
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const dataUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
 
-    invite.profilePicture = url;
-    invite.profilePictureData = undefined;
-    await invite.save();
+  invite.profilePicture = dataUrl;
+  invite.profilePictureData = undefined;
+  await invite.save();
 
-    return NextResponse.json({ url });
-  } catch (err: any) {
-    console.error("Avatar upload failed:", err);
-    return NextResponse.json({ error: "Upload failed: " + (err.message ?? "unknown") }, { status: 500 });
-  }
+  return NextResponse.json({ url: dataUrl });
 }
