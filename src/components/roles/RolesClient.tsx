@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NativeSelect } from "@/components/ui/native-select";
 import { toast } from "sonner";
-import { Search, Shield, ShieldCheck, User, Users, Loader2, Lock, Eye, EyeOff, ShieldAlert, ShieldOff, Clock } from "lucide-react";
+import { Search, Shield, ShieldCheck, User, Users, Loader2, Lock, Eye, EyeOff, ShieldAlert, ShieldOff, Clock, KeyRound } from "lucide-react";
 import { getInitials, formatDate } from "@/lib/utils";
 import AdminMFAModal from "./AdminMFAModal";
+import ResetPasswordModal from "./ResetPasswordModal";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -55,6 +56,9 @@ export default function RolesClient() {
 
   // MFA modal state
   const [mfaTarget, setMfaTarget] = useState<any | null>(null);
+
+  // Reset password modal state
+  const [pwResetTarget, setPwResetTarget] = useState<any | null>(null);
 
   // Password confirmation modal state
   const [pending, setPending] = useState<PendingChange | null>(null);
@@ -211,6 +215,17 @@ export default function RolesClient() {
         document.body
       )}
 
+      {/* Reset password modal */}
+      {pwResetTarget && (
+        <ResetPasswordModal
+          userId={pwResetTarget._id}
+          userName={pwResetTarget.name}
+          userEmail={pwResetTarget.email}
+          onClose={() => setPwResetTarget(null)}
+          onSuccess={() => mutate()}
+        />
+      )}
+
       {/* MFA management modal */}
       {mfaTarget && (
         <AdminMFAModal
@@ -363,7 +378,16 @@ export default function RolesClient() {
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
                             )}
                           </div>
-                          <MfaCell user={user} onManage={() => setMfaTarget(user)} isMe={false} />
+                          <div className="flex items-center gap-1">
+                            <MfaCell user={user} onManage={() => setMfaTarget(user)} isMe={false} />
+                            <button
+                              onClick={() => setPwResetTarget(user)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="Reset password"
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <Badge variant="outline" className={`text-xs ${ROLE_STYLE[user.role] || ""}`}>

@@ -12,10 +12,11 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getInitials, formatDate, formatCurrency } from "@/lib/utils";
-import { User, Phone, MapPin, Building2, Calendar, Pencil, FolderOpen, LogOut } from "lucide-react";
+import { User, Phone, MapPin, Building2, Calendar, Pencil, FolderOpen, LogOut, IdCard } from "lucide-react";
 import { useSession } from "next-auth/react";
 import EmployeeDocuments from "@/components/employees/EmployeeDocuments";
 import ResignModal from "@/components/employees/ResignModal";
+import EmployeeIDCard from "@/components/employees/EmployeeIDCard";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -143,13 +144,17 @@ export default function ProfileClient() {
 
       {/* Tabs */}
       <Tabs defaultValue="personal">
-        <TabsList className="grid grid-cols-4 max-w-lg bg-slate-100">
+        <TabsList className="grid grid-cols-5 max-w-xl bg-slate-100">
           <TabsTrigger value="personal" className="">Personal</TabsTrigger>
           <TabsTrigger value="work" className="">Work</TabsTrigger>
           <TabsTrigger value="salary" className="">Salary</TabsTrigger>
-          <TabsTrigger value="docs" className="gap-1.5 ">
+          <TabsTrigger value="docs" className="gap-1.5">
             <FolderOpen className="w-3.5 h-3.5" />
             Docs
+          </TabsTrigger>
+          <TabsTrigger value="idcard" className="gap-1.5">
+            <IdCard className="w-3.5 h-3.5" />
+            ID Card
           </TabsTrigger>
         </TabsList>
 
@@ -267,6 +272,11 @@ export default function ProfileClient() {
               <EmployeeDocuments employeeId={employeeId} canUpload={true} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ID Card */}
+        <TabsContent value="idcard" className="mt-4">
+          <EmployeeIDCard emp={emp} />
         </TabsContent>
       </Tabs>
 

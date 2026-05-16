@@ -53,9 +53,15 @@ console.log("Departments seeded");
 /* ── Helper ── */
 async function createEmployee(opts) {
   let user = await User.findOne({ email: opts.email });
+  let empByCode = await Employee.findOne({ employeeCode: opts.code });
+  if (user && empByCode) return { user, employee: empByCode };
   if (user) {
-    const emp = await Employee.findOne({ userId: user._id });
+    const emp = await Employee.findOne({ userId: user._id }) || empByCode;
     return { user, employee: emp };
+  }
+  if (empByCode) {
+    // Employee exists but no matching user — link or skip
+    return { user: null, employee: empByCode };
   }
   const hash = await bcrypt.hash(opts.password, 12);
   user = await User.create({ name: `${opts.firstName} ${opts.lastName}`, email: opts.email, password: hash, role: opts.role });

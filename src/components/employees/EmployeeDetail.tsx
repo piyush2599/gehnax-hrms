@@ -17,7 +17,7 @@ import {
   Mail, Phone, MapPin, Building2, Calendar,
   User, Briefcase, CreditCard, Pencil, X, Check,
   ChevronDown, ChevronUp, Sparkles, FolderOpen, ChevronLeft,
-  LogOut, Target, AlertTriangle,
+  LogOut, Target, AlertTriangle, IdCard,
 } from "lucide-react";
 import { formatDate, formatCurrency, getInitials, cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -26,6 +26,7 @@ import CTCCalculator from "./CTCCalculator";
 import EmployeeDocuments from "./EmployeeDocuments";
 import ResignModal from "./ResignModal";
 import PIPModal from "./PIPModal";
+import EmployeeIDCard from "./EmployeeIDCard";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -288,7 +289,7 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
       {/* ── VIEW MODE: tabs ── */}
       {!editing && (
         <Tabs defaultValue="info">
-          <TabsList className="grid grid-cols-4 w-full bg-slate-100">
+          <TabsList className="grid grid-cols-5 w-full bg-slate-100">
             <TabsTrigger value="info" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
               <User className="w-3.5 h-3.5" />
               Personal
@@ -304,6 +305,10 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
             <TabsTrigger value="docs" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
               <FolderOpen className="w-3.5 h-3.5" />
               Docs
+            </TabsTrigger>
+            <TabsTrigger value="idcard" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
+              <IdCard className="w-3.5 h-3.5" />
+              ID Card
             </TabsTrigger>
           </TabsList>
 
@@ -400,6 +405,11 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
           {/* Documents */}
           <TabsContent value="docs" className="mt-4">
             <EmployeeDocuments employeeId={employeeId} canUpload={canManageDocs} />
+          </TabsContent>
+
+          {/* ID Card */}
+          <TabsContent value="idcard" className="mt-4">
+            <EmployeeIDCard emp={emp} />
           </TabsContent>
         </Tabs>
       )}
