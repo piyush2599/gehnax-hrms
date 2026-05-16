@@ -73,6 +73,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
+  // ── Must-change-password gate ─────────────────────────────────────────────
+  const mustChangePassword = !!(token as any).mustChangePassword;
+  if (mustChangePassword) {
+    if (pathname !== "/change-password") {
+      return NextResponse.redirect(new URL("/change-password", req.url));
+    }
+    return NextResponse.next();
+  }
+  if (pathname === "/change-password") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
+  }
+
   return NextResponse.next();
 }
 

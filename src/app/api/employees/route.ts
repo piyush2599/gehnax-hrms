@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
     email,
     password: hashedPassword,
     role: "employee",
+    mustChangePassword: true,
   });
 
   // Create employee

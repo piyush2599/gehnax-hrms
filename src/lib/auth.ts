@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await User.findOne({
           email: credentials.email,
           isActive: true,
-        }).select("+password mfaEnabled mfaSkipCount mfaDisabledUntil mfaForceSetup");
+        }).select("+password mfaEnabled mfaSkipCount mfaDisabledUntil mfaForceSetup mustChangePassword");
 
         if (!user) return null;
 
@@ -46,9 +46,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role: user.role,
           employeeId: user.employeeId?.toString(),
           avatar: user.avatar,
-          mfaEnabled:    user.mfaEnabled && !tempDisabled,
-          mfaSkipCount:  user.mfaSkipCount,
-          mfaForceSetup: user.mfaForceSetup && !user.mfaEnabled,
+          mfaEnabled:          user.mfaEnabled && !tempDisabled,
+          mfaSkipCount:        user.mfaSkipCount,
+          mfaForceSetup:       user.mfaForceSetup && !user.mfaEnabled,
+          mustChangePassword:  !!user.mustChangePassword,
         };
       },
     }),
@@ -64,9 +65,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const mfaEnabled    = !!(user as any).mfaEnabled;
         const skipCount     = (user as any).mfaSkipCount ?? 0;
         const mfaForceSetup = !!(user as any).mfaForceSetup;
-        token.mfaPending        = mfaEnabled;
-        token.mfaSetupRequired  = !mfaEnabled;
-        token.mfaSetupMandatory = !mfaEnabled && (skipCount >= 5 || mfaForceSetup);
+        token.mfaPending          = mfaEnabled;
+        token.mfaSetupRequired    = !mfaEnabled;
+        token.mfaSetupMandatory   = !mfaEnabled && (skipCount >= 5 || mfaForceSetup);
+        token.mustChangePassword  = !!(user as any).mustChangePassword;
         // loginAt (ms) is used to determine whether MFA actions happened in this session
         token.loginAt = Date.now();
         return token;

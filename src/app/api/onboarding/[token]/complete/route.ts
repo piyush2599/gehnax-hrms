@@ -53,6 +53,7 @@ export async function POST(
     password: hashedPassword,
     role: "employee",
     avatar: avatarUrl,
+    mustChangePassword: true,
   });
 
   // Step 2: create Employee

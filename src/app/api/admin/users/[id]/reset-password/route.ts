@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   if (!valid) return NextResponse.json({ error: "Incorrect admin password" }, { status: 401 });
 
   const hashed = await bcrypt.hash(newPassword, 12);
-  const user = await User.findByIdAndUpdate(params.id, { password: hashed }, { new: true }).select("name email");
+  const user = await User.findByIdAndUpdate(params.id, { password: hashed, mustChangePassword: true }, { new: true }).select("name email");
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   return NextResponse.json({ success: true, userName: user.name });

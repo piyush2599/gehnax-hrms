@@ -49,6 +49,7 @@ export async function POST(
     password: hashedPassword,
     role: "employee",
     avatar: undefined,
+    mustChangePassword: true,
   });
 
   const employee = await Employee.create({
