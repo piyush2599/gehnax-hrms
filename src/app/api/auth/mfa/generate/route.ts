@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   await connectDB();
   const user = await User.findById((session.user as any).id).select(
-    "+mfaSecret mfaEnabled mfaSkipCount mfaForceSetup"
+    "+mfaSecret mfaEnabled mfaSkipCount mfaForceSetup name email"
   );
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
   if (user.mfaEnabled) {
@@ -36,7 +36,8 @@ export async function GET(req: NextRequest) {
   user.mfaSecret = secret;
   await user.save();
 
-  const otpauthUrl = authenticator.keyuri(user.email, "Gehnax HRMS", secret);
+  const account = user.name || user.email || "User";
+  const otpauthUrl = authenticator.keyuri(account, "Gehnax HRMS", secret);
   const qrImage = await QRCode.toDataURL(otpauthUrl, { width: 240, margin: 2 });
   const formattedSecret = secret.match(/.{1,4}/g)?.join(" ") ?? secret;
 
