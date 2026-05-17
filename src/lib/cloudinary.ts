@@ -23,7 +23,7 @@ export async function uploadToCloudinary(
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
-        public_id: `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "_")}`,
+        public_id: `${Date.now()}-${fileName.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_")}`,
         resource_type: resourceType,
         access_mode: "public",
       },
