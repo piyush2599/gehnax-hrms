@@ -45,8 +45,8 @@ export default function EmployeeIDCard({ emp }: Props) {
     if (!cardRef.current) return;
     setDownloading(true);
     try {
-      // Route all external images through the server-side proxy so html2canvas
-      // sees only same-origin URLs — eliminates every CORS/taint issue.
+      // Pre-fetch external images via server-side proxy → data URLs so the
+      // renderer never makes cross-origin requests.
       const imgs = Array.from(cardRef.current.querySelectorAll("img"));
       const origSrcs = new Map<HTMLImageElement, string>();
 
@@ -56,8 +56,7 @@ export default function EmployeeIDCard({ emp }: Props) {
           if (!src || src.startsWith("data:") || src.startsWith("/")) return;
           origSrcs.set(img, src);
           try {
-            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
-            const res = await fetch(proxyUrl);
+            const res = await fetch(`/api/proxy-image?url=${encodeURIComponent(src)}`);
             if (!res.ok) throw new Error(`proxy ${res.status}`);
             const blob = await res.blob();
             const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -68,25 +67,20 @@ export default function EmployeeIDCard({ emp }: Props) {
             });
             img.src = dataUrl;
           } catch {
-            // Remove src so html2canvas stays untainted; AvatarFallback shows initials
             img.removeAttribute("src");
           }
         })
       );
 
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 3,
-        useCORS: false,
-        allowTaint: false,
+      // html-to-image handles modern CSS (oklch, etc.) unlike html2canvas
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 3,
         backgroundColor: "#ffffff",
-        logging: false,
       });
 
-      // Restore original src values
       origSrcs.forEach((src, img) => { img.src = src; });
 
-      const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.download = `${emp.employeeCode}-ID-Card.png`;
       link.href = dataUrl;
