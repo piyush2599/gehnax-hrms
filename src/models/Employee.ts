@@ -122,7 +122,7 @@ const EmployeeSchema = new Schema<IEmployee>(
     documents: [
       {
         name: String,
-        type: String,
+        type: { type: String },
         fileUrl: String,
         uploadedAt: { type: Date, default: Date.now },
       },

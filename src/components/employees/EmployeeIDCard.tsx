@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getInitials, formatDate } from "@/lib/utils";
-import { Download, IdCard } from "lucide-react";
+import { Download } from "lucide-react";
 
 interface Props {
   emp: {
@@ -49,13 +49,29 @@ export default function EmployeeIDCard({ emp }: Props) {
       const canvas = await html2canvas(cardRef.current, {
         scale: 3,
         useCORS: true,
-        backgroundColor: null,
+        allowTaint: false,
+        backgroundColor: "#ffffff",
         logging: false,
+        imageTimeout: 15000,
+        onclone: (_doc, el) => {
+          // ensure every <img> inside the cloned card has crossOrigin so
+          // html2canvas can fetch Cloudinary images without tainting the canvas
+          el.querySelectorAll("img").forEach((img) => {
+            img.crossOrigin = "anonymous";
+          });
+        },
       });
+      const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.download = `${emp.employeeCode}-ID-Card.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.href = dataUrl;
+      // Must be in the DOM for Firefox / Safari to trigger the download
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("ID card download failed:", err);
+      alert("Could not generate ID card. Please try again.");
     } finally {
       setDownloading(false);
     }
@@ -77,9 +93,15 @@ export default function EmployeeIDCard({ emp }: Props) {
           {/* Company name */}
           <div className="w-full flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
-                <IdCard className="w-4 h-4 text-white" />
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/icon-96x96.png"
+                alt="Gehnax"
+                width={32}
+                height={32}
+                style={{ borderRadius: 8 }}
+                crossOrigin="anonymous"
+              />
               <div>
                 <p className="text-white font-bold text-xs leading-tight tracking-wide">GEHNAX</p>
                 <p className="text-blue-200 text-[9px] leading-tight tracking-widest uppercase">Technologies LLP</p>
