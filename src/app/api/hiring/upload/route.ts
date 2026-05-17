@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import HiringDocument from "@/models/HiringDocument";
-import { uploadToDrive } from "@/lib/gdrive";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -30,7 +30,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { url, fileId } = await uploadToDrive(buffer, file.name, file.type, `hiring/${candidateId}`);
+    const { url, publicId } = await uploadToCloudinary(
+      buffer, file.name, `hrms/hiring/${candidateId}`, file.type
+    );
 
     const document = await HiringDocument.create({
       candidate:    candidateId,
@@ -42,9 +44,9 @@ export async function POST(req: NextRequest) {
       uploadedBy:   session.user.email ?? "hr",
     });
 
-    return NextResponse.json({ url, fileId, document }, { status: 201 });
+    return NextResponse.json({ url, publicId, document }, { status: 201 });
   } catch (err: any) {
-    console.error("Drive upload error:", err);
+    console.error("Cloudinary upload error:", err);
     return NextResponse.json({ error: "Upload failed: " + (err.message ?? "unknown error") }, { status: 500 });
   }
 }

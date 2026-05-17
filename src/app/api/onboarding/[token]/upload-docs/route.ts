@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import OnboardingInvite from "@/models/OnboardingInvite";
-import { uploadToDrive } from "@/lib/gdrive";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
-
-const EXT_MAP: Record<string, string> = {
-  "application/pdf": "pdf",
-  "image/jpeg": "jpg",
-  "image/jpg": "jpg",
-  "image/png": "png",
-};
 
 function safeFolderName(invite: any): string {
   const code = invite.employeeCode ?? "unknown";
@@ -50,12 +43,10 @@ export async function POST(
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = EXT_MAP[file.type] ?? "bin";
-  const fileName = `${docType}.${ext}`;
-  const subFolder = `onboarding/${safeFolderName(invite)}`;
+  const folder = `hrms/onboarding/${safeFolderName(invite)}`;
 
   try {
-    const { url } = await uploadToDrive(buffer, fileName, file.type, subFolder);
+    const { url } = await uploadToCloudinary(buffer, docType, folder, file.type);
 
     if (!invite.documents) invite.documents = {};
     if (docType === "pan_card") invite.documents.panCard = url;

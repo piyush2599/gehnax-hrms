@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadToFTP } from "@/lib/ftp-upload";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { extractTextFromBuffer, parseResumeText } from "@/lib/resume-parser";
 
 const ALLOWED_TYPES = [
@@ -29,15 +29,14 @@ export async function POST(req: NextRequest) {
     const text = await extractTextFromBuffer(buffer, mimeType);
     const parsed = parseResumeText(text);
 
-    // Try FTP upload; if not configured or unavailable, skip gracefully
+    // Try Cloudinary upload; if not configured or unavailable, skip gracefully
     let fileUrl = "";
-    let fileName = "";
+    let fileName = file.name;
     try {
-      const ftpResult = await uploadToFTP(buffer, file.name, "resumes");
-      fileUrl  = ftpResult.url;
-      fileName = ftpResult.fileName;
-    } catch (ftpErr: any) {
-      console.warn("FTP upload skipped (not configured or unreachable):", ftpErr.message);
+      const result = await uploadToCloudinary(buffer, file.name, "hrms/resumes", mimeType);
+      fileUrl  = result.url;
+    } catch (uploadErr: any) {
+      console.warn("Cloudinary upload skipped:", uploadErr.message);
     }
 
     return NextResponse.json({ fileUrl, fileName, parsed });

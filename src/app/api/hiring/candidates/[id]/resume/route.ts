@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Candidate from "@/models/Candidate";
-import { uploadToDrive } from "@/lib/gdrive";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth();
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { url } = await uploadToDrive(buffer, file.name, file.type, "hiring/resumes");
+    const { url } = await uploadToCloudinary(buffer, file.name, "hrms/resumes", file.type);
 
     const candidate = await Candidate.findByIdAndUpdate(
       params.id,
