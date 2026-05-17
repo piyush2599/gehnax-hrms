@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 import dns from "dns";
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
-const MONGODB_URI = "MONGODB_URI_REDACTED";
+const MONGODB_URI = process.argv[2] || process.env.MONGODB_URI;
+if (!MONGODB_URI) { console.error("Usage: node reset-prod.mjs <MONGODB_URI>"); process.exit(1); }
 const ADMIN_EMAIL = "admin@gehnax.com";
 
 await mongoose.connect(MONGODB_URI);

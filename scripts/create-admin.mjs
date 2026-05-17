@@ -3,7 +3,8 @@ import bcrypt from "bcryptjs";
 import dns from "dns";
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
-const MONGODB_URI = "MONGODB_URI_REDACTED";
+const MONGODB_URI = process.argv[2] || process.env.MONGODB_URI;
+if (!MONGODB_URI) { console.error("Usage: node create-admin.mjs <MONGODB_URI>"); process.exit(1); }
 
 await mongoose.connect(MONGODB_URI);
 const db = mongoose.connection.db;
