@@ -45,27 +45,48 @@ export default function EmployeeIDCard({ emp }: Props) {
     if (!cardRef.current) return;
     setDownloading(true);
     try {
+      // Pre-convert all external <img> src values to data-URLs so html2canvas
+      // never makes cross-origin requests (Cloudinary, etc.) that taint the canvas.
+      const imgs = Array.from(cardRef.current.querySelectorAll("img"));
+      const origSrcs = new Map<HTMLImageElement, string>();
+
+      await Promise.all(
+        imgs.map(async (img) => {
+          const src = img.getAttribute("src") || "";
+          if (!src || src.startsWith("data:") || src.startsWith("/")) return;
+          try {
+            const res = await fetch(src);
+            const blob = await res.blob();
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            origSrcs.set(img, src);
+            img.src = dataUrl;
+          } catch {
+            // leave unchanged — html2canvas will skip it gracefully
+          }
+        })
+      );
+
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(cardRef.current, {
         scale: 3,
-        useCORS: true,
-        allowTaint: false,
+        useCORS: false,
+        allowTaint: true,
         backgroundColor: "#ffffff",
         logging: false,
-        imageTimeout: 15000,
-        onclone: (_doc, el) => {
-          // ensure every <img> inside the cloned card has crossOrigin so
-          // html2canvas can fetch Cloudinary images without tainting the canvas
-          el.querySelectorAll("img").forEach((img) => {
-            img.crossOrigin = "anonymous";
-          });
-        },
       });
+
+      // Restore original src values
+      origSrcs.forEach((src, img) => { img.src = src; });
+
       const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.download = `${emp.employeeCode}-ID-Card.png`;
       link.href = dataUrl;
-      // Must be in the DOM for Firefox / Safari to trigger the download
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
