@@ -168,5 +168,9 @@ EmployeeSchema.virtual("fullName").get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
+EmployeeSchema.index({ isActive: 1 });
+EmployeeSchema.index({ department: 1, isActive: 1 });
+EmployeeSchema.index({ createdAt: -1 });
+
 export default mongoose.models.Employee ||
   mongoose.model<IEmployee>("Employee", EmployeeSchema);

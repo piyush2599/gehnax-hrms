@@ -48,25 +48,30 @@ export async function GET() {
       .populate("department", "name"),
   ]);
 
-  // Attendance trend (last 7 days)
-  const last7Days = [];
-  for (let i = 6; i >= 0; i--) {
+  // Attendance trend (last 7 days) — single aggregation instead of 7 queries
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const attendanceCounts = await Attendance.aggregate([
+    { $match: { date: { $gte: sevenDaysAgo }, status: "present" } },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+        present: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const attendanceMap = new Map(attendanceCounts.map((a) => [a._id, a.present]));
+
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
-    date.setDate(date.getDate() - i);
+    date.setDate(date.getDate() - (6 - i));
     date.setHours(0, 0, 0, 0);
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + 1);
-
-    const present = await Attendance.countDocuments({
-      date: { $gte: date, $lt: nextDate },
-      status: "present",
-    });
-
-    last7Days.push({
-      date: date.toISOString().split("T")[0],
-      present,
-    });
-  }
+    const dateStr = date.toISOString().split("T")[0];
+    return { date: dateStr, present: attendanceMap.get(dateStr) ?? 0 };
+  });
 
   // Department headcount
   const deptHeadcount = await Employee.aggregate([
