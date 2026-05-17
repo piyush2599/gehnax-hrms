@@ -12,7 +12,7 @@ import {
   LayoutDashboard, Users, Building2, Clock, Calendar,
   FileText, DollarSign, Megaphone, UserCircle,
   ChevronLeft, ChevronRight, LogOut,
-  CalendarDays, UserPlus, ClipboardCheck, ShieldCheck, X,
+  CalendarDays, UserPlus, ClipboardCheck, ShieldCheck, X, ReceiptText,
 } from "lucide-react";
 
 const navGroups = [
@@ -42,6 +42,7 @@ const navGroups = [
     items: [
       { href: "/timesheets", icon: FileText,    label: "Timesheets", roles: ["super_admin","hr_admin","manager","employee"] },
       { href: "/payroll",    icon: DollarSign,  label: "Payroll",    roles: ["super_admin","hr_admin","employee"] },
+      { href: "/expenses",   icon: ReceiptText, label: "Expenses",   roles: ["super_admin","hr_admin","manager","employee"] },
     ],
   },
   {
