@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users, UserCheck, Calendar, Building2,
   TrendingUp, Megaphone, CheckCircle2, Clock,
-  ArrowUpRight, UserPlus, Briefcase, ChevronRight,
+  ArrowUpRight, UserPlus, Briefcase, ChevronRight, ReceiptText,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { format } from "date-fns";
@@ -122,7 +122,7 @@ export default function DashboardClient() {
 
       {/* KPI Stats */}
       {isAdminOrHR && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 stagger">
           <StatCard
             title="Total Employees"
             value={stats.totalEmployees ?? 0}
@@ -154,6 +154,14 @@ export default function DashboardClient() {
             icon={Building2}
             color="violet"
             onClick={() => router.push("/departments")}
+          />
+          <StatCard
+            title="Pending Expenses"
+            value={stats.pendingExpenses ?? 0}
+            sub={`₹${((stats.pendingExpensesAmount ?? 0) / 1000).toFixed(1)}k pending`}
+            icon={ReceiptText}
+            color="orange"
+            onClick={() => router.push("/expenses")}
           />
         </div>
       )}
@@ -343,6 +351,66 @@ export default function DashboardClient() {
             </CardContent>
           </Card>
 
+          {/* Expense Overview */}
+          <Card
+            className="border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => router.push("/expenses")}
+          >
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <div className="p-1.5 bg-orange-50 rounded-lg">
+                  <ReceiptText className="w-3.5 h-3.5 text-orange-600" />
+                </div>
+                Expense Overview
+                <ChevronRight className="w-3.5 h-3.5 text-slate-300 ml-auto" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-3">
+                <div
+                  className="flex items-center justify-between p-2.5 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); router.push("/expenses?status=pending"); }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    <span className="text-xs font-medium text-slate-700">Pending Approval</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-amber-700">{stats.pendingExpenses ?? 0}</span>
+                    <p className="text-xs text-amber-600 leading-none mt-0.5">
+                      ₹{((stats.pendingExpensesAmount ?? 0)).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className="flex items-center justify-between p-2.5 bg-emerald-50 rounded-xl cursor-pointer hover:bg-emerald-100 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); router.push("/expenses?status=approved"); }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-xs font-medium text-slate-700">Approved</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-emerald-700">{stats.approvedExpenses ?? 0}</span>
+                    <p className="text-xs text-emerald-600 leading-none mt-0.5">
+                      ₹{((stats.approvedExpensesAmount ?? 0)).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  className="flex items-center justify-between p-2.5 bg-red-50 rounded-xl cursor-pointer hover:bg-red-100 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); router.push("/expenses?status=rejected"); }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                    <span className="text-xs font-medium text-slate-700">Rejected</span>
+                  </div>
+                  <span className="text-sm font-bold text-red-600">{stats.rejectedExpenses ?? 0}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Recent Announcements */}
           <Card
             className="border border-slate-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
@@ -457,6 +525,7 @@ const COLOR_MAP = {
   emerald:{ grad: "from-emerald-500 to-teal-600",  bg: "bg-emerald-50", icon: "text-emerald-600", bar: "bg-emerald-500", glow: "shadow-emerald-500/25" },
   amber:  { grad: "from-amber-500 to-orange-600",  bg: "bg-amber-50",   icon: "text-amber-600",   bar: "bg-amber-500",   glow: "shadow-amber-500/25" },
   violet: { grad: "from-violet-500 to-purple-600", bg: "bg-violet-50",  icon: "text-violet-600",  bar: "bg-violet-500",  glow: "shadow-violet-500/25" },
+  orange: { grad: "from-orange-500 to-red-500",    bg: "bg-orange-50",  icon: "text-orange-600",  bar: "bg-orange-500",  glow: "shadow-orange-500/25" },
 };
 
 function StatCard({

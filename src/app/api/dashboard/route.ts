@@ -8,6 +8,7 @@ import Announcement from "@/models/Announcement";
 import Department from "@/models/Department";
 import JobPosting from "@/models/JobPosting";
 import Candidate from "@/models/Candidate";
+import Expense from "@/models/Expense";
 
 export async function GET() {
   const session = await auth();
@@ -29,6 +30,7 @@ export async function GET() {
     candidatesInPipeline,
     offersExtended,
     recentJobs,
+    expenseStats,
   ] = await Promise.all([
     Employee.countDocuments(),
     Employee.countDocuments({ isActive: true }),
@@ -46,7 +48,13 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .limit(4)
       .populate("department", "name"),
+    Expense.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 }, amount: { $sum: "$amount" } } },
+    ]),
   ]);
+
+  const expenseByStatus: Record<string, { count: number; amount: number }> = {};
+  (expenseStats as any[]).forEach((e) => { expenseByStatus[e._id] = { count: e.count, amount: e.amount }; });
 
   // Attendance trend (last 7 days) — single aggregation instead of 7 queries
   const sevenDaysAgo = new Date();
@@ -103,6 +111,11 @@ export async function GET() {
         activeEmployees > 0
           ? Math.round((todayAttendance / activeEmployees) * 100)
           : 0,
+      pendingExpenses: expenseByStatus.pending?.count ?? 0,
+      pendingExpensesAmount: expenseByStatus.pending?.amount ?? 0,
+      approvedExpenses: expenseByStatus.approved?.count ?? 0,
+      approvedExpensesAmount: expenseByStatus.approved?.amount ?? 0,
+      rejectedExpenses: expenseByStatus.rejected?.count ?? 0,
     },
     attendanceTrend: last7Days,
     deptHeadcount,
