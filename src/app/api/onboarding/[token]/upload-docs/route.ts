@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import OnboardingInvite from "@/models/OnboardingInvite";
-import { uploadToFTP } from "@/lib/ftp-upload";
-import { encryptBuffer } from "@/lib/encrypt";
+import { uploadToDrive } from "@/lib/gdrive";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
-function fileExt(mimeType: string): string {
-  if (mimeType === "application/pdf") return "pdf";
-  if (mimeType === "image/png") return "png";
-  return "jpg";
-}
+const EXT_MAP: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+};
 
 function safeFolderName(invite: any): string {
   const code = invite.employeeCode ?? "unknown";
@@ -49,14 +49,13 @@ export async function POST(
     return NextResponse.json({ error: "File too large (max 5 MB)" }, { status: 400 });
   }
 
-  const rawBuffer = Buffer.from(await file.arrayBuffer());
-  const encryptedBuffer = encryptBuffer(rawBuffer);
-
-  const folder = `onboarding/${safeFolderName(invite)}`;
-  const encFileName = `${docType}.${fileExt(file.type)}.enc`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const ext = EXT_MAP[file.type] ?? "bin";
+  const fileName = `${docType}.${ext}`;
+  const subFolder = `onboarding/${safeFolderName(invite)}`;
 
   try {
-    const { url } = await uploadToFTP(encryptedBuffer, encFileName, folder);
+    const { url } = await uploadToDrive(buffer, fileName, file.type, subFolder);
 
     if (!invite.documents) invite.documents = {};
     if (docType === "pan_card") invite.documents.panCard = url;

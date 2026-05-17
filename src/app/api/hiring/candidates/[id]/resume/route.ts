@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Candidate from "@/models/Candidate";
-import { uploadToFTP } from "@/lib/ftp-upload";
+import { uploadToDrive } from "@/lib/gdrive";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth();
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { url } = await uploadToFTP(buffer, file.name, "resumes");
+    const { url } = await uploadToDrive(buffer, file.name, file.type, "hiring/resumes");
 
     const candidate = await Candidate.findByIdAndUpdate(
       params.id,
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ resumeUrl: url, candidate });
   } catch (err: any) {
-    console.error("Resume FTP upload error:", err);
+    console.error("Resume upload error:", err);
     return NextResponse.json({ error: "Upload failed: " + (err.message ?? "unknown error") }, { status: 500 });
   }
 }

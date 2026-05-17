@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import HiringDocument from "@/models/HiringDocument";
-import { uploadToFTP } from "@/lib/ftp-upload";
+import { uploadToDrive } from "@/lib/gdrive";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
   await connectDB();
 
   const formData = await req.formData();
-  const file       = formData.get("file") as File | null;
+  const file        = formData.get("file") as File | null;
   const candidateId = formData.get("candidateId") as string | null;
-  const docType    = formData.get("docType") as string | null;
+  const docType     = formData.get("docType") as string | null;
 
   if (!file)        return NextResponse.json({ error: "No file provided" }, { status: 400 });
   if (!candidateId) return NextResponse.json({ error: "candidateId is required" }, { status: 400 });
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { url, fileName } = await uploadToFTP(buffer, file.name, candidateId);
+    const { url, fileId } = await uploadToDrive(buffer, file.name, file.type, `hiring/${candidateId}`);
 
     const document = await HiringDocument.create({
       candidate:    candidateId,
@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
       uploadedBy:   session.user.email ?? "hr",
     });
 
-    return NextResponse.json({ url, fileName, document }, { status: 201 });
+    return NextResponse.json({ url, fileId, document }, { status: 201 });
   } catch (err: any) {
-    console.error("FTP upload error:", err);
+    console.error("Drive upload error:", err);
     return NextResponse.json({ error: "Upload failed: " + (err.message ?? "unknown error") }, { status: 500 });
   }
 }
