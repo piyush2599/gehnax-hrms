@@ -45,8 +45,8 @@ export default function EmployeeIDCard({ emp }: Props) {
     if (!cardRef.current) return;
     setDownloading(true);
     try {
-      // Pre-convert all external <img> src values to data-URLs so html2canvas
-      // never makes cross-origin requests (Cloudinary, etc.) that taint the canvas.
+      // Route all external images through the server-side proxy so html2canvas
+      // sees only same-origin URLs — eliminates every CORS/taint issue.
       const imgs = Array.from(cardRef.current.querySelectorAll("img"));
       const origSrcs = new Map<HTMLImageElement, string>();
 
@@ -54,8 +54,11 @@ export default function EmployeeIDCard({ emp }: Props) {
         imgs.map(async (img) => {
           const src = img.getAttribute("src") || "";
           if (!src || src.startsWith("data:") || src.startsWith("/")) return;
+          origSrcs.set(img, src);
           try {
-            const res = await fetch(src);
+            const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(src)}`;
+            const res = await fetch(proxyUrl);
+            if (!res.ok) throw new Error(`proxy ${res.status}`);
             const blob = await res.blob();
             const dataUrl = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
@@ -63,10 +66,10 @@ export default function EmployeeIDCard({ emp }: Props) {
               reader.onerror = reject;
               reader.readAsDataURL(blob);
             });
-            origSrcs.set(img, src);
             img.src = dataUrl;
           } catch {
-            // leave unchanged — html2canvas will skip it gracefully
+            // Remove src so html2canvas stays untainted; AvatarFallback shows initials
+            img.removeAttribute("src");
           }
         })
       );
@@ -75,7 +78,7 @@ export default function EmployeeIDCard({ emp }: Props) {
       const canvas = await html2canvas(cardRef.current, {
         scale: 3,
         useCORS: false,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: "#ffffff",
         logging: false,
       });
@@ -90,9 +93,9 @@ export default function EmployeeIDCard({ emp }: Props) {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (err) {
+    } catch (err: any) {
       console.error("ID card download failed:", err);
-      alert("Could not generate ID card. Please try again.");
+      alert(`Download failed: ${err?.message ?? String(err)}`);
     } finally {
       setDownloading(false);
     }
