@@ -57,6 +57,7 @@
     "eslint-config-next": "14.2.35",
     "mongodb-memory-server": "^11.1.0",
     "postcss": "^8",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.2.4",
     "typescript": "^5"
   }
