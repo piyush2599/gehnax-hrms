@@ -46,7 +46,7 @@ export async function POST(
   const personalEmail = invite.personalEmail || "";
   const hashedPassword = await bcrypt.hash(invite.employeeCode, 12);
 
-  // profilePicture is now stored as a data URL (base64) — will be served via /api/employees/[id]/photo
+  // profilePicture is a Cloudinary URL when uploaded via onboarding form
   const hasProfilePic = !!invite.profilePicture;
 
   // Step 1: create User (employeeId set after employee is created)
@@ -85,16 +85,16 @@ export async function POST(
     employmentType: invite.employmentType,
     joiningDate: invite.joiningDate,
     bankDetails: bank,
-    avatarData: hasProfilePic ? invite.profilePicture : undefined,
+    avatar: hasProfilePic ? invite.profilePicture : undefined,
     documents: onboardingDocs,
     salary: { basic: 0, hra: 0, allowances: 0, deductions: 0 },
   });
 
-  // Step 3: link employeeId back to user, and set avatar API route if they uploaded a photo
-  const avatarApiUrl = hasProfilePic ? `/api/employees/${employee._id}/photo` : undefined;
-  await User.findByIdAndUpdate(user._id, { employeeId: employee._id, ...(avatarApiUrl ? { avatar: avatarApiUrl } : {}) });
-  if (avatarApiUrl) {
-    await Employee.findByIdAndUpdate(employee._id, { avatar: avatarApiUrl });
+  // Step 3: link employeeId back to user, set Cloudinary avatar URL if uploaded
+  const avatarUrl = hasProfilePic ? invite.profilePicture : undefined;
+  await User.findByIdAndUpdate(user._id, { employeeId: employee._id, ...(avatarUrl ? { avatar: avatarUrl } : {}) });
+  if (avatarUrl) {
+    await Employee.findByIdAndUpdate(employee._id, { avatar: avatarUrl });
   }
 
   invite.status = "completed";

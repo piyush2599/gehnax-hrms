@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 import User from "@/models/User";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 export async function POST(
   req: NextRequest,
@@ -37,15 +38,14 @@ export async function POST(
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const dataUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
-  const apiUrl = `/api/employees/${params.id}/photo`;
+  const { url } = await uploadToCloudinary(buffer, `${params.id}.jpg`, "hrms/employee-photos", file.type);
 
-  emp.avatarData = dataUrl;
-  emp.avatar = apiUrl;
+  emp.avatar = url;
+  emp.avatarData = undefined;
   await emp.save();
-  await User.findByIdAndUpdate(emp.userId, { avatar: apiUrl });
+  await User.findByIdAndUpdate(emp.userId, { avatar: url });
 
-  return NextResponse.json({ avatar: apiUrl });
+  return NextResponse.json({ avatar: url });
 }
 
 export async function GET(
@@ -58,15 +58,14 @@ export async function GET(
   await connectDB();
 
   const employee = await Employee.findById(params.id).select("avatar avatarData");
-
   if (!employee) return new NextResponse("Not found", { status: 404 });
 
-  // FTP/external URL — redirect directly
+  // Cloudinary or any external URL — redirect directly
   if (employee.avatar?.startsWith("http")) {
     return NextResponse.redirect(employee.avatar);
   }
 
-  // Legacy base64 fallback
+  // Legacy base64 fallback for existing records
   if (!employee.avatarData) return new NextResponse("No photo", { status: 404 });
 
   const dataUrl = employee.avatarData;
@@ -75,9 +74,9 @@ export async function GET(
 
   const mimeType = dataUrl.slice(5, commaIdx).split(";")[0] || "image/jpeg";
   const base64 = dataUrl.slice(commaIdx + 1);
-  const buffer = Buffer.from(base64, "base64");
+  const imgBuffer = Buffer.from(base64, "base64");
 
-  return new NextResponse(buffer, {
+  return new NextResponse(imgBuffer, {
     status: 200,
     headers: {
       "Content-Type": mimeType,

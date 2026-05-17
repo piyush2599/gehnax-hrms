@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import OnboardingInvite from "@/models/OnboardingInvite";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -31,11 +32,10 @@ export async function POST(
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const dataUrl = `data:${file.type};base64,${buffer.toString("base64")}`;
+  const { url } = await uploadToCloudinary(buffer, `${invite.token}.jpg`, "hrms/onboarding-avatars", file.type);
 
-  invite.profilePicture = dataUrl;
-  invite.profilePictureData = undefined;
+  invite.profilePicture = url;
   await invite.save();
 
-  return NextResponse.json({ url: dataUrl });
+  return NextResponse.json({ url });
 }
