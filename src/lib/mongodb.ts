@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import "./models";
 
 const isPlaceholder = (uri: string) =>
   uri.includes("<username>") || uri.includes("<password>") || uri.includes("xxxxx");
