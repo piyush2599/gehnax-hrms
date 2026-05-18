@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   UserPlus, Link2, Trash2, CheckCircle, Clock, Eye,
-  AlertCircle, ClipboardCheck,
+  AlertCircle, ClipboardCheck, Send,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ interface Invite {
   profilePicture?: string;
   employeeCode: string;
   email: string;
+  personalEmail?: string;
   firstName?: string;
   lastName?: string;
   department: { _id: string; name: string };
@@ -73,6 +74,7 @@ export default function OnboardingClient() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [resending, setResending] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     employeeCode: "",
@@ -143,6 +145,15 @@ export default function OnboardingClient() {
     const res = await fetch(`/api/onboarding/${invite.token}`, { method: "DELETE" });
     if (res.ok) { toast.success("Invite cancelled"); fetchInvites(); }
     else { const d = await res.json(); toast.error(d.error); }
+  };
+
+  const handleResend = async (invite: Invite) => {
+    setResending(invite.token);
+    const res = await fetch(`/api/onboarding/${invite.token}/resend`, { method: "POST" });
+    const data = await res.json();
+    setResending(null);
+    if (res.ok) toast.success(`Invite email resent to ${invite.personalEmail || invite.email}`);
+    else toast.error(data.error || "Failed to resend");
   };
 
   const displayName = (inv: Invite) => {
@@ -247,14 +258,24 @@ export default function OnboardingClient() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
-                          {["pending", "in_progress", "submitted"].includes(inv.status) && (
-                            <button
-                              onClick={() => copyLink(inv.token)}
-                              title="Copy invite link"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                            >
-                              <Link2 className="w-3.5 h-3.5" />
-                            </button>
+                          {["pending", "in_progress"].includes(inv.status) && (
+                            <>
+                              <button
+                                onClick={() => copyLink(inv.token)}
+                                title="Copy invite link"
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              >
+                                <Link2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleResend(inv)}
+                                disabled={resending === inv.token}
+                                title="Resend invite email"
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                              >
+                                <Send className="w-3.5 h-3.5" />
+                              </button>
+                            </>
                           )}
                           <button
                             onClick={() => openDetail(inv)}

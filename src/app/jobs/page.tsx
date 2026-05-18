@@ -2,8 +2,10 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { connectDB } from "@/lib/mongodb";
 import JobPosting from "@/models/JobPosting";
+import "@/models/Department";
 import { MapPin, Briefcase, Clock, Users, ArrowRight } from "lucide-react";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Careers — Gehnax Technologies LLP" };
 
 const JOB_TYPE_LABELS: Record<string, string> = {

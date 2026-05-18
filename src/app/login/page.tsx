@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import LoginForm from "@/components/auth/LoginForm";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Login" };
 
 export default async function LoginPage({

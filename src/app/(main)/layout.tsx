@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { SidebarProvider } from "@/components/layout/sidebar-context";

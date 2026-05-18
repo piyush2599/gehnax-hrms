@@ -29,7 +29,7 @@ export async function sendMail({ to, subject, html, text }: MailOptions) {
 
 // ── Prebuilt templates ──────────────────────────────────────────────────────
 
-export function sendWelcomeEmail(to: string, name: string, password: string) {
+export function sendWelcomeEmail(to: string, name: string, password: string, loginEmail?: string) {
   return sendMail({
     to,
     subject: "Welcome to Gehnax HRMS — Your Account is Ready",
@@ -46,7 +46,7 @@ export function sendWelcomeEmail(to: string, name: string, password: string) {
             <p style="margin:0 0 8px;color:#64748b;font-size:13px">LOGIN URL</p>
             <p style="margin:0 0 16px;color:#1e40af;font-weight:600">${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/login</p>
             <p style="margin:0 0 8px;color:#64748b;font-size:13px">EMAIL</p>
-            <p style="margin:0 0 16px;color:#1e293b;font-weight:600">${to}</p>
+            <p style="margin:0 0 16px;color:#1e293b;font-weight:600">${loginEmail ?? to}</p>
             <p style="margin:0 0 8px;color:#64748b;font-size:13px">TEMPORARY PASSWORD</p>
             <p style="margin:0;color:#1e293b;font-weight:600;font-family:monospace;font-size:16px;background:#f1f5f9;padding:8px 12px;border-radius:6px;display:inline-block">${password}</p>
           </div>

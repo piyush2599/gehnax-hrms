@@ -143,7 +143,7 @@ export async function POST(
     const fullName = `${firstName} ${lastName}`.trim() || invite.email;
     const emailTarget = personalEmail || invite.email;
     try {
-      await sendWelcomeEmail(emailTarget, fullName, invite.employeeCode);
+      await sendWelcomeEmail(emailTarget, fullName, invite.employeeCode, invite.email);
     } catch (emailErr) {
       console.error("[Onboarding] Failed to send welcome email to", emailTarget, emailErr);
     }

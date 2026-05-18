@@ -34,6 +34,12 @@ const nextConfig = {
       "mongodb-memory-server-core",
       "otplib",
       "qrcode",
+      "nodemailer",
+      "pdf-parse",
+      "mammoth",
+      "basic-ftp",
+      "googleapis",
+      "google-auth-library",
     ],
   },
 };
