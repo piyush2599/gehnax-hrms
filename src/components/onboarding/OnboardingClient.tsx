@@ -149,11 +149,16 @@ export default function OnboardingClient() {
 
   const handleResend = async (invite: Invite) => {
     setResending(invite.token);
-    const res = await fetch(`/api/onboarding/${invite.token}/resend`, { method: "POST" });
-    const data = await res.json();
-    setResending(null);
-    if (res.ok) toast.success(`Invite email resent to ${invite.personalEmail || invite.email}`);
-    else toast.error(data.error || "Failed to resend");
+    try {
+      const res = await fetch(`/api/onboarding/${invite.token}/resend`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) toast.success(`Invite email resent to ${invite.personalEmail || invite.email}`);
+      else toast.error(data.error || "Failed to resend invite email");
+    } catch {
+      toast.error("Network error — could not resend invite");
+    } finally {
+      setResending(null);
+    }
   };
 
   const displayName = (inv: Invite) => {

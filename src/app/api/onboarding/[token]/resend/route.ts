@@ -33,7 +33,14 @@ export async function POST(
   const inviteLink = `${appUrl}/onboarding/${invite.token}`;
   const displayName = [invite.firstName, invite.lastName].filter(Boolean).join(" ");
 
-  await sendOnboardingInviteEmail(to, displayName, inviteLink, invite.employeeCode, invite.designation);
-
-  return NextResponse.json({ ok: true });
+  try {
+    await sendOnboardingInviteEmail(to, displayName, inviteLink, invite.employeeCode, invite.designation);
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error("[Resend invite] SMTP error:", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to send email" },
+      { status: 500 }
+    );
+  }
 }
