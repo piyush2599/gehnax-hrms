@@ -353,8 +353,6 @@ function CompanyHeader({ refNumber, date }: { refNumber: string; date: string })
       <View style={s.headerRight}>
         <Text style={s.headerMetaBold}>{refNumber}</Text>
         <Text style={s.headerMeta}>Date: {date}</Text>
-        <Text style={s.headerMeta}>CIN: AAQ-9876</Text>
-        <Text style={s.headerMeta}>PF Reg: DLDLN0017240000</Text>
       </View>
     </View>
   );
@@ -566,108 +564,87 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
         </Text>
 
         <View style={s.table}>
-          {/* Table header */}
+          {/* Header */}
           <View style={s.tHead}>
-            <Text style={[s.tHeadText, s.col1]}>Component</Text>
-            <Text style={[s.tHeadText, s.col2]}>Monthly (₹)</Text>
-            <Text style={[s.tHeadText, s.col3]}>Annual (₹)</Text>
+            <Text style={[s.tHeadText, s.col1]}>Particular</Text>
+            <Text style={[s.tHeadText, s.col2]}>Monthly</Text>
+            <Text style={[s.tHeadText, s.col3]}>Yearly</Text>
           </View>
 
-          {/* ── EARNINGS ── */}
-          <TRow variant="sec">
-            <Text style={[s.tCellBlue, s.col1]}>A.  EARNINGS</Text>
-            <Text style={[s.tCell, s.col2]} />
-            <Text style={[s.tCell, s.col3]} />
-          </TRow>
+          {/* Earnings */}
           <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>  Basic Salary</Text>
-            <Text style={[s.tCell, s.col2]}>{fmt(sal.basic)}</Text>
-            <Text style={[s.tCell, s.col3]}>{fmt(sal.basic * 12)}</Text>
+            <Text style={[s.tCell, s.col1]}>Basic Salary</Text>
+            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.basic)}</Text>
+            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.basic * 12)}</Text>
           </TRow>
           <TRow variant="alt">
-            <Text style={[s.tCell, s.col1]}>  House Rent Allowance (HRA)</Text>
-            <Text style={[s.tCell, s.col2]}>{fmt(sal.hra)}</Text>
-            <Text style={[s.tCell, s.col3]}>{fmt(sal.hra * 12)}</Text>
+            <Text style={[s.tCell, s.col1]}>HRA</Text>
+            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.hra)}</Text>
+            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.hra * 12)}</Text>
           </TRow>
           <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>  Special Allowance</Text>
-            <Text style={[s.tCell, s.col2]}>{fmt(sal.allowances)}</Text>
-            <Text style={[s.tCell, s.col3]}>{fmt(sal.allowances * 12)}</Text>
-          </TRow>
-          <TRow variant="total">
-            <Text style={[s.tCellBold, s.col1]}>  Gross Salary  (A)</Text>
-            <Text style={[s.tCellBold, s.col2]}>{fmt(sal.grossMonthly)}</Text>
-            <Text style={[s.tCellBold, s.col3]}>{fmt(sal.grossAnnual)}</Text>
+            <Text style={[s.tCell, s.col1]}>Other Allowances</Text>
+            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.allowances)}</Text>
+            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.allowances * 12)}</Text>
           </TRow>
 
-          {/* ── DEDUCTIONS ── */}
-          <TRow variant="secRed">
-            <Text style={[s.tCellRed, s.col1]}>B.  DEDUCTIONS (from Gross)</Text>
-            <Text style={[s.tCell, s.col2]} />
-            <Text style={[s.tCell, s.col3]} />
+          {/* Deductions section */}
+          <TRow variant="sec">
+            <Text style={[s.tCellBold, { flex: 8, color: DARK }]}>Deductions</Text>
           </TRow>
           <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>  Employee Provident Fund — EPF (12% of Basic)</Text>
-            <Text style={[s.tCell, s.col2]}>{fmt(sal.employeePF)}</Text>
-            <Text style={[s.tCell, s.col3]}>{fmt(sal.employeePF * 12)}</Text>
-          </TRow>
-          <TRow variant="alt">
-            <Text style={[s.tCell, s.col1]}>  Employer Provident Fund — EPF (12% of Basic)</Text>
-            <Text style={[s.tCell, s.col2]}>{fmt(sal.employerPF)}</Text>
-            <Text style={[s.tCell, s.col3]}>{fmt(sal.employerPF * 12)}</Text>
+            <Text style={[s.tCell, s.col1]}>Employee PF</Text>
+            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.employeePF)}</Text>
+            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.employeePF * 12)}</Text>
           </TRow>
           {sal.esi > 0 && (
-            <TRow variant="plain">
-              <Text style={[s.tCell, s.col1]}>  ESI Contribution (0.75% of Gross)</Text>
-              <Text style={[s.tCell, s.col2]}>{fmt(sal.esi)}</Text>
-              <Text style={[s.tCell, s.col3]}>{fmt(sal.esi * 12)}</Text>
+            <TRow variant="alt">
+              <Text style={[s.tCell, s.col1]}>ESI</Text>
+              <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.esi)}</Text>
+              <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.esi * 12)}</Text>
             </TRow>
           )}
           {sal.tds > 0 && (
-            <TRow variant={sal.esi > 0 ? "alt" : "plain"}>
-              <Text style={[s.tCell, s.col1]}>  Income Tax — TDS (New Regime)</Text>
-              <Text style={[s.tCell, s.col2]}>{fmt(sal.tds)}</Text>
-              <Text style={[s.tCell, s.col3]}>{fmt(sal.tds * 12)}</Text>
+            <TRow variant={sal.esi > 0 ? "plain" : "alt"}>
+              <Text style={[s.tCell, s.col1]}>Income Tax (TDS)</Text>
+              <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.tds)}</Text>
+              <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.tds * 12)}</Text>
             </TRow>
           )}
-          <TRow variant="total">
-            <Text style={[s.tCellBold, s.col1]}>  Total Deductions  (B)</Text>
-            <Text style={[s.tCellRed, s.col2]}>{fmt(sal.totalDeductions)}</Text>
-            <Text style={[s.tCellRed, s.col3]}>{fmt(sal.totalDeductions * 12)}</Text>
-          </TRow>
 
-          {/* ── NET ── */}
-          <TRow variant="net">
-            <Text style={[s.tCellGreen, s.col1]}>NET MONTHLY TAKE-HOME  (A – B)</Text>
-            <Text style={[s.tCellGreen, s.col2]}>{fmt(sal.netMonthly)}</Text>
-            <Text style={[s.tCellGreen, s.col3]}>{fmt(sal.netMonthly * 12)}</Text>
-          </TRow>
-
-          {/* ── CTC ── */}
+          {/* Employer Contributions section */}
           <TRow variant="sec">
-            <Text style={[s.tCellBlue, s.col1]}>C.  EMPLOYER CONTRIBUTIONS (CTC)</Text>
-            <Text style={[s.tCell, s.col2]} />
-            <Text style={[s.tCell, s.col3]} />
+            <Text style={[s.tCellBold, { flex: 8, color: DARK }]}>Employer Contributions</Text>
           </TRow>
           <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>  Gross Salary</Text>
-            <Text style={[s.tCell, s.col2]}>{fmt(sal.grossMonthly)}</Text>
-            <Text style={[s.tCell, s.col3]}>{fmt(sal.grossAnnual)}</Text>
-          </TRow>
-          <TRow variant="alt">
-            <Text style={[s.tCell, s.col1]}>  Employer PF Contribution (12% of Basic)</Text>
-            <Text style={[s.tCell, s.col2]}>{fmt(sal.employerPF)}</Text>
-            <Text style={[s.tCell, s.col3]}>{fmt(sal.employerPF * 12)}</Text>
+            <Text style={[s.tCell, s.col1]}>Employer PF</Text>
+            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.employerPF)}</Text>
+            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.employerPF * 12)}</Text>
           </TRow>
           <TRow variant="grat">
-            <Text style={[s.tCellAmber, s.col1]}>  Gratuity Provision (4.81% of Basic — Payment of Gratuity Act, 1972)</Text>
-            <Text style={[s.tCellAmber, s.col2]}>{fmt(sal.gratuity)}</Text>
-            <Text style={[s.tCellAmber, s.col3]}>{fmt(sal.gratuity * 12)}</Text>
+            <Text style={[s.tCellAmber, s.col1]}>Gratuity</Text>
+            <Text style={[s.tCellAmber, s.col2]}>₹ {fmt(sal.gratuity)}</Text>
+            <Text style={[s.tCellAmber, s.col3]}>₹ {fmt(sal.gratuity * 12)}</Text>
           </TRow>
-          <TRow variant="ctc">
-            <Text style={[s.tCellWhite, s.col1]}>TOTAL ANNUAL CTC</Text>
-            <Text style={[s.tCellWhite, s.col2]}>—</Text>
-            <Text style={[s.tCellWhite, s.col3]}>₹ {fmt(sal.annualCTC)}</Text>
+
+          {/* Summary section */}
+          <TRow variant="sec">
+            <Text style={[s.tCellBold, { flex: 8, color: DARK }]}>Summary</Text>
+          </TRow>
+          <TRow variant="total">
+            <Text style={[s.tCellBold, s.col1]}>Cost to Company (CTC)</Text>
+            <Text style={[s.tCellBold, s.col2]}>₹ {fmt(Math.round(sal.annualCTC / 12))}</Text>
+            <Text style={[s.tCellBold, s.col3]}>₹ {fmt(sal.annualCTC)}</Text>
+          </TRow>
+          <TRow variant="alt">
+            <Text style={[s.tCellBold, s.col1]}>Gross Salary</Text>
+            <Text style={[s.tCellBold, s.col2]}>₹ {fmt(sal.grossMonthly)}</Text>
+            <Text style={[s.tCellBold, s.col3]}>₹ {fmt(sal.grossAnnual)}</Text>
+          </TRow>
+          <TRow variant="net">
+            <Text style={[s.tCellGreen, s.col1]}>In-Hand Salary</Text>
+            <Text style={[s.tCellGreen, s.col2]}>₹ {fmt(sal.netMonthly)}</Text>
+            <Text style={[s.tCellGreen, s.col3]}>₹ {fmt(sal.netMonthly * 12)}</Text>
           </TRow>
         </View>
 
