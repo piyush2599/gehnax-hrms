@@ -11,7 +11,7 @@ export async function POST() {
   const user = await User.findById((session.user as any).id).select("mfaEnabled mfaSkipCount");
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
   if (user.mfaEnabled) return NextResponse.json({ error: "MFA already enabled" }, { status: 400 });
-  if (user.mfaSkipCount >= 5) {
+  if (user.mfaSkipCount >= 10) {
     return NextResponse.json({ error: "Skip limit reached. MFA setup is now mandatory." }, { status: 400 });
   }
 
@@ -20,7 +20,7 @@ export async function POST() {
   await user.save();
 
   // Set short-lived cookie — middleware reads this to bypass stale JWT flags
-  const res = NextResponse.json({ skipCount: user.mfaSkipCount, remaining: 5 - user.mfaSkipCount });
+  const res = NextResponse.json({ skipCount: user.mfaSkipCount, remaining: 10 - user.mfaSkipCount });
   res.cookies.set("mfa-complete", "1", { httpOnly: true, sameSite: "lax", path: "/" });
   return res;
 }

@@ -30,21 +30,24 @@ const PAGE_NAMES: Record<string, string> = {
   "/profile":       "My Profile",
   "/hiring":        "Hiring",
   "/onboarding":    "Onboarding",
-  "/roles":         "Roles & Permissions",
+  "/roles":            "Roles & Permissions",
+  "/purchase-orders":  "Purchase Orders",
 };
 
 const ROLE_LABELS: Record<string, string> = {
-  super_admin: "Super Admin",
-  hr_admin:    "HR Admin",
-  manager:     "Manager",
-  employee:    "Employee",
+  super_admin:   "Super Admin",
+  finance_admin: "Finance Admin",
+  hr_admin:      "HR Admin",
+  manager:       "Manager",
+  employee:      "Employee",
 };
 
 const ROLE_STYLES: Record<string, string> = {
-  super_admin: "bg-red-50 text-red-700 border-red-200",
-  hr_admin:    "bg-violet-50 text-violet-700 border-violet-200",
-  manager:     "bg-blue-50 text-blue-700 border-blue-200",
-  employee:    "bg-emerald-50 text-emerald-700 border-emerald-200",
+  super_admin:   "bg-red-50 text-red-700 border-red-200",
+  finance_admin: "bg-teal-50 text-teal-700 border-teal-200",
+  hr_admin:      "bg-violet-50 text-violet-700 border-violet-200",
+  manager:       "bg-blue-50 text-blue-700 border-blue-200",
+  employee:      "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
 export default function Header() {

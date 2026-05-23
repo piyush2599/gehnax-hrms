@@ -29,10 +29,10 @@ export default function CTCCalculator({ onApply, initialCTC = 0 }: Props) {
   const handleApply = () => {
     if (!result) return;
     onApply({
-      basic:       result.basicMonthly,
-      hra:         result.hraMonthly,
-      allowances:  result.specialAllowanceMonthly,
-      deductions:  result.employeePFMonthly + result.esiMonthly + result.professionalTaxMonthly,
+      basic:      result.basicMonthly,
+      hra:        result.hraMonthly,
+      allowances: result.specialAllowanceMonthly,
+      deductions: result.totalDeductionsMonthly,
     });
     setApplied(true);
   };
@@ -115,10 +115,6 @@ export default function CTCCalculator({ onApply, initialCTC = 0 }: Props) {
               <span>− Employer PF (12% of Basic)</span>
               <span className="font-medium text-red-500">− {fmt(result.employerPFAnnual)}</span>
             </div>
-            <div className="flex justify-between text-slate-500 pl-2">
-              <span>− Gratuity (4.81% of Basic)</span>
-              <span className="font-medium text-red-500">− {fmt(result.gratuityAnnual)}</span>
-            </div>
             <div className="flex justify-between text-slate-800 font-bold border-t border-violet-200 pt-1.5">
               <span>= Gross Salary (Annual)</span>
               <span className="text-violet-700">{fmt(result.grossAnnual)}</span>
@@ -128,7 +124,7 @@ export default function CTCCalculator({ onApply, initialCTC = 0 }: Props) {
               <span className="font-semibold">{fmt(result.grossMonthly)}</span>
             </div>
             <p className="text-slate-400 pt-0.5">
-              Employer PF &amp; Gratuity are part of CTC but paid separately — not credited to employee's salary account.
+              Employer PF is part of CTC and paid directly to EPFO — not credited to employee's salary account.
             </p>
           </div>
 
@@ -163,10 +159,10 @@ export default function CTCCalculator({ onApply, initialCTC = 0 }: Props) {
           <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-2.5">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Monthly Deductions</p>
             <SalaryRow label="Employee PF (12% of Basic)" value={`− ${fmt(result.employeePFMonthly)}`} red />
+            <SalaryRow label="Employer PF (12% of Basic)" value={`− ${fmt(result.employerPFMonthly)}`} red />
             {result.esiMonthly > 0 && (
-              <SalaryRow label="ESI (0.75% of Gross)"     value={`− ${fmt(result.esiMonthly)}`}          red />
+              <SalaryRow label="ESI (0.75% of Gross)" value={`− ${fmt(result.esiMonthly)}`} red />
             )}
-            <SalaryRow label="Professional Tax"            value={`− ${fmt(result.professionalTaxMonthly)}`} red />
             <SalaryRow
               label={result.monthlyTDS === 0 ? "Income Tax TDS (87A Rebate ✓)" : "Income Tax TDS"}
               value={result.monthlyTDS === 0 ? "Nil" : `− ${fmt(result.monthlyTDS)}`}

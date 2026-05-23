@@ -4,6 +4,7 @@ import { getToken } from "next-auth/jwt";
 function isPublic(pathname: string): boolean {
   if (pathname === "/login") return true;
   if (pathname === "/jobs" || pathname.startsWith("/jobs/")) return true;
+  if (pathname === "/verify-offer" || pathname.startsWith("/verify-offer/")) return true;
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] === "onboarding" && parts.length === 2) return true;
   return false;

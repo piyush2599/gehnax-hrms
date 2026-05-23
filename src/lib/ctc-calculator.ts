@@ -16,10 +16,9 @@
  * Health & Ed. Cess    : 4% on final income tax
  * Surcharge            : 10% (50L–1Cr), 15% (1Cr–2Cr), 25% (2Cr+) under new regime
  *
- * PF: Employee 12% of Basic; Employer 12% of Basic (part of CTC)
- * Gratuity: 4.81% of Basic (employer cost, part of CTC)
+ * PF: Employee 12% of Basic + Employer 12% of Basic — both deducted (part of CTC)
  * ESI: Employee 0.75% of Gross if Gross ≤ ₹21,000/month
- * Professional Tax: ₹200/month (₹2,400/year) — standard across most states
+ * Note: Gratuity and Professional Tax removed per company policy.
  */
 
 export interface CTCBreakdown {
@@ -36,18 +35,15 @@ export interface CTCBreakdown {
   hraMonthly: number;
   specialAllowanceMonthly: number;
 
-  // Employer costs (in CTC, NOT received by employee)
+  // PF — both portions (monthly & annual)
   employerPFMonthly: number;
   employerPFAnnual: number;
-  gratuityMonthly: number;
-  gratuityAnnual: number;
-
-  // Employee deductions (monthly)
   employeePFMonthly: number;
+
+  // Other deductions (monthly)
   esiMonthly: number;
-  professionalTaxMonthly: number;
   monthlyTDS: number;
-  totalDeductionsMonthly: number;
+  totalDeductionsMonthly: number; // employeePF + employerPF + ESI + TDS
 
   // In-hand
   inHandMonthly: number;
@@ -118,37 +114,34 @@ export function calculateCTC(ctcAnnual: number, isMetro = true): CTCBreakdown | 
   if (!ctcAnnual || ctcAnnual < 60_000) return null;
 
   // ── Derive Gross from CTC ────────────────────────────────
-  // CTC = Gross + Employer PF (12% of Basic) + Gratuity (4.81% of Basic)
-  // Basic = 40% of Gross  →  Employer extras = (16.81% × 40%) of Gross = 6.724% of Gross
-  // CTC = Gross × 1.06724
-  const grossAnnual  = Math.round(ctcAnnual / 1.06724);
+  // CTC = Gross + Employer PF (12% of Basic)   [Gratuity removed]
+  // Basic = 40% of Gross  →  Employer PF = 12% × 40% × Gross = 4.8% of Gross
+  // CTC = Gross × 1.048
+  const grossAnnual  = Math.round(ctcAnnual / 1.048);
   const grossMonthly = Math.round(grossAnnual / 12);
 
   // ── Salary components (monthly) ─────────────────────────
-  const basicMonthly          = Math.round(grossMonthly * 0.40);
-  const hraMonthly            = Math.round(basicMonthly * (isMetro ? 0.50 : 0.40));
+  const basicMonthly            = Math.round(grossMonthly * 0.40);
+  const hraMonthly              = Math.round(basicMonthly * (isMetro ? 0.50 : 0.40));
   const specialAllowanceMonthly = Math.max(0, grossMonthly - basicMonthly - hraMonthly);
 
-  // ── Employer costs (in CTC, NOT taken home) ─────────────
-  const employerPFMonthly  = Math.round(basicMonthly * 0.12);
-  const employerPFAnnual   = employerPFMonthly * 12;
-  const gratuityMonthly    = Math.round(basicMonthly * 0.0481);
-  const gratuityAnnual     = gratuityMonthly * 12;
+  // ── PF — both portions ───────────────────────────────────
+  const employerPFMonthly = Math.round(basicMonthly * 0.12);
+  const employerPFAnnual  = employerPFMonthly * 12;
+  const employeePFMonthly = Math.round(basicMonthly * 0.12);
 
-  // ── Employee deductions ──────────────────────────────────
-  const employeePFMonthly      = Math.round(basicMonthly * 0.12);
-  const esiMonthly             = grossMonthly <= 21_000 ? Math.round(grossMonthly * 0.0075) : 0;
-  const professionalTaxMonthly = 200; // ₹200/month — most states
+  // ── Other deductions ─────────────────────────────────────
+  const esiMonthly = grossMonthly <= 21_000 ? Math.round(grossMonthly * 0.0075) : 0;
+  // Professional Tax removed per company policy
 
-  // ── Income tax (new regime 2026) ─────────────────────────
+  // ── Income tax (new regime) ──────────────────────────────
   const standardDeduction = 75_000;
   const taxableIncome     = Math.max(0, grossAnnual - standardDeduction);
   const annualTax         = calcNewRegimeTax(taxableIncome);
   const monthlyTDS        = Math.round(annualTax / 12);
 
-  // ── In-hand ──────────────────────────────────────────────
-  const totalDeductionsMonthly =
-    employeePFMonthly + esiMonthly + professionalTaxMonthly + monthlyTDS;
+  // ── In-hand: deduct both employee PF + employer PF + ESI + TDS ──
+  const totalDeductionsMonthly = employeePFMonthly + employerPFMonthly + esiMonthly + monthlyTDS;
   const inHandMonthly = Math.round(grossMonthly - totalDeductionsMonthly);
   const inHandAnnual  = inHandMonthly * 12;
 
@@ -167,11 +160,8 @@ export function calculateCTC(ctcAnnual: number, isMetro = true): CTCBreakdown | 
     specialAllowanceMonthly,
     employerPFMonthly,
     employerPFAnnual,
-    gratuityMonthly,
-    gratuityAnnual,
     employeePFMonthly,
     esiMonthly,
-    professionalTaxMonthly,
     monthlyTDS,
     totalDeductionsMonthly,
     inHandMonthly,

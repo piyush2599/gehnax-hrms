@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { getInitials, formatDate, formatCurrency } from "@/lib/utils";
-import { User, Phone, MapPin, Building2, Calendar, Pencil, FolderOpen, LogOut, IdCard, ShieldCheck, Eye, EyeOff, Check, X as XIcon } from "lucide-react";
+import { User, Phone, MapPin, Building2, Calendar, Pencil, FolderOpen, LogOut, IdCard, ShieldCheck, Eye, EyeOff, Check, X as XIcon, ScrollText, Download, Copy, ExternalLink, FileText } from "lucide-react";
 import { validatePassword } from "@/lib/password";
 import { useSession } from "next-auth/react";
 import EmployeeDocuments from "@/components/employees/EmployeeDocuments";
@@ -38,6 +38,20 @@ export default function ProfileClient() {
     employeeId ? `/api/employees/${employeeId}` : null,
     fetcher
   );
+
+  const { data: olData } = useSWR(
+    employeeId ? `/api/employees/${employeeId}/offer-letter` : null,
+    fetcher
+  );
+  const offerLetters: any[] = olData?.offerLetters || [];
+
+  const { data: payrollData } = useSWR(
+    employeeId ? `/api/payroll?employeeId=${employeeId}` : null,
+    fetcher
+  );
+  const payslips: any[] = Array.isArray(payrollData)
+    ? payrollData.filter((p: any) => p.payslipUrl)
+    : [];
 
   const [form, setForm] = useState({
     phone: "",
@@ -305,7 +319,91 @@ export default function ProfileClient() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="docs" className="mt-4">
+        <TabsContent value="docs" className="mt-4 space-y-4">
+          {/* Offer Letter highlight */}
+          {offerLetters.length > 0 && (
+            <Card className="border-blue-200 shadow-sm bg-blue-50/40">
+              <CardHeader className="pb-3 border-b border-blue-100">
+                <CardTitle className="text-sm font-semibold text-blue-700 flex items-center gap-2">
+                  <ScrollText className="w-4 h-4" />
+                  Your Offer Letter
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                {offerLetters.slice(0, 1).map((ol: any) => {
+                  const verifyUrl = `${typeof window !== "undefined" ? window.location.origin : "https://myapp.gehnax.com"}/verify-offer/${ol.verificationToken}`;
+                  return (
+                    <div key={ol._id} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500">Reference</span>
+                        <span className="font-semibold text-slate-800">{ol.refNumber || "—"}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500">Issued On</span>
+                        <span className="font-semibold text-slate-800">
+                          {new Date(ol.generatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <a href={ol.fileUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+                          <button className="w-full flex items-center justify-center gap-1.5 text-xs h-8 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors">
+                            <Download className="w-3.5 h-3.5" />
+                            Download PDF
+                          </button>
+                        </a>
+                        <button
+                          className="flex-1 flex items-center justify-center gap-1.5 text-xs h-8 rounded-lg border border-blue-200 bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                          onClick={() => { navigator.clipboard.writeText(verifyUrl); }}
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          Copy Verify Link
+                        </button>
+                      </div>
+                      <a href={verifyUrl} target="_blank" rel="noopener noreferrer" className="block">
+                        <div className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
+                          <ExternalLink className="w-3 h-3" />
+                          <span className="truncate">{verifyUrl}</span>
+                        </div>
+                      </a>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Salary Slips */}
+          {payslips.length > 0 && (
+            <Card className="border-emerald-200 shadow-sm bg-emerald-50/40">
+              <CardHeader className="pb-3 border-b border-emerald-100">
+                <CardTitle className="text-sm font-semibold text-emerald-700 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Salary Slips
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-2">
+                {payslips.map((p: any) => {
+                  const MONTH_NAMES = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                  const label = `${MONTH_NAMES[p.month] || p.month} ${p.year}`;
+                  return (
+                    <div key={p._id} className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border border-emerald-100">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{label}</p>
+                        <p className="text-xs text-slate-400">{p.presentDays}/{p.workingDays} days · Net ₹{(p.netPay || 0).toLocaleString("en-IN")}</p>
+                      </div>
+                      <a href={p.payslipUrl} target="_blank" rel="noopener noreferrer">
+                        <button className="flex items-center gap-1.5 text-xs h-7 px-3 rounded-lg border border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                          <Download className="w-3.5 h-3.5" />
+                          PDF
+                        </button>
+                      </a>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3 border-b border-slate-100">
               <CardTitle className="text-sm font-semibold text-slate-700">My Documents</CardTitle>

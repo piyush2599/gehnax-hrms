@@ -15,3 +15,7 @@ import "@/models/Candidate";
 import "@/models/HiringDocument";
 import "@/models/OnboardingInvite";
 import "@/models/Expense";
+import "@/models/PurchaseOrder";
+import "@/models/Project";
+import "@/models/Task";
+import "@/models/OfferLetter";

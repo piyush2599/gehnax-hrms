@@ -18,24 +18,27 @@ import ResetPasswordModal from "./ResetPasswordModal";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const ROLES = [
-  { value: "super_admin", label: "Super Admin" },
-  { value: "hr_admin",    label: "HR Admin" },
-  { value: "manager",     label: "Manager" },
-  { value: "employee",    label: "Employee" },
+  { value: "super_admin",   label: "Super Admin" },
+  { value: "finance_admin", label: "Finance Admin" },
+  { value: "hr_admin",      label: "HR Admin" },
+  { value: "manager",       label: "Manager" },
+  { value: "employee",      label: "Employee" },
 ];
 
 const ROLE_STYLE: Record<string, string> = {
-  super_admin: "bg-violet-50 text-violet-700 border-violet-200",
-  hr_admin:    "bg-blue-50 text-blue-700 border-blue-200",
-  manager:     "bg-amber-50 text-amber-700 border-amber-200",
-  employee:    "bg-emerald-50 text-emerald-700 border-emerald-200",
+  super_admin:   "bg-violet-50 text-violet-700 border-violet-200",
+  finance_admin: "bg-teal-50 text-teal-700 border-teal-200",
+  hr_admin:      "bg-blue-50 text-blue-700 border-blue-200",
+  manager:       "bg-amber-50 text-amber-700 border-amber-200",
+  employee:      "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
 const STAT_ICONS: Record<string, React.ReactNode> = {
-  super_admin: <ShieldCheck className="w-5 h-5 text-violet-500" />,
-  hr_admin:    <Shield className="w-5 h-5 text-blue-500" />,
-  manager:     <Users className="w-5 h-5 text-amber-500" />,
-  employee:    <User className="w-5 h-5 text-emerald-500" />,
+  super_admin:   <ShieldCheck className="w-5 h-5 text-violet-500" />,
+  finance_admin: <ShieldAlert className="w-5 h-5 text-teal-500" />,
+  hr_admin:      <Shield className="w-5 h-5 text-blue-500" />,
+  manager:       <Users className="w-5 h-5 text-amber-500" />,
+  employee:      <User className="w-5 h-5 text-emerald-500" />,
 };
 
 interface PendingChange {

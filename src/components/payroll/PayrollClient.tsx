@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { DollarSign, FileText, Download, Play } from "lucide-react";
+import { DollarSign, FileText, Download, Play, Loader2, ExternalLink } from "lucide-react";
 import { formatCurrency, getMonthName } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 
@@ -33,6 +33,7 @@ export default function PayrollClient() {
   const [year, setYear] = useState(today.getFullYear());
   const [viewSlip, setViewSlip] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
   const isAdminOrHR = ["super_admin","hr_admin"].includes(role);
   const { data: payrolls, isLoading } = useSWR(`/api/payroll?month=${month}&year=${year}`, fetcher);
@@ -53,6 +54,20 @@ export default function PayrollClient() {
       if (!res.ok) toast.error(data.error || "Failed");
       else { toast.success(`Payroll processed for ${data.created} employees`); mutate(`/api/payroll?month=${month}&year=${year}`); }
     } finally { setProcessing(false); }
+  };
+
+  const handleGeneratePdf = async (payrollId: string) => {
+    setGeneratingPdf(payrollId);
+    try {
+      const res = await fetch(`/api/payroll/${payrollId}/payslip`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) toast.error(data.error || "PDF generation failed");
+      else {
+        toast.success("Salary slip PDF generated");
+        mutate(`/api/payroll?month=${month}&year=${year}`);
+        setViewSlip((prev: any) => prev?._id === payrollId ? { ...prev, payslipUrl: data.payslipUrl } : prev);
+      }
+    } finally { setGeneratingPdf(null); }
   };
 
   return (
@@ -152,9 +167,27 @@ export default function PayrollClient() {
                       <Badge variant="outline" className={`text-xs ${STATUS_COLORS[p.status]}`}>{p.status}</Badge>
                     </TableCell>
                     <TableCell>
-                      <button onClick={() => setViewSlip(p)} className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors" title="View payslip">
-                        <FileText className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => setViewSlip(p)} className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors" title="View payslip">
+                          <FileText className="w-4 h-4" />
+                        </button>
+                        {p.payslipUrl ? (
+                          <a href={p.payslipUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors" title="Download PDF">
+                            <Download className="w-4 h-4" />
+                          </a>
+                        ) : isAdminOrHR ? (
+                          <button
+                            onClick={() => handleGeneratePdf(p._id)}
+                            disabled={generatingPdf === p._id}
+                            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                            title="Generate PDF payslip"
+                          >
+                            {generatingPdf === p._id
+                              ? <Loader2 className="w-4 h-4 animate-spin" />
+                              : <Download className="w-4 h-4" />}
+                          </button>
+                        ) : null}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -168,7 +201,12 @@ export default function PayrollClient() {
         <Dialog open={!!viewSlip} onOpenChange={() => setViewSlip(null)}>
           <DialogContent className="max-w-2xl">
             <DialogHeader><DialogTitle>Salary Slip</DialogTitle></DialogHeader>
-            <PaySlip payroll={viewSlip} />
+            <PaySlip
+              payroll={viewSlip}
+              isAdmin={isAdminOrHR}
+              generating={generatingPdf === viewSlip._id}
+              onGeneratePdf={() => handleGeneratePdf(viewSlip._id)}
+            />
           </DialogContent>
         </Dialog>
       )}
@@ -176,7 +214,12 @@ export default function PayrollClient() {
   );
 }
 
-function PaySlip({ payroll }: { payroll: any }) {
+function PaySlip({ payroll, isAdmin, generating, onGeneratePdf }: {
+  payroll: any;
+  isAdmin?: boolean;
+  generating?: boolean;
+  onGeneratePdf?: () => void;
+}) {
   const emp = payroll.employeeId;
   return (
     <div className="border border-slate-200 rounded-xl p-6 space-y-5 bg-white">
@@ -268,10 +311,36 @@ function PaySlip({ payroll }: { payroll: any }) {
         </div>
       </div>
 
-      <Button variant="outline" className="w-full border-slate-200" onClick={() => window.print()}>
-        <Download className="w-4 h-4 mr-2" />
-        Print / Download
-      </Button>
+      <div className="flex gap-2">
+        {payroll.payslipUrl ? (
+          <a href={payroll.payslipUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+            <Button variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+              <Download className="w-4 h-4 mr-2" />
+              Download PDF
+            </Button>
+          </a>
+        ) : isAdmin ? (
+          <Button
+            variant="outline"
+            className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+            onClick={onGeneratePdf}
+            disabled={generating}
+          >
+            {generating
+              ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              : <Download className="w-4 h-4 mr-2" />}
+            {generating ? "Generating PDF…" : "Generate PDF Slip"}
+          </Button>
+        ) : (
+          <Button variant="outline" className="flex-1 border-slate-200 text-slate-500" disabled>
+            <Download className="w-4 h-4 mr-2" />
+            PDF not generated yet
+          </Button>
+        )}
+        <Button variant="outline" className="border-slate-200" onClick={() => window.print()} title="Print">
+          <ExternalLink className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 }

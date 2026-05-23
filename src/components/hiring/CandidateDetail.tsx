@@ -893,11 +893,6 @@ function OfferLetterPreview({
                 <td className="border border-slate-200 px-3 py-2 text-right text-slate-600">{fmt(breakdown.employerPFAnnual)}</td>
                 <td className="border border-slate-200 px-3 py-2 text-right text-slate-600">{fmt(breakdown.employerPFMonthly)}</td>
               </tr>
-              <tr>
-                <td className="border border-slate-200 px-3 py-2 text-slate-600">Gratuity (4.81%)</td>
-                <td className="border border-slate-200 px-3 py-2 text-right text-slate-600">{fmt(breakdown.gratuityAnnual)}</td>
-                <td className="border border-slate-200 px-3 py-2 text-right text-slate-600">{fmt(breakdown.gratuityMonthly)}</td>
-              </tr>
               <tr className="bg-blue-50 font-bold">
                 <td className="border border-slate-200 px-3 py-2 text-blue-800">Total CTC</td>
                 <td className="border border-slate-200 px-3 py-2 text-right text-blue-800">{fmt(breakdown.ctcAnnual)}</td>

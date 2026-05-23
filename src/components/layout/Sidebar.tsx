@@ -12,7 +12,7 @@ import {
   LayoutDashboard, Users, Building2, Clock, Calendar,
   FileText, DollarSign, Megaphone, UserCircle,
   ChevronLeft, ChevronRight, LogOut,
-  CalendarDays, UserPlus, ClipboardCheck, ShieldCheck, X, ReceiptText,
+  CalendarDays, UserPlus, ClipboardCheck, ShieldCheck, X, ReceiptText, ShoppingCart, FolderKanban,
 } from "lucide-react";
 
 const navGroups = [
@@ -40,9 +40,11 @@ const navGroups = [
     label: "Work",
     color: { dot: "bg-emerald-500", label: "text-emerald-400/80" },
     items: [
-      { href: "/timesheets", icon: FileText,    label: "Timesheets", roles: ["super_admin","hr_admin","manager","employee"] },
-      { href: "/payroll",    icon: DollarSign,  label: "Payroll",    roles: ["super_admin","hr_admin","employee"] },
-      { href: "/expenses",   icon: ReceiptText, label: "Expenses",   roles: ["super_admin","hr_admin","manager","employee"] },
+      { href: "/timesheets",      icon: FileText,     label: "Timesheets",      roles: ["super_admin","hr_admin","manager","employee"] },
+      { href: "/payroll",         icon: DollarSign,   label: "Payroll",         roles: ["super_admin","hr_admin","employee"] },
+      { href: "/expenses",        icon: ReceiptText,  label: "Expenses",        roles: ["super_admin","hr_admin","manager","employee"] },
+      { href: "/purchase-orders", icon: ShoppingCart,  label: "Purchase Orders", roles: ["super_admin","finance_admin","manager","hr_admin"] },
+      { href: "/projects",        icon: FolderKanban, label: "Projects",         roles: ["super_admin","finance_admin","hr_admin","manager","employee"] },
     ],
   },
   {
@@ -57,17 +59,19 @@ const navGroups = [
 ];
 
 const roleLabels: Record<string, string> = {
-  super_admin: "Super Admin",
-  hr_admin: "HR Admin",
-  manager: "Manager",
-  employee: "Employee",
+  super_admin:   "Super Admin",
+  finance_admin: "Finance Admin",
+  hr_admin:      "HR Admin",
+  manager:       "Manager",
+  employee:      "Employee",
 };
 
 const ROLE_BADGE: Record<string, string> = {
-  super_admin: "bg-red-500/20 text-red-300 border-red-500/20",
-  hr_admin:    "bg-violet-500/20 text-violet-300 border-violet-500/20",
-  manager:     "bg-blue-500/20 text-blue-300 border-blue-500/20",
-  employee:    "bg-emerald-500/20 text-emerald-300 border-emerald-500/20",
+  super_admin:   "bg-red-500/20 text-red-300 border-red-500/20",
+  finance_admin: "bg-teal-500/20 text-teal-300 border-teal-500/20",
+  hr_admin:      "bg-violet-500/20 text-violet-300 border-violet-500/20",
+  manager:       "bg-blue-500/20 text-blue-300 border-blue-500/20",
+  employee:      "bg-emerald-500/20 text-emerald-300 border-emerald-500/20",
 };
 
 function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => void }) {

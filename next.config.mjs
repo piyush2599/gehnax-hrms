@@ -40,6 +40,7 @@ const nextConfig = {
       "basic-ftp",
       "googleapis",
       "google-auth-library",
+      "@react-pdf/renderer",
     ],
   },
 };

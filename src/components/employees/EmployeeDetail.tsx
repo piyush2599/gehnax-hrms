@@ -17,13 +17,14 @@ import {
   Mail, Phone, MapPin, Building2, Calendar,
   User, Briefcase, CreditCard, Pencil, X, Check,
   ChevronDown, ChevronUp, Sparkles, FolderOpen, ChevronLeft,
-  LogOut, Target, AlertTriangle, IdCard, Camera, Loader2,
+  LogOut, Target, AlertTriangle, IdCard, Camera, Loader2, ScrollText,
 } from "lucide-react";
 import { formatDate, formatCurrency, getInitials, cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import CTCCalculator from "./CTCCalculator";
 import EmployeeDocuments from "./EmployeeDocuments";
+import OfferLetterGenerator from "./OfferLetterGenerator";
 import ResignModal from "./ResignModal";
 import PIPModal from "./PIPModal";
 import EmployeeIDCard from "./EmployeeIDCard";
@@ -334,7 +335,7 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
       {/* ── VIEW MODE: tabs ── */}
       {!editing && (
         <Tabs defaultValue="info">
-          <TabsList className="grid grid-cols-5 w-full bg-slate-100">
+          <TabsList className="grid grid-cols-6 w-full bg-slate-100">
             <TabsTrigger value="info" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
               <User className="w-3.5 h-3.5" />
               Personal
@@ -350,6 +351,10 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
             <TabsTrigger value="docs" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
               <FolderOpen className="w-3.5 h-3.5" />
               Docs
+            </TabsTrigger>
+            <TabsTrigger value="offer" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
+              <ScrollText className="w-3.5 h-3.5" />
+              Offer
             </TabsTrigger>
             <TabsTrigger value="idcard" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
               <IdCard className="w-3.5 h-3.5" />
@@ -450,6 +455,24 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
           {/* Documents */}
           <TabsContent value="docs" className="mt-4">
             <EmployeeDocuments employeeId={employeeId} canUpload={canManageDocs} />
+          </TabsContent>
+
+          {/* Offer Letter */}
+          <TabsContent value="offer" className="mt-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 mb-4">
+                <ScrollText className="w-3.5 h-3.5" />
+                Offer Letters
+              </p>
+              <OfferLetterGenerator
+                employeeId={employeeId}
+                employeeName={`${emp.firstName} ${emp.lastName}`}
+                designation={emp.designation}
+                department={emp.department?.name}
+                salary={emp.salary}
+                canGenerate={canEdit}
+              />
+            </div>
           </TabsContent>
 
           {/* ID Card */}

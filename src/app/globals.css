@@ -60,6 +60,22 @@
 @keyframes spin-smooth {
   to { transform: rotate(360deg); }
 }
+@keyframes bar-rise {
+  from { transform: scaleY(0); transform-origin: bottom; }
+  to   { transform: scaleY(1); transform-origin: bottom; }
+}
+@keyframes width-grow {
+  from { width: 0; }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.8); }
+  70%  { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
 
 /* ─── Animation utilities ─────────────────────────────────── */
 @layer utilities {
@@ -86,16 +102,36 @@
     animation: shimmer 1.6s infinite linear;
   }
 
+  .animate-bar-rise     { animation: bar-rise 0.7s cubic-bezier(0.34,1.56,0.64,1) both; }
+  .animate-slide-in-right { animation: slide-in-right 0.3s ease both; }
+  .animate-pop-in       { animation: pop-in 0.4s cubic-bezier(.22,.68,0,1.2) both; }
+
   /* Stagger children entrance */
   .stagger > * { animation: fade-up 0.4s cubic-bezier(.22,.68,0,1.2) both; }
-  .stagger > *:nth-child(1) { animation-delay: 0ms; }
-  .stagger > *:nth-child(2) { animation-delay: 60ms; }
-  .stagger > *:nth-child(3) { animation-delay: 120ms; }
-  .stagger > *:nth-child(4) { animation-delay: 180ms; }
-  .stagger > *:nth-child(5) { animation-delay: 240ms; }
-  .stagger > *:nth-child(6) { animation-delay: 300ms; }
-  .stagger > *:nth-child(7) { animation-delay: 360ms; }
-  .stagger > *:nth-child(8) { animation-delay: 420ms; }
+  .stagger > *:nth-child(1)  { animation-delay:   0ms; }
+  .stagger > *:nth-child(2)  { animation-delay:  55ms; }
+  .stagger > *:nth-child(3)  { animation-delay: 110ms; }
+  .stagger > *:nth-child(4)  { animation-delay: 165ms; }
+  .stagger > *:nth-child(5)  { animation-delay: 220ms; }
+  .stagger > *:nth-child(6)  { animation-delay: 275ms; }
+  .stagger > *:nth-child(7)  { animation-delay: 330ms; }
+  .stagger > *:nth-child(8)  { animation-delay: 385ms; }
+  .stagger > *:nth-child(9)  { animation-delay: 440ms; }
+  .stagger > *:nth-child(10) { animation-delay: 495ms; }
+  .stagger > *:nth-child(11) { animation-delay: 550ms; }
+  .stagger > *:nth-child(12) { animation-delay: 605ms; }
+
+  /* Stagger-fast: tighter delays for denser grids */
+  .stagger-fast > * { animation: fade-up 0.35s cubic-bezier(.22,.68,0,1.2) both; }
+  .stagger-fast > *:nth-child(1)  { animation-delay:   0ms; }
+  .stagger-fast > *:nth-child(2)  { animation-delay:  40ms; }
+  .stagger-fast > *:nth-child(3)  { animation-delay:  80ms; }
+  .stagger-fast > *:nth-child(4)  { animation-delay: 120ms; }
+  .stagger-fast > *:nth-child(5)  { animation-delay: 160ms; }
+  .stagger-fast > *:nth-child(6)  { animation-delay: 200ms; }
+  .stagger-fast > *:nth-child(7)  { animation-delay: 240ms; }
+  .stagger-fast > *:nth-child(8)  { animation-delay: 280ms; }
+  .stagger-fast > *:nth-child(9)  { animation-delay: 320ms; }
 
   /* Glassmorphism */
   .glass {
