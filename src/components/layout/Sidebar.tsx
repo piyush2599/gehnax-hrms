@@ -204,7 +204,7 @@ export default function Sidebar() {
     <>
       {/* Desktop */}
       <aside className={cn(
-        "hidden md:flex flex-col bg-[#0d1117] border-r border-white/6 transition-all duration-300 ease-in-out flex-shrink-0",
+        "hidden md:flex flex-col bg-[#0d1117] border-r border-white/6 transition-all duration-300 ease-in-out flex-shrink-0 h-full",
         collapsed ? "w-[60px]" : "w-[220px]"
       )}>
         <div className="flex flex-col h-full">
