@@ -423,7 +423,6 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
           <Text style={s.toLabel}>To</Text>
           <Text style={s.toName}>{data.employeeName}</Text>
           <Text style={s.toDetail}>{data.designation}  ·  {data.department} Department</Text>
-          <Text style={s.toDetail}>Employee Code: {data.employeeCode}</Text>
         </View>
 
         {/* Subject */}
@@ -461,8 +460,8 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
             <Text style={s.infoVal}>{data.joiningDate}</Text>
           </View>
           <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Employee Code</Text>
-            <Text style={s.infoVal}>{data.employeeCode}</Text>
+            <Text style={s.infoLabel}>Reference No.</Text>
+            <Text style={s.infoVal}>{data.refNumber}</Text>
           </View>
           <View style={s.infoItem}>
             <Text style={s.infoLabel}>Work Location</Text>
