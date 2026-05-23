@@ -505,7 +505,7 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
         <Term num="7" heading="Insurance Coverage"
           text="The Company shall provide: (a) Group Medical Insurance of ₹3,00,000 (Three Lakh) per annum, and (b) Group Personal Accident Insurance of ₹20,00,000 (Twenty Lakh) per annum — both fully funded by the Company and not forming part of your CTC." />
 
-        <Footer label={`${data.refNumber}  ·  Page 1 of 2`} />
+        <Footer label={`${data.refNumber}  ·  Page 1 of 3`} />
       </Page>
 
       {/* ══════════════════════════════════════════════════════════════════
@@ -699,7 +699,83 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
           </Text>
         </View>
 
-        <Footer label={`${data.refNumber}  ·  Page 2 of 2  ·  Annexure I`} />
+        <Footer label={`${data.refNumber}  ·  Page 2 of 3  ·  Annexure I`} />
+      </Page>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          PAGE 3 — Annexure II: Documents Required
+      ══════════════════════════════════════════════════════════════════ */}
+      <Page size="A4" style={s.page}>
+        <CompanyHeader refNumber={data.refNumber} date={data.generatedDate} />
+
+        <Text style={[s.annexTitle, { marginTop: 4 }]}>Annexure II — Documents Required</Text>
+        <Text style={s.annexSub}>{data.employeeName}  ·  {data.designation}  ·  {data.department}</Text>
+
+        {/* Intro paragraph */}
+        <View style={[s.toBlock, { marginBottom: 14 }]}>
+          <Text style={[s.body, { marginBottom: 0 }]}>
+            The offer is extended to you subject to the following pre-conditions, without which the offer may be considered{" "}
+            <Text style={s.bodyBold}>null and void.</Text>
+          </Text>
+          <Text style={[s.body, { marginTop: 6, marginBottom: 0 }]}>
+            You are required to submit the following documents in <Text style={s.bodyBold}>soft copy</Text> and update all
+            necessary details before the date of joining, if not already provided, within{" "}
+            <Text style={s.bodyBold}>10 days of the offer release.</Text> In the case of early joining, the required
+            updates should be completed prior to your joining date.
+          </Text>
+        </View>
+
+        {/* Document list */}
+        <View style={s.table}>
+          <View style={s.tHead}>
+            <Text style={[s.tHeadText, { flex: 0.5 }]}>S. No.</Text>
+            <Text style={[s.tHeadText, { flex: 5 }]}>Document</Text>
+          </View>
+          {[
+            "Updated Resume.",
+            "Latest passport-sized photograph — 2 Nos.",
+            "Highest educational degree held and Final Year Marksheet.",
+            "Other professional qualification certificate(s), if any.",
+            "Residence Proof (Passport / Aadhaar Card / Voter Card).",
+            "Identity Proof (PAN Card / Passport / Driving License / Voter ID).",
+            "Relieving & Experience letter of all previous employments.",
+            "Appointment, Relieving & Experience letter of current employment.",
+            "Salary slips of last 3 months of current employment.",
+          ].map((doc, i) => (
+            <TRow key={i} variant={i % 2 === 0 ? "plain" : "alt"}>
+              <Text style={[s.tCellBold, { flex: 0.5 }]}>{String.fromCharCode(97 + i)}.</Text>
+              <Text style={[s.tCell, { flex: 5 }]}>{doc}</Text>
+            </TRow>
+          ))}
+        </View>
+
+        {/* Warning note */}
+        <View style={[s.noteBox, { marginTop: 16 }]}>
+          <Text style={s.noteHead}>Please Note</Text>
+          <Text style={s.noteText}>
+            Failure to submit the above documents within the stipulated timeframe may result in delay of onboarding,
+            deferral of the joining date, or withdrawal of the offer at the sole discretion of the Company.
+            All documents submitted are subject to verification and this offer is contingent upon their authenticity.
+          </Text>
+        </View>
+
+        {/* Acceptance */}
+        <View style={[s.sigSection, { marginTop: 28 }]}>
+          <View style={s.sigBlock}>
+            <Text style={s.sigSub}>Employee Acknowledgement</Text>
+            <View style={s.sigLine} />
+            <Text style={s.sigName}>{data.employeeName}</Text>
+            <Text style={s.sigSub}>Date: ________________________</Text>
+          </View>
+          <View style={[s.sigBlock, { alignItems: "flex-end" }]}>
+            <Text style={s.sigSub}>For Gehnax Technologies LLP</Text>
+            <View style={[s.sigLine, { marginLeft: "auto" }]} />
+            <Text style={s.sigName}>Authorised Signatory</Text>
+            <Text style={s.sigSub}>Human Resources Department</Text>
+          </View>
+        </View>
+
+        <Footer label={`${data.refNumber}  ·  Page 3 of 3  ·  Annexure II`} />
       </Page>
     </Document>
   );
