@@ -4,9 +4,12 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
+
+const LOGO_URL = "https://res.cloudinary.com/dji6svxdp/image/upload/v1779540701/hrms/assets/gehnax-logo.png";
 
 export interface OfferLetterData {
   employeeName: string;
@@ -74,6 +77,7 @@ const s = StyleSheet.create({
     borderBottomColor: BLUE,
     borderBottomStyle: "solid",
   },
+  logo: { width: 90, height: 28, objectFit: "contain", marginBottom: 4 },
   coName: {
     fontSize: 15,
     fontFamily: "Helvetica-Bold",
@@ -291,6 +295,7 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
         {/* Company header */}
         <View style={s.header}>
           <View>
+            <Image src={LOGO_URL} style={s.logo} />
             <Text style={s.coName}>Gehnax Technologies LLP</Text>
             <Text style={s.coSub}>Technology Solutions  |  IT Services</Text>
             <Text style={s.coSub}>7/27 FF, Geeta Colony, Krishna Nagar, Delhi - 110031</Text>
@@ -430,6 +435,7 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
         {/* Company header */}
         <View style={s.header}>
           <View>
+            <Image src={LOGO_URL} style={s.logo} />
             <Text style={s.coName}>Gehnax Technologies LLP</Text>
             <Text style={s.coSub}>Technology Solutions  |  IT Services</Text>
             <Text style={s.coSub}>7/27 FF, Geeta Colony, Krishna Nagar, Delhi - 110031</Text>
