@@ -49,9 +49,7 @@ export default function ProfileClient() {
     employeeId ? `/api/payroll?employeeId=${employeeId}` : null,
     fetcher
   );
-  const payslips: any[] = Array.isArray(payrollData)
-    ? payrollData.filter((p: any) => p.payslipUrl)
-    : [];
+  const payslips: any[] = Array.isArray(payrollData) ? payrollData : [];
 
   const [form, setForm] = useState({
     phone: "",
@@ -373,16 +371,18 @@ export default function ProfileClient() {
           )}
 
           {/* Salary Slips */}
-          {payslips.length > 0 && (
-            <Card className="border-emerald-200 shadow-sm bg-emerald-50/40">
-              <CardHeader className="pb-3 border-b border-emerald-100">
-                <CardTitle className="text-sm font-semibold text-emerald-700 flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Salary Slips
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-2">
-                {payslips.map((p: any) => {
+          <Card className="border-emerald-200 shadow-sm bg-emerald-50/40">
+            <CardHeader className="pb-3 border-b border-emerald-100">
+              <CardTitle className="text-sm font-semibold text-emerald-700 flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Salary Slips
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-2">
+              {payslips.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-4">No salary records found.</p>
+              ) : (
+                payslips.map((p: any) => {
                   const MONTH_NAMES = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
                   const label = `${MONTH_NAMES[p.month] || p.month} ${p.year}`;
                   return (
@@ -391,18 +391,24 @@ export default function ProfileClient() {
                         <p className="text-sm font-semibold text-slate-800">{label}</p>
                         <p className="text-xs text-slate-400">{p.presentDays}/{p.workingDays} days · Net ₹{(p.netPay || 0).toLocaleString("en-IN")}</p>
                       </div>
-                      <a href={p.payslipUrl} target="_blank" rel="noopener noreferrer">
-                        <button className="flex items-center gap-1.5 text-xs h-7 px-3 rounded-lg border border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
-                          <Download className="w-3.5 h-3.5" />
-                          PDF
-                        </button>
-                      </a>
+                      {p.payslipUrl ? (
+                        <a href={p.payslipUrl} target="_blank" rel="noopener noreferrer">
+                          <button className="flex items-center gap-1.5 text-xs h-7 px-3 rounded-lg border border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                            <Download className="w-3.5 h-3.5" />
+                            PDF
+                          </button>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-slate-400 px-3 py-1 rounded-lg border border-slate-200 bg-slate-50">
+                          PDF pending
+                        </span>
+                      )}
                     </div>
                   );
-                })}
-              </CardContent>
-            </Card>
-          )}
+                })
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3 border-b border-slate-100">
