@@ -9,7 +9,8 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 
-const LOGO_URL = "https://res.cloudinary.com/dji6svxdp/image/upload/v1779540701/hrms/assets/gehnax-logo.png";
+const LOGO_URL =
+  "https://res.cloudinary.com/dji6svxdp/image/upload/v1779540701/hrms/assets/gehnax-logo.png";
 
 export interface OfferLetterData {
   employeeName: string;
@@ -43,168 +44,250 @@ function fmt(n: number): string {
   return new Intl.NumberFormat("en-IN").format(Math.round(n));
 }
 
+// ── Colour palette ─────────────────────────────────────────────────────────
 const BLUE    = "#1d4ed8";
-const DARK    = "#1e293b";
-const GRAY    = "#64748b";
-const LIGHT   = "#f8fafc";
-const BORDER  = "#e2e8f0";
-const GREEN   = "#16a34a";
-const RED     = "#dc2626";
+const DBLUE   = "#1e3a8a";
+const DARK    = "#111827";
+const DGRAY   = "#374151";
+const GRAY    = "#6b7280";
+const LGRAY   = "#9ca3af";
+const LIGHT   = "#f9fafb";
+const BORDER  = "#e5e7eb";
 const LBLUE   = "#dbeafe";
 const LGREEN  = "#dcfce7";
 const LRED    = "#fee2e2";
-const LYELLOW = "#fefce8";
+const GREEN   = "#15803d";
+const RED     = "#b91c1c";
+const AMBER   = "#92400e";
+const LAMBNT  = "#fef3c7";
 
 const s = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 9.5,
+    fontSize: 9,
     color: DARK,
     backgroundColor: "#ffffff",
-    paddingHorizontal: 44,
-    paddingVertical: 34,
-    paddingBottom: 50,
+    paddingTop: 36,
+    paddingBottom: 52,
+    paddingHorizontal: 48,
   },
 
-  // ── Header ──
+  // ── Header ──────────────────────────────────────────────────────────────
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 14,
-    paddingBottom: 12,
+    paddingBottom: 10,
+    marginBottom: 12,
     borderBottomWidth: 2,
     borderBottomColor: BLUE,
     borderBottomStyle: "solid",
   },
-  logo: { width: 90, height: 28, objectFit: "contain", marginBottom: 4 },
+  headerLeft: { flexDirection: "column" },
+  logo: { width: 100, height: 30, objectFit: "contain", marginBottom: 5 },
   coName: {
-    fontSize: 15,
-    fontFamily: "Helvetica-Bold",
-    color: BLUE,
-  },
-  coSub: { fontSize: 7.5, color: GRAY, marginTop: 2 },
-  headerRight: { alignItems: "flex-end" },
-  headerRightText: { fontSize: 8, color: GRAY, marginTop: 1 },
-
-  // ── Letter title ──
-  title: {
     fontSize: 12,
     fontFamily: "Helvetica-Bold",
-    color: BLUE,
-    textAlign: "center",
-    marginBottom: 10,
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
+    color: DBLUE,
+    letterSpacing: 0.3,
+  },
+  coTagline: { fontSize: 7, color: GRAY, marginTop: 1.5 },
+  coAddress: { fontSize: 7, color: GRAY, marginTop: 1 },
+  headerRight: { alignItems: "flex-end", paddingTop: 4 },
+  headerMeta: { fontSize: 7.5, color: DGRAY, textAlign: "right", marginBottom: 1.5 },
+  headerMetaBold: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: DBLUE,
+    textAlign: "right",
+    marginBottom: 1.5,
   },
 
-  // ── Addressee block ──
-  addrBox: {
-    padding: 9,
+  // ── Blue accent bar ──────────────────────────────────────────────────────
+  accentBar: {
+    height: 3,
+    backgroundColor: BLUE,
+    borderRadius: 2,
+    marginBottom: 14,
+  },
+
+  // ── Document title ───────────────────────────────────────────────────────
+  titleBlock: { marginBottom: 14 },
+  docTitle: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    color: DBLUE,
+    textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 2,
+    marginBottom: 2,
+  },
+  docSubtitle: { fontSize: 8, color: GRAY, textAlign: "center" },
+
+  // ── To / Addressee ───────────────────────────────────────────────────────
+  toBlock: {
+    marginBottom: 10,
+    padding: 10,
     backgroundColor: LIGHT,
-    borderRadius: 3,
+    borderRadius: 4,
     borderLeftWidth: 3,
     borderLeftColor: BLUE,
     borderLeftStyle: "solid",
+  },
+  toLabel: { fontSize: 7, color: GRAY, fontFamily: "Helvetica-Bold", marginBottom: 3, textTransform: "uppercase", letterSpacing: 0.8 },
+  toName: { fontSize: 11, fontFamily: "Helvetica-Bold", color: DBLUE, marginBottom: 2 },
+  toDetail: { fontSize: 8, color: DGRAY, marginBottom: 1 },
+
+  // ── Subject line ─────────────────────────────────────────────────────────
+  subjectRow: { flexDirection: "row", marginBottom: 10, alignItems: "baseline" },
+  subjectLabel: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK, width: 48 },
+  subjectText: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: BLUE, flex: 1, textDecoration: "underline" },
+
+  // ── Body text ────────────────────────────────────────────────────────────
+  body: { fontSize: 8.5, color: DGRAY, lineHeight: 1.65, marginBottom: 8 },
+  bodyBold: { fontFamily: "Helvetica-Bold", color: DARK },
+
+  // ── Position details grid ────────────────────────────────────────────────
+  infoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    backgroundColor: LBLUE,
+    borderRadius: 4,
+    padding: 10,
     marginBottom: 10,
-  },
-  addrName: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: DARK },
-  addrSub:  { fontSize: 8.5, color: GRAY, marginTop: 2 },
-
-  // ── Body text ──
-  body: { fontSize: 9.5, color: DARK, lineHeight: 1.6, marginBottom: 7 },
-  bold: { fontFamily: "Helvetica-Bold" },
-
-  // ── Section heading ──
-  secTitle: {
-    fontSize: 9.5,
-    fontFamily: "Helvetica-Bold",
-    color: BLUE,
-    marginBottom: 5,
-    marginTop: 8,
-    paddingBottom: 3,
-    borderBottomWidth: 1,
-    borderBottomColor: "#bfdbfe",
-    borderBottomStyle: "solid",
-  },
-
-  // ── Position detail grid ──
-  grid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 7 },
-  gridItem: { width: "48%", flexDirection: "row", marginBottom: 4, marginRight: "2%" },
-  gridLabel: { fontSize: 8.5, color: GRAY, width: 90 },
-  gridVal:   { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK, flex: 1 },
-
-  // ── Terms ──
-  termRow: { flexDirection: "row", marginBottom: 5 },
-  termNum: { fontSize: 9, fontFamily: "Helvetica-Bold", color: BLUE, width: 16 },
-  termBody: { flex: 1 },
-  termHead: { fontSize: 9, fontFamily: "Helvetica-Bold", color: DARK, marginBottom: 1 },
-  termText: { fontSize: 8.5, color: DARK, lineHeight: 1.5 },
-
-  // ── Signature ──
-  sigRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12 },
-  sigLine: {
-    borderTopWidth: 1, borderTopColor: DARK, borderTopStyle: "solid",
-    width: 130, marginTop: 22, marginBottom: 3,
-  },
-  sigLabel: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK },
-  sigSub:   { fontSize: 8, color: GRAY },
-
-  // ── Verification box ──
-  verifyBox: {
-    marginTop: 10,
-    padding: 8,
-    backgroundColor: "#eff6ff",
-    borderRadius: 3,
     borderWidth: 1,
     borderColor: "#bfdbfe",
     borderStyle: "solid",
   },
-  verifyHead: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: BLUE, marginBottom: 3 },
-  verifyText: { fontSize: 8, color: DARK },
-  verifyUrl:  { fontSize: 8, color: BLUE },
+  infoItem: { width: "50%", marginBottom: 7, paddingRight: 8 },
+  infoLabel: { fontSize: 7, color: GRAY, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
+  infoVal: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DBLUE },
 
-  // ── Footer ──
+  // ── Section heading ──────────────────────────────────────────────────────
+  secTitle: {
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: DBLUE,
+    marginTop: 10,
+    marginBottom: 6,
+    paddingBottom: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    borderBottomStyle: "solid",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+
+  // ── Term rows ─────────────────────────────────────────────────────────────
+  termRow: { flexDirection: "row", marginBottom: 7 },
+  termNumBox: {
+    width: 18,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: BLUE,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 0.5,
+  },
+  termNumText: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#fff" },
+  termBody: { flex: 1, paddingLeft: 7 },
+  termHead: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK, marginBottom: 2 },
+  termText: { fontSize: 8, color: DGRAY, lineHeight: 1.55 },
+
+  // ── Compensation highlight ────────────────────────────────────────────────
+  ctcHighlight: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: DBLUE,
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 10,
+  },
+  ctcLabel: { fontSize: 8, color: "#93c5fd", fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5 },
+  ctcAmount: { fontSize: 16, fontFamily: "Helvetica-Bold", color: "#ffffff", marginTop: 2 },
+  ctcSub: { fontSize: 7, color: "#93c5fd" },
+  ctcRight: { alignItems: "flex-end" },
+  ctcNet: { fontSize: 8, color: "#93c5fd", fontFamily: "Helvetica-Bold", textTransform: "uppercase" },
+  ctcNetAmt: { fontSize: 12, fontFamily: "Helvetica-Bold", color: "#34d399", marginTop: 1 },
+
+  // ── Signature ────────────────────────────────────────────────────────────
+  sigSection: { flexDirection: "row", justifyContent: "space-between", marginTop: 14 },
+  sigBlock: {},
+  sigLine: {
+    borderTopWidth: 1,
+    borderTopColor: DARK,
+    borderTopStyle: "solid",
+    width: 140,
+    marginTop: 26,
+    marginBottom: 4,
+  },
+  sigName: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK },
+  sigSub: { fontSize: 7.5, color: GRAY, marginTop: 1 },
+
+  // ── Verification box ─────────────────────────────────────────────────────
+  verifyBox: {
+    marginTop: 12,
+    padding: 8,
+    backgroundColor: "#eff6ff",
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: "#93c5fd",
+    borderStyle: "solid",
+  },
+  verifyHead: { fontSize: 8, fontFamily: "Helvetica-Bold", color: BLUE, marginBottom: 3 },
+  verifyText: { fontSize: 7.5, color: DGRAY, lineHeight: 1.5 },
+  verifyUrl: { fontSize: 7.5, color: BLUE },
+
+  // ── Footer ───────────────────────────────────────────────────────────────
   footer: {
     position: "absolute",
     bottom: 20,
-    left: 44,
-    right: 44,
+    left: 48,
+    right: 48,
     borderTopWidth: 1,
     borderTopColor: BORDER,
     borderTopStyle: "solid",
     paddingTop: 5,
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
   },
-  footerText: { fontSize: 7, color: GRAY },
+  footerLeft: { fontSize: 6.5, color: LGRAY },
+  footerRight: { fontSize: 6.5, color: LGRAY },
 
-  // ── Annexure ──
+  // ── Page 2 — Annexure ─────────────────────────────────────────────────────
   annexTitle: {
     fontSize: 12,
     fontFamily: "Helvetica-Bold",
-    color: BLUE,
+    color: DBLUE,
     textAlign: "center",
-    marginBottom: 3,
+    marginBottom: 2,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  annexSub: { fontSize: 8.5, color: GRAY, textAlign: "center", marginBottom: 12 },
+  annexSub: { fontSize: 8, color: GRAY, textAlign: "center", marginBottom: 14 },
 
-  // ── Table ──
+  // ── Table ─────────────────────────────────────────────────────────────────
   table: {
-    borderWidth: 1, borderColor: BORDER,
-    borderStyle: "solid", borderRadius: 3,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderStyle: "solid",
+    borderRadius: 3,
+    overflow: "hidden",
   },
   tHead: {
     flexDirection: "row",
-    backgroundColor: BLUE,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    backgroundColor: DBLUE,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
-  tHeadText: { color: "#fff", fontSize: 8.5, fontFamily: "Helvetica-Bold" },
+  tHeadText: { color: "#ffffff", fontSize: 8, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5 },
   tRow: {
     flexDirection: "row",
     paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     borderBottomStyle: "solid",
@@ -212,52 +295,86 @@ const s = StyleSheet.create({
   tRowAlt:    { backgroundColor: LIGHT },
   tRowSec:    { backgroundColor: LBLUE },
   tRowSecRed: { backgroundColor: LRED },
-  tRowTotal:  { backgroundColor: "#eff6ff" },
+  tRowTotal:  { backgroundColor: "#e0e7ff" },
   tRowNet:    { backgroundColor: LGREEN },
-  tRowCTC:    { backgroundColor: BLUE },
-  tCell:      { fontSize: 8.5, color: DARK },
-  tCellBold:  { fontSize: 8.5, color: DARK, fontFamily: "Helvetica-Bold" },
-  tCellBlue:  { fontSize: 8.5, color: BLUE, fontFamily: "Helvetica-Bold" },
-  tCellRed:   { fontSize: 8.5, color: RED, fontFamily: "Helvetica-Bold" },
-  tCellGreen: { fontSize: 9, color: GREEN, fontFamily: "Helvetica-Bold" },
-  tCellWhite: { fontSize: 9, color: "#fff", fontFamily: "Helvetica-Bold" },
-  col1: { flex: 3 },
-  col2: { flex: 1.5, textAlign: "right" },
-  col3: { flex: 1.5, textAlign: "right" },
+  tRowCTC:    { backgroundColor: DBLUE },
+  tRowGrat:   { backgroundColor: LAMBNT },
 
-  // ── Benefits ──
+  tCell:      { fontSize: 8, color: DGRAY },
+  tCellBold:  { fontSize: 8, fontFamily: "Helvetica-Bold", color: DARK },
+  tCellBlue:  { fontSize: 8, fontFamily: "Helvetica-Bold", color: DBLUE },
+  tCellRed:   { fontSize: 8, fontFamily: "Helvetica-Bold", color: RED },
+  tCellGreen: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: GREEN },
+  tCellWhite: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#ffffff" },
+  tCellAmber: { fontSize: 8, fontFamily: "Helvetica-Bold", color: AMBER },
+  col1: { flex: 4 },
+  col2: { flex: 2, textAlign: "right" },
+  col3: { flex: 2, textAlign: "right" },
+
+  // ── Benefits ─────────────────────────────────────────────────────────────
   benefitBox: {
     marginTop: 12,
-    padding: 9,
+    padding: 10,
     backgroundColor: LGREEN,
-    borderRadius: 3,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: "#86efac",
     borderStyle: "solid",
   },
-  benefitHead: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: GREEN, marginBottom: 4 },
-  benefitRow:  { flexDirection: "row", marginBottom: 3 },
-  benefitDot:  { fontSize: 9, color: GREEN, marginRight: 5 },
-  benefitText: { fontSize: 8.5, color: DARK, flex: 1 },
+  benefitHead: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GREEN, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 },
+  benefitRow: { flexDirection: "row", marginBottom: 3.5 },
+  benefitDot: { fontSize: 9, color: GREEN, marginRight: 5, marginTop: 0.5 },
+  benefitText: { fontSize: 7.5, color: DGRAY, flex: 1, lineHeight: 1.5 },
 
+  // ── Note ─────────────────────────────────────────────────────────────────
   noteBox: {
-    marginTop: 8,
+    marginTop: 10,
     padding: 8,
-    backgroundColor: LYELLOW,
+    backgroundColor: LAMBNT,
     borderRadius: 3,
     borderLeftWidth: 3,
-    borderLeftColor: "#f59e0b",
+    borderLeftColor: "#d97706",
     borderLeftStyle: "solid",
   },
-  noteText: { fontSize: 7.5, color: "#92400e", lineHeight: 1.5 },
+  noteHead: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: AMBER, marginBottom: 2 },
+  noteText: { fontSize: 7, color: AMBER, lineHeight: 1.55 },
 });
 
-function Term({
-  num, heading, text,
-}: { num: string; heading: string; text: string }) {
+// ── Sub-components ──────────────────────────────────────────────────────────
+function CompanyHeader({ refNumber, date }: { refNumber: string; date: string }) {
+  return (
+    <View style={s.header}>
+      <View style={s.headerLeft}>
+        <Image src={LOGO_URL} style={s.logo} />
+        <Text style={s.coName}>Gehnax Technologies LLP</Text>
+        <Text style={s.coTagline}>Technology Solutions  ·  IT Services  ·  Digital Innovation</Text>
+        <Text style={s.coAddress}>7/27 FF, Geeta Colony, Krishna Nagar, Delhi – 110031</Text>
+      </View>
+      <View style={s.headerRight}>
+        <Text style={s.headerMetaBold}>{refNumber}</Text>
+        <Text style={s.headerMeta}>Date: {date}</Text>
+        <Text style={s.headerMeta}>CIN: AAQ-9876</Text>
+        <Text style={s.headerMeta}>PF Reg: DLDLN0017240000</Text>
+      </View>
+    </View>
+  );
+}
+
+function Footer({ label }: { label: string }) {
+  return (
+    <View style={s.footer}>
+      <Text style={s.footerLeft}>Gehnax Technologies LLP  ·  Confidential — Not for Public Distribution</Text>
+      <Text style={s.footerRight}>{label}</Text>
+    </View>
+  );
+}
+
+function Term({ num, heading, text }: { num: string; heading: string; text: string }) {
   return (
     <View style={s.termRow}>
-      <Text style={s.termNum}>{num}.</Text>
+      <View style={s.termNumBox}>
+        <Text style={s.termNumText}>{num}</Text>
+      </View>
       <View style={s.termBody}>
         <Text style={s.termHead}>{heading}</Text>
         <Text style={s.termText}>{text}</Text>
@@ -266,150 +383,166 @@ function Term({
   );
 }
 
-function TRow({
-  children, variant,
-}: { children: React.ReactNode; variant?: "alt" | "sec" | "secRed" | "total" | "net" | "ctc" | "plain" }) {
-  const varMap = {
-    alt:    s.tRowAlt,
-    sec:    s.tRowSec,
-    secRed: s.tRowSecRed,
-    total:  s.tRowTotal,
-    net:    s.tRowNet,
-    ctc:    s.tRowCTC,
-    plain:  undefined,
+type TRowVariant = "plain" | "alt" | "sec" | "secRed" | "total" | "net" | "ctc" | "grat";
+function TRow({ children, variant = "plain" }: { children: React.ReactNode; variant?: TRowVariant }) {
+  const varMap: Record<TRowVariant, object | undefined> = {
+    plain: undefined, alt: s.tRowAlt, sec: s.tRowSec, secRed: s.tRowSecRed,
+    total: s.tRowTotal, net: s.tRowNet, ctc: s.tRowCTC, grat: s.tRowGrat,
   };
-  const extra = variant ? varMap[variant] : undefined;
+  const extra = varMap[variant];
   return <View style={extra ? [s.tRow, extra] : s.tRow}>{children}</View>;
 }
 
+// ── Main component ──────────────────────────────────────────────────────────
 function OfferLetterPDF({ data }: { data: OfferLetterData }) {
   const sal = data.salary;
   const firstName = data.employeeName.split(" ")[0];
 
   return (
-    <Document title={`Offer Letter — ${data.employeeName}`} author="Gehnax Technologies LLP">
-
-      {/* ══ PAGE 1 — Offer Letter ══ */}
+    <Document
+      title={`Offer Letter — ${data.employeeName}`}
+      author="Gehnax Technologies LLP"
+      subject="Letter of Appointment"
+      keywords="offer letter, employment, gehnax"
+    >
+      {/* ══════════════════════════════════════════════════════════════════
+          PAGE 1 — Letter of Appointment
+      ══════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={s.page}>
+        <CompanyHeader refNumber={data.refNumber} date={data.generatedDate} />
 
-        {/* Company header */}
-        <View style={s.header}>
-          <View>
-            <Image src={LOGO_URL} style={s.logo} />
-            <Text style={s.coName}>Gehnax Technologies LLP</Text>
-            <Text style={s.coSub}>Technology Solutions  |  IT Services</Text>
-            <Text style={s.coSub}>7/27 FF, Geeta Colony, Krishna Nagar, Delhi - 110031</Text>
-          </View>
-          <View style={s.headerRight}>
-            <Text style={s.headerRightText}>Date: {data.generatedDate}</Text>
-            <Text style={s.headerRightText}>Ref: {data.refNumber}</Text>
-          </View>
+        {/* Document title */}
+        <View style={s.titleBlock}>
+          <Text style={s.docTitle}>Letter of Appointment</Text>
+          <Text style={s.docSubtitle}>Private &amp; Confidential — To be signed and returned within 7 days</Text>
         </View>
 
-        {/* Title */}
-        <Text style={s.title}>Letter of Appointment</Text>
-
         {/* Addressee */}
-        <View style={s.addrBox}>
-          <Text style={s.addrName}>{data.employeeName}</Text>
-          <Text style={s.addrSub}>{data.designation}  ·  {data.department}</Text>
-          <Text style={s.addrSub}>Employee Code: {data.employeeCode}</Text>
+        <View style={s.toBlock}>
+          <Text style={s.toLabel}>To</Text>
+          <Text style={s.toName}>{data.employeeName}</Text>
+          <Text style={s.toDetail}>{data.designation}  ·  {data.department} Department</Text>
+          <Text style={s.toDetail}>Employee Code: {data.employeeCode}</Text>
+        </View>
+
+        {/* Subject */}
+        <View style={s.subjectRow}>
+          <Text style={s.subjectLabel}>Subject:</Text>
+          <Text style={s.subjectText}>
+            Offer of Employment — {data.designation}, {data.department} Department
+          </Text>
         </View>
 
         {/* Opening */}
         <Text style={s.body}>Dear {firstName},</Text>
         <Text style={s.body}>
-          We are pleased to extend this offer of employment to you for the position of{" "}
-          <Text style={s.bold}>{data.designation}</Text> in the{" "}
-          <Text style={s.bold}>{data.department}</Text> department at{" "}
-          <Text style={s.bold}>Gehnax Technologies LLP</Text>. This offer is made in recognition of
-          your qualifications and experience, and is subject to the terms and conditions outlined below.
+          We are pleased to offer you employment at{" "}
+          <Text style={s.bodyBold}>Gehnax Technologies LLP</Text> ("the Company") for the position
+          of <Text style={s.bodyBold}>{data.designation}</Text> in the{" "}
+          <Text style={s.bodyBold}>{data.department}</Text> Department. This offer is extended in
+          recognition of your qualifications and experience, and is subject to the terms and
+          conditions set out herein and in the Company's policies as amended from time to time.
         </Text>
 
-        {/* Position Details */}
-        <Text style={s.secTitle}>Position Details</Text>
-        <View style={s.grid}>
-          <View style={s.gridItem}>
-            <Text style={s.gridLabel}>Designation:</Text>
-            <Text style={s.gridVal}>{data.designation}</Text>
+        {/* Position details */}
+        <Text style={s.secTitle}>Position &amp; Employment Details</Text>
+        <View style={s.infoGrid}>
+          <View style={s.infoItem}>
+            <Text style={s.infoLabel}>Designation</Text>
+            <Text style={s.infoVal}>{data.designation}</Text>
           </View>
-          <View style={s.gridItem}>
-            <Text style={s.gridLabel}>Department:</Text>
-            <Text style={s.gridVal}>{data.department}</Text>
+          <View style={s.infoItem}>
+            <Text style={s.infoLabel}>Department</Text>
+            <Text style={s.infoVal}>{data.department}</Text>
           </View>
-          <View style={s.gridItem}>
-            <Text style={s.gridLabel}>Date of Joining:</Text>
-            <Text style={s.gridVal}>{data.joiningDate}</Text>
+          <View style={s.infoItem}>
+            <Text style={s.infoLabel}>Date of Joining</Text>
+            <Text style={s.infoVal}>{data.joiningDate}</Text>
           </View>
-          <View style={s.gridItem}>
-            <Text style={s.gridLabel}>Employee Code:</Text>
-            <Text style={s.gridVal}>{data.employeeCode}</Text>
+          <View style={s.infoItem}>
+            <Text style={s.infoLabel}>Employee Code</Text>
+            <Text style={s.infoVal}>{data.employeeCode}</Text>
           </View>
-          <View style={s.gridItem}>
-            <Text style={s.gridLabel}>Annual CTC:</Text>
-            <Text style={s.gridVal}>₹ {fmt(sal.annualCTC)}</Text>
+          <View style={s.infoItem}>
+            <Text style={s.infoLabel}>Work Location</Text>
+            <Text style={s.infoVal}>Delhi – 110031</Text>
           </View>
-          <View style={s.gridItem}>
-            <Text style={s.gridLabel}>Net Monthly:</Text>
-            <Text style={s.gridVal}>₹ {fmt(sal.netMonthly)}</Text>
+          <View style={s.infoItem}>
+            <Text style={s.infoLabel}>Employment Type</Text>
+            <Text style={s.infoVal}>Full-Time, Permanent</Text>
           </View>
         </View>
-        <Text style={s.body}>
-          Your detailed salary structure is provided in Annexure I (Salary Annexure) attached with this letter.
-        </Text>
+
+        {/* CTC highlight */}
+        <View style={s.ctcHighlight}>
+          <View>
+            <Text style={s.ctcLabel}>Annual Cost to Company (CTC)</Text>
+            <Text style={s.ctcAmount}>₹ {fmt(sal.annualCTC)}</Text>
+            <Text style={s.ctcSub}>Detailed breakdown in Annexure I</Text>
+          </View>
+          <View style={s.ctcRight}>
+            <Text style={s.ctcNet}>Monthly Net Take-Home</Text>
+            <Text style={s.ctcNetAmt}>₹ {fmt(sal.netMonthly)}</Text>
+            <Text style={s.ctcSub}>After statutory deductions</Text>
+          </View>
+        </View>
 
         {/* Terms */}
-        <Text style={s.secTitle}>Terms & Conditions</Text>
+        <Text style={s.secTitle}>Terms &amp; Conditions of Employment</Text>
 
-        <Term
-          num="1"
-          heading="Working Days"
-          text="Your working days shall be Monday to Saturday. Working hours are as per company policy and may vary according to client project requirements."
-        />
-        <Term
-          num="2"
-          heading="Notice Period"
-          text="Either party may terminate this employment by providing 30 (Thirty) days' written notice. During the notice period, you are expected to complete all ongoing assignments and facilitate a smooth handover."
-        />
-        <Term
-          num="3"
-          heading="Leave Policy"
-          text="You are entitled to 24 (Twenty-Four) days of paid annual leave per year, credited at 2 days per calendar month. Leaves are non-accumulative and shall NOT be carried forward to the following year. Any unused leave as on 31st December shall stand lapsed automatically."
-        />
-        <Term
-          num="4"
-          heading="Provident Fund (PF)"
-          text="PF contributions shall be made as per applicable Government of India regulations. Your PF deductions and employer contributions will be reflected in your payslip on a quarterly basis."
-        />
-        <Term
-          num="5"
-          heading="Insurance Coverage"
-          text="You will be covered under: Group Medical Insurance of ₹3,00,000 (Three Lakh) per annum and Group Personal Accident Insurance of ₹20,00,000 (Twenty Lakh) per annum — both fully funded by the company."
-        />
-        <Term
-          num="6"
-          heading="Code of Conduct & Confidentiality"
-          text="You shall comply with all company policies, maintain strict confidentiality of proprietary and client information, and uphold the professional standards of Gehnax Technologies LLP at all times."
-        />
+        <Term num="1" heading="Probation Period"
+          text="You will be on probation for a period of three (3) months from your date of joining. During probation, either party may terminate employment with seven (7) days' written notice. Upon successful completion, you will be confirmed in service." />
+        <Term num="2" heading="Working Days &amp; Hours"
+          text="Your working days shall be Monday to Saturday. Standard working hours are 9:00 AM to 6:00 PM (9 hours including a 1-hour break). Working hours may be adjusted subject to client project requirements and Company policy." />
+        <Term num="3" heading="Notice Period"
+          text="After confirmation, either party may terminate this employment by providing thirty (30) days' written notice or payment of one month's gross salary in lieu thereof. During the notice period, you shall complete all pending assignments and ensure a proper handover." />
+        <Term num="4" heading="Leave Entitlement"
+          text="You are entitled to twenty-four (24) days of paid annual leave per calendar year, accruing at two (2) days per month. Leave is non-accumulative and shall NOT be carried forward to the subsequent calendar year. Any unutilised leave as on 31st December shall stand lapsed automatically." />
+        <Term num="5" heading="Provident Fund (EPF)"
+          text="Both you and the Company shall contribute to the Employees' Provident Fund (EPF) as per the Employees' Provident Funds &amp; Miscellaneous Provisions Act, 1952, at the rate of 12% of your Basic Salary respectively. Your PF deductions and employer contributions are reflected in Annexure I." />
+        <Term num="6" heading="Gratuity"
+          text="You shall be entitled to Gratuity as per the provisions of the Payment of Gratuity Act, 1972, upon separation from the Company after completing a minimum period of five (5) continuous years of service. Gratuity shall be calculated at the rate of fifteen (15) days of last drawn Basic Salary for each completed year of service (i.e., Basic ÷ 26 × 15 per year of service), subject to a maximum of ₹20,00,000 (Twenty Lakh Rupees). The annual gratuity provision of ₹ {fmt(sal.gratuity * 12)} forms part of your CTC as shown in Annexure I." />
+        <Term num="7" heading="Insurance Coverage"
+          text="The Company shall provide: (a) Group Medical Insurance of ₹3,00,000 (Three Lakh) per annum, and (b) Group Personal Accident Insurance of ₹20,00,000 (Twenty Lakh) per annum — both fully funded by the Company and not forming part of your CTC." />
 
-        <Text style={[s.body, { marginTop: 6 }]}>
-          This offer is conditional upon successful completion of background verification and submission of all
-          required documents. Kindly sign and return a copy of this letter to confirm your acceptance.
+        <Footer label={`${data.refNumber}  ·  Page 1 of 2`} />
+      </Page>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          PAGE 2 — Continued Terms + Salary Annexure
+      ══════════════════════════════════════════════════════════════════ */}
+      <Page size="A4" style={s.page}>
+        <CompanyHeader refNumber={data.refNumber} date={data.generatedDate} />
+
+        {/* Continued terms */}
+        <Text style={s.secTitle}>Terms &amp; Conditions of Employment (Continued)</Text>
+
+        <Term num="8" heading="Confidentiality &amp; Intellectual Property"
+          text="You shall maintain strict confidentiality of all proprietary, technical, commercial, and client information during and after your employment. All work product, inventions, and intellectual property created in the course of your employment shall vest solely with Gehnax Technologies LLP." />
+        <Term num="9" heading="Code of Conduct"
+          text="You shall adhere to all Company policies, procedures, and the Code of Conduct as communicated from time to time. Any violation may result in disciplinary action including termination." />
+        <Term num="10" heading="Background Verification"
+          text="This offer is conditional upon successful completion of pre-employment background verification including educational qualifications, employment history, and reference checks. Provision of false information will result in immediate termination without notice or compensation." />
+
+        <Text style={[s.body, { marginTop: 8 }]}>
+          Please confirm your acceptance of this offer by signing and returning a copy of this
+          letter within <Text style={s.bodyBold}>seven (7) calendar days</Text> from the date of
+          this letter. This offer shall stand withdrawn if acceptance is not received within the
+          stipulated period. We look forward to welcoming you to the Gehnax Technologies family.
         </Text>
-        <Text style={s.body}>We look forward to welcoming you to the Gehnax Technologies family.</Text>
 
         {/* Signatures */}
-        <View style={s.sigRow}>
-          <View>
-            <Text style={[s.sigSub, { marginBottom: 0 }]}>Employee Acceptance</Text>
+        <View style={s.sigSection}>
+          <View style={s.sigBlock}>
+            <Text style={s.sigSub}>Employee Acceptance</Text>
             <View style={s.sigLine} />
-            <Text style={s.sigLabel}>{data.employeeName}</Text>
-            <Text style={s.sigSub}>Date: ______________________</Text>
+            <Text style={s.sigName}>{data.employeeName}</Text>
+            <Text style={s.sigSub}>Date: ________________________</Text>
           </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={[s.sigSub, { marginBottom: 0 }]}>For Gehnax Technologies LLP</Text>
+          <View style={[s.sigBlock, { alignItems: "flex-end" }]}>
+            <Text style={s.sigSub}>For Gehnax Technologies LLP</Text>
             <View style={[s.sigLine, { marginLeft: "auto" }]} />
-            <Text style={s.sigLabel}>Authorized Signatory</Text>
+            <Text style={s.sigName}>Authorised Signatory</Text>
             <Text style={s.sigSub}>Human Resources Department</Text>
           </View>
         </View>
@@ -417,134 +550,119 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
         {/* Verification */}
         <View style={s.verifyBox}>
           <Text style={s.verifyHead}>Offer Letter Verification</Text>
-          <Text style={s.verifyText}>This offer letter can be verified online at:</Text>
+          <Text style={s.verifyText}>
+            This offer letter can be verified online at the following URL:
+          </Text>
           <Text style={s.verifyUrl}>{data.verificationUrl}</Text>
-          <Text style={[s.verifyText, { marginTop: 2 }]}>Verification Token: {data.verificationToken}</Text>
+          <Text style={[s.verifyText, { marginTop: 2 }]}>
+            Verification Token: {data.verificationToken}
+          </Text>
         </View>
 
-        {/* Footer */}
-        <View style={s.footer}>
-          <Text style={s.footerText}>Gehnax Technologies LLP  |  Confidential — Not for Public Distribution</Text>
-          <Text style={s.footerText}>{data.refNumber}  |  {data.generatedDate}</Text>
-        </View>
-      </Page>
-
-      {/* ══ PAGE 2 — Salary Annexure ══ */}
-      <Page size="A4" style={s.page}>
-
-        {/* Company header */}
-        <View style={s.header}>
-          <View>
-            <Image src={LOGO_URL} style={s.logo} />
-            <Text style={s.coName}>Gehnax Technologies LLP</Text>
-            <Text style={s.coSub}>Technology Solutions  |  IT Services</Text>
-            <Text style={s.coSub}>7/27 FF, Geeta Colony, Krishna Nagar, Delhi - 110031</Text>
-          </View>
-          <View style={s.headerRight}>
-            <Text style={s.headerRightText}>Ref: {data.refNumber}</Text>
-            <Text style={s.headerRightText}>{data.generatedDate}</Text>
-          </View>
-        </View>
-
-        <Text style={s.annexTitle}>Annexure I — Salary Structure</Text>
+        {/* ── SALARY ANNEXURE ── */}
+        <Text style={[s.annexTitle, { marginTop: 18 }]}>Annexure I — Salary Structure</Text>
         <Text style={s.annexSub}>
-          {data.employeeName}  |  {data.designation}  |  {data.department}
+          {data.employeeName}  ·  {data.designation}  ·  {data.department}  ·  Effective from {data.joiningDate}
         </Text>
 
-        {/* Table */}
         <View style={s.table}>
-          {/* Header */}
+          {/* Table header */}
           <View style={s.tHead}>
-            <Text style={[s.tHeadText, s.col1]}>Particulars</Text>
+            <Text style={[s.tHeadText, s.col1]}>Component</Text>
             <Text style={[s.tHeadText, s.col2]}>Monthly (₹)</Text>
             <Text style={[s.tHeadText, s.col3]}>Annual (₹)</Text>
           </View>
 
           {/* ── EARNINGS ── */}
           <TRow variant="sec">
-            <Text style={[s.tCellBlue, s.col1]}>EARNINGS</Text>
+            <Text style={[s.tCellBlue, s.col1]}>A.  EARNINGS</Text>
             <Text style={[s.tCell, s.col2]} />
             <Text style={[s.tCell, s.col3]} />
           </TRow>
           <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>Basic Salary</Text>
+            <Text style={[s.tCell, s.col1]}>  Basic Salary</Text>
             <Text style={[s.tCell, s.col2]}>{fmt(sal.basic)}</Text>
             <Text style={[s.tCell, s.col3]}>{fmt(sal.basic * 12)}</Text>
           </TRow>
           <TRow variant="alt">
-            <Text style={[s.tCell, s.col1]}>House Rent Allowance (HRA)</Text>
+            <Text style={[s.tCell, s.col1]}>  House Rent Allowance (HRA)</Text>
             <Text style={[s.tCell, s.col2]}>{fmt(sal.hra)}</Text>
             <Text style={[s.tCell, s.col3]}>{fmt(sal.hra * 12)}</Text>
           </TRow>
           <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>Special Allowance</Text>
+            <Text style={[s.tCell, s.col1]}>  Special Allowance</Text>
             <Text style={[s.tCell, s.col2]}>{fmt(sal.allowances)}</Text>
             <Text style={[s.tCell, s.col3]}>{fmt(sal.allowances * 12)}</Text>
           </TRow>
           <TRow variant="total">
-            <Text style={[s.tCellBold, s.col1]}>Gross Earnings</Text>
+            <Text style={[s.tCellBold, s.col1]}>  Gross Salary  (A)</Text>
             <Text style={[s.tCellBold, s.col2]}>{fmt(sal.grossMonthly)}</Text>
             <Text style={[s.tCellBold, s.col3]}>{fmt(sal.grossAnnual)}</Text>
           </TRow>
 
           {/* ── DEDUCTIONS ── */}
           <TRow variant="secRed">
-            <Text style={[s.tCellRed, s.col1]}>DEDUCTIONS</Text>
+            <Text style={[s.tCellRed, s.col1]}>B.  DEDUCTIONS (from Gross)</Text>
             <Text style={[s.tCell, s.col2]} />
             <Text style={[s.tCell, s.col3]} />
           </TRow>
           <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>Employee Provident Fund (12% of Basic)</Text>
+            <Text style={[s.tCell, s.col1]}>  Employee Provident Fund — EPF (12% of Basic)</Text>
             <Text style={[s.tCell, s.col2]}>{fmt(sal.employeePF)}</Text>
             <Text style={[s.tCell, s.col3]}>{fmt(sal.employeePF * 12)}</Text>
           </TRow>
           <TRow variant="alt">
-            <Text style={[s.tCell, s.col1]}>Employer Provident Fund (12% of Basic)</Text>
+            <Text style={[s.tCell, s.col1]}>  Employer Provident Fund — EPF (12% of Basic)</Text>
             <Text style={[s.tCell, s.col2]}>{fmt(sal.employerPF)}</Text>
             <Text style={[s.tCell, s.col3]}>{fmt(sal.employerPF * 12)}</Text>
           </TRow>
           {sal.esi > 0 && (
             <TRow variant="plain">
-              <Text style={[s.tCell, s.col1]}>ESI (0.75% of Gross)</Text>
+              <Text style={[s.tCell, s.col1]}>  ESI Contribution (0.75% of Gross)</Text>
               <Text style={[s.tCell, s.col2]}>{fmt(sal.esi)}</Text>
               <Text style={[s.tCell, s.col3]}>{fmt(sal.esi * 12)}</Text>
             </TRow>
           )}
           {sal.tds > 0 && (
             <TRow variant={sal.esi > 0 ? "alt" : "plain"}>
-              <Text style={[s.tCell, s.col1]}>Income Tax (TDS — New Regime)</Text>
+              <Text style={[s.tCell, s.col1]}>  Income Tax — TDS (New Regime)</Text>
               <Text style={[s.tCell, s.col2]}>{fmt(sal.tds)}</Text>
               <Text style={[s.tCell, s.col3]}>{fmt(sal.tds * 12)}</Text>
             </TRow>
           )}
           <TRow variant="total">
-            <Text style={[s.tCellBold, s.col1]}>Total Deductions</Text>
-            <Text style={[s.tCellBold, s.col2]}>{fmt(sal.totalDeductions)}</Text>
-            <Text style={[s.tCellBold, s.col3]}>{fmt(sal.totalDeductions * 12)}</Text>
+            <Text style={[s.tCellBold, s.col1]}>  Total Deductions  (B)</Text>
+            <Text style={[s.tCellRed, s.col2]}>{fmt(sal.totalDeductions)}</Text>
+            <Text style={[s.tCellRed, s.col3]}>{fmt(sal.totalDeductions * 12)}</Text>
           </TRow>
 
-          {/* ── NET SALARY ── */}
+          {/* ── NET ── */}
           <TRow variant="net">
-            <Text style={[s.tCellGreen, s.col1]}>NET MONTHLY SALARY</Text>
+            <Text style={[s.tCellGreen, s.col1]}>NET MONTHLY TAKE-HOME  (A – B)</Text>
             <Text style={[s.tCellGreen, s.col2]}>{fmt(sal.netMonthly)}</Text>
             <Text style={[s.tCellGreen, s.col3]}>{fmt(sal.netMonthly * 12)}</Text>
           </TRow>
 
           {/* ── CTC ── */}
           <TRow variant="sec">
-            <Text style={[s.tCellBlue, s.col1]}>COST TO COMPANY (CTC)</Text>
+            <Text style={[s.tCellBlue, s.col1]}>C.  EMPLOYER CONTRIBUTIONS (CTC)</Text>
             <Text style={[s.tCell, s.col2]} />
             <Text style={[s.tCell, s.col3]} />
           </TRow>
           <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>Gross Salary (Employee Cost)</Text>
+            <Text style={[s.tCell, s.col1]}>  Gross Salary</Text>
             <Text style={[s.tCell, s.col2]}>{fmt(sal.grossMonthly)}</Text>
             <Text style={[s.tCell, s.col3]}>{fmt(sal.grossAnnual)}</Text>
           </TRow>
           <TRow variant="alt">
-            <Text style={[s.tCell, s.col1]}>Employer PF Contribution (12% of Basic)</Text>
+            <Text style={[s.tCell, s.col1]}>  Employer PF Contribution (12% of Basic)</Text>
             <Text style={[s.tCell, s.col2]}>{fmt(sal.employerPF)}</Text>
             <Text style={[s.tCell, s.col3]}>{fmt(sal.employerPF * 12)}</Text>
+          </TRow>
+          <TRow variant="grat">
+            <Text style={[s.tCellAmber, s.col1]}>  Gratuity Provision (4.81% of Basic — Payment of Gratuity Act, 1972)</Text>
+            <Text style={[s.tCellAmber, s.col2]}>{fmt(sal.gratuity)}</Text>
+            <Text style={[s.tCellAmber, s.col3]}>{fmt(sal.gratuity * 12)}</Text>
           </TRow>
           <TRow variant="ctc">
             <Text style={[s.tCellWhite, s.col1]}>TOTAL ANNUAL CTC</Text>
@@ -553,58 +671,35 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
           </TRow>
         </View>
 
-        {/* Benefits */}
+        {/* Benefits box */}
         <View style={s.benefitBox}>
-          <Text style={s.benefitHead}>Employee Benefits (Company-Funded — Not Included in CTC)</Text>
+          <Text style={s.benefitHead}>Additional Benefits (Company-Funded — Separate from CTC)</Text>
           <View style={s.benefitRow}>
             <Text style={s.benefitDot}>•</Text>
-            <Text style={s.benefitText}>
-              Group Medical Insurance: ₹3,00,000 (Three Lakh) per annum — company pays full premium
-            </Text>
+            <Text style={s.benefitText}>Group Medical Insurance: ₹3,00,000 per annum — premium fully paid by the Company</Text>
           </View>
           <View style={s.benefitRow}>
             <Text style={s.benefitDot}>•</Text>
-            <Text style={s.benefitText}>
-              Group Personal Accident Insurance: ₹20,00,000 (Twenty Lakh) per annum — company pays full premium
-            </Text>
+            <Text style={s.benefitText}>Group Personal Accident Insurance: ₹20,00,000 per annum — premium fully paid by the Company</Text>
           </View>
           <View style={s.benefitRow}>
             <Text style={s.benefitDot}>•</Text>
-            <Text style={s.benefitText}>
-              Annual Paid Leave: 24 days per year (2 days/month) — leaves DO NOT carry forward to next year
-            </Text>
-          </View>
-          <View style={s.benefitRow}>
-            <Text style={s.benefitDot}>•</Text>
-            <Text style={s.benefitText}>
-              Working Days: Monday to Saturday (as per company policy and client requirements)
-            </Text>
-          </View>
-          <View style={s.benefitRow}>
-            <Text style={s.benefitDot}>•</Text>
-            <Text style={s.benefitText}>
-              PF contributions reflected in payslip on a quarterly basis as per government norms
-            </Text>
+            <Text style={s.benefitText}>Paid Annual Leave: 24 days per year (2 days/month) — non-accumulative, lapses on 31st December</Text>
           </View>
         </View>
 
         {/* Note */}
         <View style={s.noteBox}>
+          <Text style={s.noteHead}>Important Notes</Text>
           <Text style={s.noteText}>
-            Note: The salary structure above is indicative and subject to applicable income tax (TDS) deductions
-            under the prevailing new tax regime. Net salary may vary based on actual working days, loss of pay
-            (LOP), and other applicable deductions. Both Employee PF and Employer PF (each 12% of Basic) are
-            included in the deductions. PF contributions are reflected in payslip on a quarterly basis.
+            1. Gratuity is payable only upon separation after completing five (5) continuous years of service as per the Payment of Gratuity Act, 1972. The monthly provision shown above is an actuarial accrual forming part of CTC and is not credited to your salary account.{"\n"}
+            2. Net take-home may vary based on actual working days, Loss of Pay (LOP), performance bonus, or other applicable adjustments.{"\n"}
+            3. Income Tax (TDS) is computed under the New Tax Regime (FY 2025-26) and is subject to change based on declarations and applicable tax laws.{"\n"}
+            4. This salary structure is subject to revision as per Company policy and performance appraisal cycles.
           </Text>
         </View>
 
-        {/* Footer */}
-        <View style={s.footer}>
-          <Text style={s.footerText}>
-            Gehnax Technologies LLP  |  Annexure I — Salary Structure  |  Confidential
-          </Text>
-          <Text style={s.footerText}>{data.refNumber}  |  {data.generatedDate}</Text>
-        </View>
+        <Footer label={`${data.refNumber}  ·  Page 2 of 2  ·  Annexure I`} />
       </Page>
     </Document>
   );

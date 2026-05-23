@@ -62,13 +62,15 @@ export async function POST(
   const employeePF   = Math.round(basic * 0.12);
   const employerPF   = Math.round(basic * 0.12);
   const esi          = grossMonthly <= 21_000 ? Math.round(grossMonthly * 0.0075) : 0;
+  // Gratuity provision per Payment of Gratuity Act, 1972 (Basic × 15/26 ÷ 12 ≈ 4.81%)
+  const gratuity     = Math.round(basic * 15 / 26 / 12);
   // PF base (no professional tax)
   const computedBase = employeePF + employerPF + esi;
   const tds          = Math.max(0, storedDeductions - computedBase);
   const totalDeductions = storedDeductions > 0 ? storedDeductions : computedBase;
   const netMonthly   = grossMonthly - totalDeductions;
-  // CTC = Gross + Employer PF only (no Gratuity)
-  const annualCTC    = Math.round(grossAnnual + employerPF * 12);
+  // CTC = Gross Annual + Employer PF × 12 + Gratuity × 12
+  const annualCTC    = Math.round(grossAnnual + employerPF * 12 + gratuity * 12);
 
   // ── Token & URL ─────────────────────────────────────────────
   const verificationToken = crypto.randomBytes(20).toString("hex");
@@ -102,7 +104,7 @@ export async function POST(
       grossMonthly, employeePF, employerPF, esi,
       professionalTax: 0, tds,
       totalDeductions, netMonthly, grossAnnual,
-      gratuity: 0, annualCTC,
+      gratuity, annualCTC,
     },
     verificationUrl,
     verificationToken,
