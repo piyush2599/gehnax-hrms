@@ -385,7 +385,8 @@ function Term({ num, heading, text }: { num: string; heading: string; text: stri
 
 type TRowVariant = "plain" | "alt" | "sec" | "secRed" | "total" | "net" | "ctc" | "grat";
 function TRow({ children, variant = "plain" }: { children: React.ReactNode; variant?: TRowVariant }) {
-  const varMap: Record<TRowVariant, object | undefined> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const varMap: Record<TRowVariant, any> = {
     plain: undefined, alt: s.tRowAlt, sec: s.tRowSec, secRed: s.tRowSecRed,
     total: s.tRowTotal, net: s.tRowNet, ctc: s.tRowCTC, grat: s.tRowGrat,
   };
