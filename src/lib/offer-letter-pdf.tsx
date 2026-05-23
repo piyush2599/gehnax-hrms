@@ -293,6 +293,7 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
           <View>
             <Text style={s.coName}>Gehnax Technologies LLP</Text>
             <Text style={s.coSub}>Technology Solutions  |  IT Services</Text>
+            <Text style={s.coSub}>7/27 FF, Geeta Colony, Krishna Nagar, Delhi - 110031</Text>
           </View>
           <View style={s.headerRight}>
             <Text style={s.headerRightText}>Date: {data.generatedDate}</Text>
@@ -431,6 +432,7 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
           <View>
             <Text style={s.coName}>Gehnax Technologies LLP</Text>
             <Text style={s.coSub}>Technology Solutions  |  IT Services</Text>
+            <Text style={s.coSub}>7/27 FF, Geeta Colony, Krishna Nagar, Delhi - 110031</Text>
           </View>
           <View style={s.headerRight}>
             <Text style={s.headerRightText}>Ref: {data.refNumber}</Text>
