@@ -1,12 +1,6 @@
 import React from "react";
 import {
-  Document,
-  Page,
-  Text,
-  View,
-  Image,
-  StyleSheet,
-  renderToBuffer,
+  Document, Page, Text, View, Image, StyleSheet, renderToBuffer,
 } from "@react-pdf/renderer";
 
 const LOGO_URL =
@@ -19,20 +13,11 @@ export interface OfferLetterData {
   department: string;
   joiningDate: string;
   salary: {
-    basic: number;
-    hra: number;
-    allowances: number;
-    grossMonthly: number;
-    employeePF: number;
-    esi: number;
-    professionalTax: number;
-    tds: number;
-    totalDeductions: number;
-    netMonthly: number;
-    grossAnnual: number;
-    employerPF: number;
-    gratuity: number;
-    annualCTC: number;
+    basic: number; hra: number; allowances: number;
+    grossMonthly: number; employeePF: number; esi: number;
+    professionalTax: number; tds: number; totalDeductions: number;
+    netMonthly: number; grossAnnual: number; employerPF: number;
+    gratuity: number; annualCTC: number;
   };
   verificationUrl: string;
   verificationToken: string;
@@ -41,673 +26,499 @@ export interface OfferLetterData {
 }
 
 function fmt(n: number): string {
-  return new Intl.NumberFormat("en-IN").format(Math.round(n));
+  return new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.round(n));
 }
 
-// ── Colour palette ─────────────────────────────────────────────────────────
-const BLUE    = "#1d4ed8";
-const DBLUE   = "#1e3a8a";
-const DARK    = "#111827";
-const DGRAY   = "#374151";
-const GRAY    = "#6b7280";
-const LGRAY   = "#9ca3af";
-const LIGHT   = "#f9fafb";
-const BORDER  = "#e5e7eb";
-const LBLUE   = "#dbeafe";
-const LGREEN  = "#dcfce7";
-const LRED    = "#fee2e2";
-const GREEN   = "#15803d";
-const RED     = "#b91c1c";
-const AMBER   = "#92400e";
-const LAMBNT  = "#fef3c7";
+function toWords(n: number): string {
+  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const t = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+  if (n === 0) return "Zero";
+  const two = (x: number): string => x < 20 ? ones[x] : t[Math.floor(x / 10)] + (x % 10 ? " " + ones[x % 10] : "");
+  const three = (x: number): string => x < 100 ? two(x) : ones[Math.floor(x / 100)] + " Hundred" + (x % 100 ? " " + two(x % 100) : "");
+  let num = Math.round(n); let r = "";
+  const cr = Math.floor(num / 10_000_000); num %= 10_000_000;
+  const lk = Math.floor(num / 100_000); num %= 100_000;
+  const th = Math.floor(num / 1_000); num %= 1_000;
+  if (cr) r += three(cr) + " Crore ";
+  if (lk) r += two(lk) + " Lakh ";
+  if (th) r += two(th) + " Thousand ";
+  if (num) r += three(num);
+  return r.trim() + " Only";
+}
+
+const BLUE  = "#1d4ed8";
+const DBLUE = "#1e3a8a";
+const DARK  = "#111827";
+const GRAY  = "#374151";
+const LGRAY = "#9ca3af";
+const BRD   = "#d1d5db";
+const LBRD  = "#e5e7eb";
+const ALT   = "#f3f4f6";
+const LGREEN = "#dcfce7";
+const LBLUE  = "#dbeafe";
+const LINDIGO = "#e0e7ff";
 
 const s = StyleSheet.create({
   page: {
-    fontFamily: "Helvetica",
-    fontSize: 9,
-    color: DARK,
+    fontFamily: "Helvetica", fontSize: 9.5, color: DARK,
     backgroundColor: "#ffffff",
-    paddingTop: 36,
-    paddingBottom: 52,
-    paddingHorizontal: 48,
+    paddingTop: 28, paddingBottom: 64, paddingHorizontal: 50,
   },
-
-  // ── Header ──────────────────────────────────────────────────────────────
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingBottom: 10,
-    marginBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: BLUE,
-    borderBottomStyle: "solid",
+  // Header
+  hdr: {
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingBottom: 10, marginBottom: 20,
+    borderBottomWidth: 1, borderBottomColor: LBRD, borderBottomStyle: "solid",
   },
-  headerLeft: { flexDirection: "column" },
-  logo: { width: 100, height: 30, objectFit: "contain", marginBottom: 5 },
-  coName: {
-    fontSize: 12,
-    fontFamily: "Helvetica-Bold",
-    color: DBLUE,
-    letterSpacing: 0.3,
+  logo: { width: 110, height: 32, objectFit: "contain" },
+  site: { fontSize: 8.5, color: GRAY },
+  // Footer (fixed absolute)
+  ftr: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 50, paddingTop: 7, paddingBottom: 10,
+    borderTopWidth: 1, borderTopColor: LBRD, borderTopStyle: "solid",
+    flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start",
   },
-  coTagline: { fontSize: 7, color: GRAY, marginTop: 1.5 },
-  coAddress: { fontSize: 7, color: GRAY, marginTop: 1 },
-  headerRight: { alignItems: "flex-end", paddingTop: 4 },
-  headerMeta: { fontSize: 7.5, color: DGRAY, textAlign: "right", marginBottom: 1.5 },
-  headerMetaBold: {
-    fontSize: 7.5,
-    fontFamily: "Helvetica-Bold",
-    color: DBLUE,
-    textAlign: "right",
-    marginBottom: 1.5,
+  ftrCoName: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: BLUE, marginBottom: 1.5 },
+  ftrAddr:   { fontSize: 6.5, color: LGRAY },
+  ftrRight:  { fontSize: 6.5, color: LGRAY, textAlign: "right" },
+  // Letter body
+  date:    { fontSize: 9.5, marginBottom: 16 },
+  toLbl:   { fontSize: 9.5, marginBottom: 2 },
+  toName:  { fontSize: 9.5, marginBottom: 20 },
+  subject: { fontSize: 10, fontFamily: "Helvetica-Bold", textDecoration: "underline", textAlign: "center", marginBottom: 16 },
+  greeting:{ fontSize: 9.5, color: GRAY, marginBottom: 6 },
+  welcome: { fontSize: 9.5, fontFamily: "Helvetica-Bold", marginBottom: 10 },
+  para:    { fontSize: 9.5, lineHeight: 1.6, color: GRAY, marginBottom: 10 },
+  bold:    { fontFamily: "Helvetica-Bold", color: DARK },
+  termsIntro: { fontSize: 9.5, color: GRAY, marginBottom: 10 },
+  // Terms
+  termRow:  { flexDirection: "row", marginBottom: 8 },
+  termNum:  { fontSize: 9.5, fontFamily: "Helvetica-Bold", width: 26, color: DARK, flexShrink: 0 },
+  termBody: { flex: 1, fontSize: 9.5, lineHeight: 1.6, color: GRAY },
+  termBold: { fontFamily: "Helvetica-Bold", color: DARK },
+  subRow:   { flexDirection: "row", marginTop: 5, marginLeft: 8 },
+  subLbl:   { fontSize: 9.5, width: 22, flexShrink: 0, color: GRAY },
+  subBody:  { flex: 1, fontSize: 9.5, lineHeight: 1.6, color: GRAY },
+  subBold:  { fontFamily: "Helvetica-Bold", color: DARK },
+  // Closing / sincerely
+  closing:  { fontSize: 9.5, lineHeight: 1.6, color: GRAY, marginTop: 10, marginBottom: 10 },
+  sincerely:{ fontSize: 9.5, color: GRAY, marginTop: 12, marginBottom: 34 },
+  sigName:  { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: DARK, marginBottom: 1 },
+  sigTitle: { fontSize: 9, color: GRAY },
+  // Acceptance & Declaration
+  acceptSep:   { borderTopWidth: 1, borderTopColor: BRD, borderTopStyle: "solid", marginTop: 18, marginBottom: 14 },
+  acceptTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", textDecoration: "underline", textAlign: "center", marginBottom: 12 },
+  acceptPara:  { fontSize: 9, lineHeight: 1.6, color: GRAY, marginBottom: 8, textAlign: "justify" },
+  acceptRow:   { flexDirection: "row", justifyContent: "space-between", marginTop: 14 },
+  acceptFieldLbl: { fontSize: 9.5, color: DARK, marginBottom: 26 },
+  acceptLine:  { borderBottomWidth: 1, borderBottomColor: DARK, borderBottomStyle: "solid", width: 150, marginBottom: 3 },
+  acceptLineSub: { fontSize: 8, color: GRAY },
+  // Annexure
+  annexTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", textDecoration: "underline", textAlign: "center", marginBottom: 3 },
+  annexLabel: { fontSize: 9.5, textDecoration: "underline", textAlign: "center", color: GRAY, marginBottom: 14 },
+  annexSub:   { fontSize: 9, color: GRAY, textAlign: "center", marginBottom: 16 },
+  // Salary table
+  table: { borderWidth: 1, borderColor: BRD, borderStyle: "solid" },
+  tHdEarn: { flexDirection: "row", backgroundColor: DBLUE, paddingVertical: 6, paddingHorizontal: 8 },
+  tHdBen:  {
+    flexDirection: "row", backgroundColor: "#065f46", paddingVertical: 5, paddingHorizontal: 8,
+    borderTopWidth: 1, borderTopColor: BRD, borderTopStyle: "solid",
   },
-
-  // ── Blue accent bar ──────────────────────────────────────────────────────
-  accentBar: {
-    height: 3,
-    backgroundColor: BLUE,
-    borderRadius: 2,
-    marginBottom: 14,
+  tHdDed:  {
+    flexDirection: "row", backgroundColor: GRAY, paddingVertical: 6, paddingHorizontal: 8,
+    borderTopWidth: 1, borderTopColor: BRD, borderTopStyle: "solid",
   },
-
-  // ── Document title ───────────────────────────────────────────────────────
-  titleBlock: { marginBottom: 14 },
-  docTitle: {
-    fontSize: 13,
-    fontFamily: "Helvetica-Bold",
-    color: DBLUE,
-    textAlign: "center",
-    textTransform: "uppercase",
-    letterSpacing: 2,
-    marginBottom: 2,
-  },
-  docSubtitle: { fontSize: 8, color: GRAY, textAlign: "center" },
-
-  // ── To / Addressee ───────────────────────────────────────────────────────
-  toBlock: {
-    marginBottom: 10,
-    padding: 10,
-    backgroundColor: LIGHT,
-    borderRadius: 4,
-    borderLeftWidth: 3,
-    borderLeftColor: BLUE,
-    borderLeftStyle: "solid",
-  },
-  toLabel: { fontSize: 7, color: GRAY, fontFamily: "Helvetica-Bold", marginBottom: 3, textTransform: "uppercase", letterSpacing: 0.8 },
-  toName: { fontSize: 11, fontFamily: "Helvetica-Bold", color: DBLUE, marginBottom: 2 },
-  toDetail: { fontSize: 8, color: DGRAY, marginBottom: 1 },
-
-  // ── Subject line ─────────────────────────────────────────────────────────
-  subjectRow: { flexDirection: "row", marginBottom: 10, alignItems: "baseline" },
-  subjectLabel: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK, width: 48 },
-  subjectText: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: BLUE, flex: 1, textDecoration: "underline" },
-
-  // ── Body text ────────────────────────────────────────────────────────────
-  body: { fontSize: 8.5, color: DGRAY, lineHeight: 1.65, marginBottom: 8 },
-  bodyBold: { fontFamily: "Helvetica-Bold", color: DARK },
-
-  // ── Position details grid ────────────────────────────────────────────────
-  infoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    backgroundColor: LBLUE,
-    borderRadius: 4,
-    padding: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#bfdbfe",
-    borderStyle: "solid",
-  },
-  infoItem: { width: "50%", marginBottom: 7, paddingRight: 8 },
-  infoLabel: { fontSize: 7, color: GRAY, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
-  infoVal: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DBLUE },
-
-  // ── Section heading ──────────────────────────────────────────────────────
-  secTitle: {
-    fontSize: 8.5,
-    fontFamily: "Helvetica-Bold",
-    color: DBLUE,
-    marginTop: 10,
-    marginBottom: 6,
-    paddingBottom: 3,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    borderBottomStyle: "solid",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-
-  // ── Term rows ─────────────────────────────────────────────────────────────
-  termRow: { flexDirection: "row", marginBottom: 7 },
-  termNumBox: {
-    width: 18,
-    height: 14,
-    borderRadius: 2,
-    backgroundColor: BLUE,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-    marginTop: 0.5,
-  },
-  termNumText: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#fff" },
-  termBody: { flex: 1, paddingLeft: 7 },
-  termHead: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK, marginBottom: 2 },
-  termText: { fontSize: 8, color: DGRAY, lineHeight: 1.55 },
-
-  // ── Compensation highlight ────────────────────────────────────────────────
-  ctcHighlight: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: DBLUE,
-    borderRadius: 4,
-    padding: 10,
-    marginBottom: 10,
-  },
-  ctcLabel: { fontSize: 8, color: "#93c5fd", fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5 },
-  ctcAmount: { fontSize: 16, fontFamily: "Helvetica-Bold", color: "#ffffff", marginTop: 2 },
-  ctcSub: { fontSize: 7, color: "#93c5fd" },
-  ctcRight: { alignItems: "flex-end" },
-  ctcNet: { fontSize: 8, color: "#93c5fd", fontFamily: "Helvetica-Bold", textTransform: "uppercase" },
-  ctcNetAmt: { fontSize: 12, fontFamily: "Helvetica-Bold", color: "#34d399", marginTop: 1 },
-
-  // ── Signature ────────────────────────────────────────────────────────────
-  sigSection: { flexDirection: "row", justifyContent: "space-between", marginTop: 14 },
-  sigBlock: {},
-  sigLine: {
-    borderTopWidth: 1,
-    borderTopColor: DARK,
-    borderTopStyle: "solid",
-    width: 140,
-    marginTop: 26,
-    marginBottom: 4,
-  },
-  sigName: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK },
-  sigSub: { fontSize: 7.5, color: GRAY, marginTop: 1 },
-
-  // ── Verification box ─────────────────────────────────────────────────────
+  tHdTxt: { fontSize: 8, fontFamily: "Helvetica-Bold", color: "#ffffff", textTransform: "uppercase" },
+  tRow:    { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: LBRD, borderBottomStyle: "solid" },
+  tRowAlt: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: LBRD, borderBottomStyle: "solid", backgroundColor: ALT },
+  tRowSub: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: BRD, borderBottomStyle: "solid", backgroundColor: LBLUE },
+  tRowTot: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: BRD, borderBottomStyle: "solid", backgroundColor: LINDIGO },
+  tRowNet: { flexDirection: "row", paddingVertical: 6, paddingHorizontal: 8, backgroundColor: LGREEN },
+  tCell:      { fontSize: 8.5, color: GRAY },
+  tCellBold:  { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK },
+  tCellBlue:  { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DBLUE },
+  tCellGreen: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#15803d" },
+  col1: { flex: 4 },
+  col2: { flex: 2.5, textAlign: "right" },
+  col3: { flex: 2.5, textAlign: "right" },
+  // Verification
   verifyBox: {
-    marginTop: 12,
-    padding: 8,
-    backgroundColor: "#eff6ff",
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: "#93c5fd",
-    borderStyle: "solid",
+    marginTop: 12, padding: 8, backgroundColor: "#eff6ff", borderRadius: 3,
+    borderWidth: 1, borderColor: "#93c5fd", borderStyle: "solid",
   },
   verifyHead: { fontSize: 8, fontFamily: "Helvetica-Bold", color: BLUE, marginBottom: 3 },
-  verifyText: { fontSize: 7.5, color: DGRAY, lineHeight: 1.5 },
-  verifyUrl: { fontSize: 7.5, color: BLUE },
-
-  // ── Footer ───────────────────────────────────────────────────────────────
-  footer: {
-    position: "absolute",
-    bottom: 20,
-    left: 48,
-    right: 48,
-    borderTopWidth: 1,
-    borderTopColor: BORDER,
-    borderTopStyle: "solid",
-    paddingTop: 5,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  footerLeft: { fontSize: 6.5, color: LGRAY },
-  footerRight: { fontSize: 6.5, color: LGRAY },
-
-  // ── Page 2 — Annexure ─────────────────────────────────────────────────────
-  annexTitle: {
-    fontSize: 12,
-    fontFamily: "Helvetica-Bold",
-    color: DBLUE,
-    textAlign: "center",
-    marginBottom: 2,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  annexSub: { fontSize: 8, color: GRAY, textAlign: "center", marginBottom: 14 },
-
-  // ── Table ─────────────────────────────────────────────────────────────────
-  table: {
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderStyle: "solid",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  tHead: {
-    flexDirection: "row",
-    backgroundColor: DBLUE,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  tHeadText: { color: "#ffffff", fontSize: 8, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5 },
-  tRow: {
-    flexDirection: "row",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    borderBottomStyle: "solid",
-  },
-  tRowAlt:    { backgroundColor: LIGHT },
-  tRowSec:    { backgroundColor: LBLUE },
-  tRowSecRed: { backgroundColor: LRED },
-  tRowTotal:  { backgroundColor: "#e0e7ff" },
-  tRowNet:    { backgroundColor: LGREEN },
-  tRowCTC:    { backgroundColor: DBLUE },
-  tRowGrat:   { backgroundColor: LAMBNT },
-
-  tCell:      { fontSize: 8, color: DGRAY },
-  tCellBold:  { fontSize: 8, fontFamily: "Helvetica-Bold", color: DARK },
-  tCellBlue:  { fontSize: 8, fontFamily: "Helvetica-Bold", color: DBLUE },
-  tCellRed:   { fontSize: 8, fontFamily: "Helvetica-Bold", color: RED },
-  tCellGreen: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: GREEN },
-  tCellWhite: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: "#ffffff" },
-  tCellAmber: { fontSize: 8, fontFamily: "Helvetica-Bold", color: AMBER },
-  col1: { flex: 4 },
-  col2: { flex: 2, textAlign: "right" },
-  col3: { flex: 2, textAlign: "right" },
-
-  // ── Benefits ─────────────────────────────────────────────────────────────
-  benefitBox: {
-    marginTop: 12,
-    padding: 10,
-    backgroundColor: LGREEN,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "#86efac",
-    borderStyle: "solid",
-  },
-  benefitHead: { fontSize: 8, fontFamily: "Helvetica-Bold", color: GREEN, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 },
-  benefitRow: { flexDirection: "row", marginBottom: 3.5 },
-  benefitDot: { fontSize: 9, color: GREEN, marginRight: 5, marginTop: 0.5 },
-  benefitText: { fontSize: 7.5, color: DGRAY, flex: 1, lineHeight: 1.5 },
-
-  // ── Note ─────────────────────────────────────────────────────────────────
-  noteBox: {
-    marginTop: 10,
-    padding: 8,
-    backgroundColor: LAMBNT,
-    borderRadius: 3,
-    borderLeftWidth: 3,
-    borderLeftColor: "#d97706",
-    borderLeftStyle: "solid",
-  },
-  noteHead: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: AMBER, marginBottom: 2 },
-  noteText: { fontSize: 7, color: AMBER, lineHeight: 1.55 },
+  verifyText: { fontSize: 7.5, color: GRAY },
+  verifyUrl:  { fontSize: 7.5, color: BLUE },
+  // BGV / Medical
+  annexName: { fontSize: 9.5, fontFamily: "Helvetica-Bold", marginBottom: 2, marginTop: 8 },
+  annexRef:  { fontSize: 9.5, color: GRAY, marginBottom: 16, paddingLeft: 12 },
+  bgvPara:   { fontSize: 9.5, lineHeight: 1.6, color: GRAY, marginBottom: 10, textAlign: "justify" },
+  bgvSigLbl: { fontSize: 9.5, color: GRAY, marginTop: 22, marginBottom: 2 },
+  bgvSigName:{ fontSize: 9.5, fontFamily: "Helvetica-Bold", color: DARK, marginBottom: 3 },
+  bgvDate:   { fontSize: 9.5, color: GRAY },
+  medBlank:  { borderBottomWidth: 1, borderBottomColor: DARK, borderBottomStyle: "solid", marginTop: 14, marginBottom: 18 },
+  // Docs list
+  docItem: { flexDirection: "row", marginBottom: 7, paddingLeft: 36 },
+  docLbl:  { fontSize: 9.5, width: 22, color: GRAY },
+  docText: { flex: 1, fontSize: 9.5, color: GRAY },
 });
 
-// ── Sub-components ──────────────────────────────────────────────────────────
-function CompanyHeader({ refNumber, date }: { refNumber: string; date: string }) {
+// ── Shared sub-components ────────────────────────────────────────────────────
+function Hdr() {
   return (
-    <View style={s.header}>
-      <View style={s.headerLeft}>
-        <Image src={LOGO_URL} style={s.logo} />
-        <Text style={s.coName}>Gehnax Technologies LLP</Text>
-        <Text style={s.coTagline}>Technology Solutions  ·  IT Services  ·  Digital Innovation</Text>
-        <Text style={s.coAddress}>7/27 FF, Geeta Colony, Krishna Nagar, Delhi – 110031</Text>
+    <View style={s.hdr}>
+      <Image src={LOGO_URL} style={s.logo} />
+      <Text style={s.site}>www.gehnax.com</Text>
+    </View>
+  );
+}
+
+function Ftr() {
+  return (
+    <View style={s.ftr} fixed>
+      <View>
+        <Text style={s.ftrCoName}>Gehnax Technologies LLP</Text>
+        <Text style={s.ftrAddr}>7/27 FF, Geeta Colony, Krishna Nagar, Delhi – 110031</Text>
       </View>
-      <View style={s.headerRight}>
-        <Text style={s.headerMetaBold}>{refNumber}</Text>
-        <Text style={s.headerMeta}>Date: {date}</Text>
+      <View>
+        <Text style={s.ftrRight}>www.gehnax.com</Text>
+        <Text style={s.ftrRight}>hr@gehnax.com</Text>
       </View>
     </View>
   );
 }
 
-function Footer({ label }: { label: string }) {
-  return (
-    <View style={s.footer}>
-      <Text style={s.footerLeft}>Gehnax Technologies LLP  ·  Confidential — Not for Public Distribution</Text>
-      <Text style={s.footerRight}>{label}</Text>
-    </View>
-  );
-}
-
-function Term({ num, heading, text }: { num: string; heading: string; text: string }) {
-  return (
-    <View style={s.termRow}>
-      <View style={s.termNumBox}>
-        <Text style={s.termNumText}>{num}</Text>
-      </View>
-      <View style={s.termBody}>
-        <Text style={s.termHead}>{heading}</Text>
-        <Text style={s.termText}>{text}</Text>
-      </View>
-    </View>
-  );
-}
-
-type TRowVariant = "plain" | "alt" | "sec" | "secRed" | "total" | "net" | "ctc" | "grat";
-function TRow({ children, variant = "plain" }: { children: React.ReactNode; variant?: TRowVariant }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const varMap: Record<TRowVariant, any> = {
-    plain: undefined, alt: s.tRowAlt, sec: s.tRowSec, secRed: s.tRowSecRed,
-    total: s.tRowTotal, net: s.tRowNet, ctc: s.tRowCTC, grat: s.tRowGrat,
-  };
-  const extra = varMap[variant];
-  return <View style={extra ? [s.tRow, extra] : s.tRow}>{children}</View>;
-}
-
-// ── Main component ──────────────────────────────────────────────────────────
+// ── Main document ────────────────────────────────────────────────────────────
 function OfferLetterPDF({ data }: { data: OfferLetterData }) {
   const sal = data.salary;
   const firstName = data.employeeName.split(" ")[0];
+  const subTotalB = sal.employerPF + sal.gratuity;
+  const ctcMonthly = Math.round(sal.annualCTC / 12);
 
   return (
-    <Document
-      title={`Offer Letter — ${data.employeeName}`}
-      author="Gehnax Technologies LLP"
-      subject="Letter of Appointment"
-      keywords="offer letter, employment, gehnax"
-    >
+    <Document title={`Offer Letter — ${data.employeeName}`} author="Gehnax Technologies LLP">
+
       {/* ══════════════════════════════════════════════════════════════════
-          PAGE 1 — Letter of Appointment
+          PAGE 1 — Offer Letter
       ══════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={s.page}>
-        <CompanyHeader refNumber={data.refNumber} date={data.generatedDate} />
+        <Hdr />
 
-        {/* Document title */}
-        <View style={s.titleBlock}>
-          <Text style={s.docTitle}>Letter of Appointment</Text>
-          <Text style={s.docSubtitle}>Private &amp; Confidential — To be signed and returned within 7 days</Text>
-        </View>
+        <Text style={s.date}>{data.generatedDate}</Text>
 
-        {/* Addressee */}
-        <View style={s.toBlock}>
-          <Text style={s.toLabel}>To</Text>
-          <Text style={s.toName}>{data.employeeName}</Text>
-          <Text style={s.toDetail}>{data.designation}  ·  {data.department} Department</Text>
-        </View>
+        <Text style={s.toLbl}>To</Text>
+        <Text style={s.toName}>{data.employeeName}</Text>
 
-        {/* Subject */}
-        <View style={s.subjectRow}>
-          <Text style={s.subjectLabel}>Subject:</Text>
-          <Text style={s.subjectText}>
-            Offer of Employment — {data.designation}, {data.department} Department
+        <Text style={s.subject}>Sub: Offer of Employment</Text>
+
+        <Text style={s.greeting}>Dear {firstName},</Text>
+        <Text style={s.welcome}>Welcome to Gehnax Technologies LLP!</Text>
+
+        <Text style={s.para}>
+          We are pleased to offer you the position of{" "}
+          <Text style={s.bold}>{data.designation}</Text> at{" "}
+          <Text style={s.bold}>Gehnax Technologies LLP</Text> ("the Company"). We are confident
+          that your association with us will be both exciting and rewarding, contributing to your
+          personal growth as well as the Company's success.
+        </Text>
+
+        <Text style={s.termsIntro}>The following are the terms of our offer:</Text>
+
+        {/* 1) Date of Joining */}
+        <View style={s.termRow}>
+          <Text style={s.termNum}>1)</Text>
+          <Text style={s.termBody}>
+            <Text style={s.termBold}>Date of Joining: </Text>
+            We look forward to you joining our team on or before{" "}
+            <Text style={s.termBold}>{data.joiningDate}</Text>
           </Text>
         </View>
 
-        {/* Opening */}
-        <Text style={s.body}>Dear {firstName},</Text>
-        <Text style={s.body}>
-          We are pleased to offer you employment at{" "}
-          <Text style={s.bodyBold}>Gehnax Technologies LLP</Text> ("the Company") for the position
-          of <Text style={s.bodyBold}>{data.designation}</Text> in the{" "}
-          <Text style={s.bodyBold}>{data.department}</Text> Department. This offer is extended in
-          recognition of your qualifications and experience, and is subject to the terms and
-          conditions set out herein and in the Company's policies as amended from time to time.
+        {/* 2) Location */}
+        <View style={s.termRow}>
+          <Text style={s.termNum}>2)</Text>
+          <Text style={s.termBody}>
+            <Text style={s.termBold}>Location: </Text>
+            Your place of posting will be <Text style={s.termBold}>New Delhi, India.</Text>
+          </Text>
+        </View>
+
+        {/* 3) Compensation & Benefits */}
+        <View style={s.termRow}>
+          <Text style={s.termNum}>3)</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.termBody, { fontFamily: "Helvetica-Bold", color: DARK }]}>
+              Compensation &amp; Benefits:
+            </Text>
+            <View style={s.subRow}>
+              <Text style={s.subLbl}>a.</Text>
+              <Text style={s.subBody}>
+                <Text style={s.subBold}>Total CTC — </Text>
+                Your total annual remuneration (CTC) will be{" "}
+                <Text style={s.subBold}>INR {fmt(sal.annualCTC)}</Text>
+                {" "}(INR <Text style={s.subBold}>{toWords(sal.annualCTC)}</Text>). Details of your
+                CTC breakup are enumerated in the{" "}
+                <Text style={s.subBold}>Salary Annexure – 1</Text> below.
+              </Text>
+            </View>
+            <View style={s.subRow}>
+              <Text style={s.subLbl}>b.</Text>
+              <Text style={s.subBody}>
+                <Text style={s.subBold}>Obligatory Deductions — </Text>
+                Deductions for income tax, Provident Fund contributions, or any lawful contributions
+                or schemes established and applicable to the Company will be made from your salary,
+                either retrospectively or prospectively.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* 4) Leaves */}
+        <View style={s.termRow}>
+          <Text style={s.termNum}>4)</Text>
+          <Text style={s.termBody}>
+            <Text style={s.termBold}>Leaves: </Text>
+            You will be eligible for Earned Leaves as per the current leave policy. The right to
+            Earned Leave will accrue pro-rata during each calendar month of employment.
+          </Text>
+        </View>
+
+        {/* 5) Probation */}
+        <View style={s.termRow}>
+          <Text style={s.termNum}>5)</Text>
+          <Text style={s.termBody}>
+            <Text style={s.termBold}>Probation Period: </Text>
+            Your probation period will be three (3) months from your date of joining. The Company
+            may extend this based on your performance.
+          </Text>
+        </View>
+
+        {/* 6) Notice */}
+        <View style={s.termRow}>
+          <Text style={s.termNum}>6)</Text>
+          <Text style={s.termBody}>
+            <Text style={s.termBold}>Notice Period: </Text>
+            Your employment with the Company may be terminated with a 7-day notice during the
+            probation period, and a thirty (30) day notice after the successful completion of the
+            probation period.
+          </Text>
+        </View>
+
+        {/* 7) BGV */}
+        <View style={s.termRow}>
+          <Text style={s.termNum}>7)</Text>
+          <Text style={s.termBody}>
+            <Text style={s.termBold}>Reference Check &amp; Background Verification: </Text>
+            The Company reserves the right to conduct background checks, either before or after your
+            joining date, to verify your identity, address, educational qualifications, previous work
+            experience (if applicable), and perform any necessary criminal checks. You explicitly
+            consent to the Company carrying out these background checks. For this purpose, you are
+            required to provide the documents listed in{" "}
+            <Text style={s.termBold}>Annexure – 2.</Text>
+            {"\n"}If any concerns arise during the background check, the Company reserves the right
+            to revoke your offer or terminate your employment if you have already joined.
+          </Text>
+        </View>
+
+        {/* 8) Appointment letter */}
+        <View style={s.termRow}>
+          <Text style={s.termNum}>8)</Text>
+          <Text style={s.termBody}>
+            A detailed Letter of Appointment, including all annexures, clauses, and terms and
+            conditions, will be provided to you on your joining date.
+          </Text>
+        </View>
+
+        {/* Closing */}
+        <Text style={s.closing}>
+          We kindly request you to acknowledge this offer by returning a signed copy within{" "}
+          <Text style={s.bold}>2 (two) working days.</Text> We look forward to a long and
+          rewarding association with you. Wishing you all the best for a successful career at
+          Gehnax Technologies LLP.
         </Text>
 
-        {/* Position details */}
-        <Text style={s.secTitle}>Position &amp; Employment Details</Text>
-        <View style={s.infoGrid}>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Designation</Text>
-            <Text style={s.infoVal}>{data.designation}</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Department</Text>
-            <Text style={s.infoVal}>{data.department}</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Date of Joining</Text>
-            <Text style={s.infoVal}>{data.joiningDate}</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Reference No.</Text>
-            <Text style={s.infoVal}>{data.refNumber}</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Work Location</Text>
-            <Text style={s.infoVal}>Delhi – 110031</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Employment Type</Text>
-            <Text style={s.infoVal}>Full-Time, Permanent</Text>
-          </View>
-        </View>
+        <Text style={s.sincerely}>Sincerely,</Text>
+        <Text style={s.sigName}>Authorised Signatory</Text>
+        <Text style={s.sigTitle}>Head – Human Resources</Text>
+        <Text style={s.sigTitle}>Gehnax Technologies LLP</Text>
 
-        {/* CTC highlight */}
-        <View style={s.ctcHighlight}>
+        {/* ── Acceptance & Declaration ── */}
+        <View style={s.acceptSep} />
+        <Text style={s.acceptTitle}>Acceptance and Declaration</Text>
+
+        <Text style={s.acceptPara}>
+          I have read and understood all the terms and conditions outlined in the offer letter and
+          have sought clarifications where necessary. I hereby accept the Offer Letter and agree to
+          each of its terms and conditions. I also agree to maintain confidentiality regarding the same.
+        </Text>
+        <Text style={s.acceptPara}>
+          I acknowledge that the terms of this letter, along with any information shared with me
+          during my employment with the Company, are strictly confidential and shall not be disclosed,
+          used, copied, published, or otherwise utilized without the Company's express written
+          authorization. These terms shall always remain confidential.
+        </Text>
+        <Text style={s.acceptPara}>
+          I understand that the Company reserves the right to modify the Terms of Employment from
+          time to time in accordance with organizational policies.
+        </Text>
+        <Text style={s.acceptPara}>
+          By signing below, I signify my acceptance of the Offer Letter, including the terms detailed
+          in <Text style={{ fontFamily: "Helvetica-Bold" }}>"Annexure 1 to 4."</Text>
+        </Text>
+
+        <View style={s.acceptRow}>
           <View>
-            <Text style={s.ctcLabel}>Annual Cost to Company (CTC)</Text>
-            <Text style={s.ctcAmount}>₹ {fmt(sal.annualCTC)}</Text>
-            <Text style={s.ctcSub}>Detailed breakdown in Annexure I</Text>
+            <Text style={s.acceptFieldLbl}>Name: {data.employeeName}</Text>
+            <View style={s.acceptLine} />
+            <Text style={s.acceptLineSub}>Signature</Text>
           </View>
-          <View style={s.ctcRight}>
-            <Text style={s.ctcNet}>Monthly Net Take-Home</Text>
-            <Text style={s.ctcNetAmt}>₹ {fmt(sal.netMonthly)}</Text>
-            <Text style={s.ctcSub}>After statutory deductions</Text>
+          <View>
+            <Text style={s.acceptFieldLbl}>Date: {data.generatedDate}</Text>
           </View>
         </View>
 
-        {/* Terms */}
-        <Text style={s.secTitle}>Terms &amp; Conditions of Employment</Text>
-
-        <Term num="1" heading="Probation Period"
-          text="You will be on probation for a period of three (3) months from your date of joining. During probation, either party may terminate employment with seven (7) days' written notice. Upon successful completion, you will be confirmed in service." />
-        <Term num="2" heading="Working Days &amp; Hours"
-          text="Your working days shall be Monday to Saturday. Standard working hours are 9:00 AM to 6:00 PM (9 hours including a 1-hour break). Working hours may be adjusted subject to client project requirements and Company policy." />
-        <Term num="3" heading="Notice Period"
-          text="After confirmation, either party may terminate this employment by providing thirty (30) days' written notice or payment of one month's gross salary in lieu thereof. During the notice period, you shall complete all pending assignments and ensure a proper handover." />
-        <Term num="4" heading="Leave Entitlement"
-          text="You are entitled to twenty-four (24) days of paid annual leave per calendar year, accruing at two (2) days per month. Leave is non-accumulative and shall NOT be carried forward to the subsequent calendar year. Any unutilised leave as on 31st December shall stand lapsed automatically." />
-        <Term num="5" heading="Provident Fund (EPF)"
-          text="Both you and the Company shall contribute to the Employees' Provident Fund (EPF) as per the Employees' Provident Funds &amp; Miscellaneous Provisions Act, 1952, at the rate of 12% of your Basic Salary respectively. Your PF deductions and employer contributions are reflected in Annexure I." />
-        <Term num="6" heading="Gratuity"
-          text="You shall be entitled to Gratuity as per the provisions of the Payment of Gratuity Act, 1972, upon separation from the Company after completing a minimum period of five (5) continuous years of service. Gratuity shall be calculated at the rate of fifteen (15) days of last drawn Basic Salary for each completed year of service (i.e., Basic ÷ 26 × 15 per year of service), subject to a maximum of ₹20,00,000 (Twenty Lakh Rupees). The annual gratuity provision of ₹ {fmt(sal.gratuity * 12)} forms part of your CTC as shown in Annexure I." />
-        <Term num="7" heading="Insurance Coverage"
-          text="The Company shall provide: (a) Group Medical Insurance of ₹3,00,000 (Three Lakh) per annum, and (b) Group Personal Accident Insurance of ₹20,00,000 (Twenty Lakh) per annum — both fully funded by the Company and not forming part of your CTC." />
-
-        <Footer label={`${data.refNumber}  ·  Page 1 of 3`} />
+        <Ftr />
       </Page>
 
       {/* ══════════════════════════════════════════════════════════════════
-          PAGE 2 — Continued Terms + Salary Annexure
+          PAGE 2 — Annexure-1: Salary Structure
       ══════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={s.page}>
-        <CompanyHeader refNumber={data.refNumber} date={data.generatedDate} />
+        <Hdr />
 
-        {/* Continued terms */}
-        <Text style={s.secTitle}>Terms &amp; Conditions of Employment (Continued)</Text>
-
-        <Term num="8" heading="Confidentiality &amp; Intellectual Property"
-          text="You shall maintain strict confidentiality of all proprietary, technical, commercial, and client information during and after your employment. All work product, inventions, and intellectual property created in the course of your employment shall vest solely with Gehnax Technologies LLP." />
-        <Term num="9" heading="Code of Conduct"
-          text="You shall adhere to all Company policies, procedures, and the Code of Conduct as communicated from time to time. Any violation may result in disciplinary action including termination." />
-        <Term num="10" heading="Background Verification"
-          text="This offer is conditional upon successful completion of pre-employment background verification including educational qualifications, employment history, and reference checks. Provision of false information will result in immediate termination without notice or compensation." />
-
-        <Text style={[s.body, { marginTop: 8 }]}>
-          Please confirm your acceptance of this offer by signing and returning a copy of this
-          letter within <Text style={s.bodyBold}>seven (7) calendar days</Text> from the date of
-          this letter. This offer shall stand withdrawn if acceptance is not received within the
-          stipulated period. We look forward to welcoming you to the Gehnax Technologies family.
+        <Text style={s.annexTitle}>Annexure – 1</Text>
+        <Text style={s.annexSub}>
+          {data.employeeName}  ·  {data.designation}  ·  {data.department}  ·  Effective from {data.joiningDate}
         </Text>
 
-        {/* Signatures */}
-        <View style={s.sigSection}>
-          <View style={s.sigBlock}>
-            <Text style={s.sigSub}>Employee Acceptance</Text>
-            <View style={s.sigLine} />
-            <Text style={s.sigName}>{data.employeeName}</Text>
-            <Text style={s.sigSub}>Date: ________________________</Text>
+        <View style={s.table}>
+          {/* EARNINGS */}
+          <View style={s.tHdEarn}>
+            <Text style={[s.tHdTxt, s.col1]}>Earnings</Text>
+            <Text style={[s.tHdTxt, s.col2]}>Monthly</Text>
+            <Text style={[s.tHdTxt, s.col3]}>Yearly</Text>
           </View>
-          <View style={[s.sigBlock, { alignItems: "flex-end" }]}>
-            <Text style={s.sigSub}>For Gehnax Technologies LLP</Text>
-            <View style={[s.sigLine, { marginLeft: "auto" }]} />
-            <Text style={s.sigName}>Authorised Signatory</Text>
-            <Text style={s.sigSub}>Human Resources Department</Text>
+          <View style={s.tRow}>
+            <Text style={[s.tCell, s.col1]}>Basic Salary</Text>
+            <Text style={[s.tCell, s.col2]}>{fmt(sal.basic)}</Text>
+            <Text style={[s.tCell, s.col3]}>{fmt(sal.basic * 12)}</Text>
+          </View>
+          <View style={s.tRowAlt}>
+            <Text style={[s.tCell, s.col1]}>HRA</Text>
+            <Text style={[s.tCell, s.col2]}>{fmt(sal.hra)}</Text>
+            <Text style={[s.tCell, s.col3]}>{fmt(sal.hra * 12)}</Text>
+          </View>
+          <View style={s.tRow}>
+            <Text style={[s.tCell, s.col1]}>Special Allowance</Text>
+            <Text style={[s.tCell, s.col2]}>{fmt(sal.allowances)}</Text>
+            <Text style={[s.tCell, s.col3]}>{fmt(sal.allowances * 12)}</Text>
+          </View>
+          <View style={s.tRowSub}>
+            <Text style={[s.tCellBold, s.col1]}>SUB-TOTAL (A)</Text>
+            <Text style={[s.tCellBold, s.col2]}>{fmt(sal.grossMonthly)}</Text>
+            <Text style={[s.tCellBold, s.col3]}>{fmt(sal.grossAnnual)}</Text>
+          </View>
+
+          {/* BENEFITS & CONTRIBUTIONS */}
+          <View style={s.tHdBen}>
+            <Text style={[s.tHdTxt, { flex: 1 }]}>Benefits and Contributions (Part - B)</Text>
+          </View>
+          <View style={s.tRow}>
+            <Text style={[s.tCell, s.col1]}>PF – Employer</Text>
+            <Text style={[s.tCell, s.col2]}>{fmt(sal.employerPF)}</Text>
+            <Text style={[s.tCell, s.col3]}>{fmt(sal.employerPF * 12)}</Text>
+          </View>
+          <View style={s.tRowAlt}>
+            <Text style={[s.tCell, s.col1]}>Gratuity (Payment of Gratuity Act, 1972)</Text>
+            <Text style={[s.tCell, s.col2]}>{fmt(sal.gratuity)}</Text>
+            <Text style={[s.tCell, s.col3]}>{fmt(sal.gratuity * 12)}</Text>
+          </View>
+          <View style={s.tRowSub}>
+            <Text style={[s.tCellBold, s.col1]}>SUB-TOTAL (B)</Text>
+            <Text style={[s.tCellBold, s.col2]}>{fmt(subTotalB)}</Text>
+            <Text style={[s.tCellBold, s.col3]}>{fmt(subTotalB * 12)}</Text>
+          </View>
+          <View style={s.tRowTot}>
+            <Text style={[s.tCellBlue, s.col1]}>TOTAL (A + B)</Text>
+            <Text style={[s.tCellBlue, s.col2]}>INR {fmt(ctcMonthly)}</Text>
+            <Text style={[s.tCellBlue, s.col3]}>INR {fmt(sal.annualCTC)}</Text>
+          </View>
+
+          {/* DEDUCTIONS */}
+          <View style={s.tHdDed}>
+            <Text style={[s.tHdTxt, s.col1]}>Deductions</Text>
+            <Text style={[s.tHdTxt, s.col2]}>Monthly</Text>
+            <Text style={[s.tHdTxt, s.col3]}>Yearly</Text>
+          </View>
+          <View style={s.tRow}>
+            <Text style={[s.tCell, s.col1]}>PF Employee</Text>
+            <Text style={[s.tCell, s.col2]}>{fmt(sal.employeePF)}</Text>
+            <Text style={[s.tCell, s.col3]}>{fmt(sal.employeePF * 12)}</Text>
+          </View>
+          {sal.esi > 0 && (
+            <View style={s.tRowAlt}>
+              <Text style={[s.tCell, s.col1]}>ESI</Text>
+              <Text style={[s.tCell, s.col2]}>{fmt(sal.esi)}</Text>
+              <Text style={[s.tCell, s.col3]}>{fmt(sal.esi * 12)}</Text>
+            </View>
+          )}
+          {sal.tds > 0 && (
+            <View style={sal.esi > 0 ? s.tRow : s.tRowAlt}>
+              <Text style={[s.tCell, s.col1]}>Income Tax (TDS)</Text>
+              <Text style={[s.tCell, s.col2]}>{fmt(sal.tds)}</Text>
+              <Text style={[s.tCell, s.col3]}>{fmt(sal.tds * 12)}</Text>
+            </View>
+          )}
+          <View style={s.tRowSub}>
+            <Text style={[s.tCellBold, s.col1]}>TOTAL DEDUCTIONS (D)</Text>
+            <Text style={[s.tCellBold, s.col2]}>INR {fmt(sal.totalDeductions)}</Text>
+            <Text style={[s.tCellBold, s.col3]}>INR {fmt(sal.totalDeductions * 12)}</Text>
+          </View>
+          <View style={s.tRowNet}>
+            <Text style={[s.tCellGreen, s.col1]}>NET PAY (A – D)</Text>
+            <Text style={[s.tCellGreen, s.col2]}>INR {fmt(sal.netMonthly)}</Text>
+            <Text style={[s.tCellGreen, s.col3]}>INR {fmt(sal.netMonthly * 12)}</Text>
           </View>
         </View>
 
         {/* Verification */}
         <View style={s.verifyBox}>
           <Text style={s.verifyHead}>Offer Letter Verification</Text>
-          <Text style={s.verifyText}>
-            This offer letter can be verified online at the following URL:
-          </Text>
+          <Text style={s.verifyText}>Verify this offer letter online at: </Text>
           <Text style={s.verifyUrl}>{data.verificationUrl}</Text>
-          <Text style={[s.verifyText, { marginTop: 2 }]}>
-            Verification Token: {data.verificationToken}
-          </Text>
         </View>
 
-        {/* ── SALARY ANNEXURE ── */}
-        <Text style={[s.annexTitle, { marginTop: 18 }]}>Annexure I — Salary Structure</Text>
-        <Text style={s.annexSub}>
-          {data.employeeName}  ·  {data.designation}  ·  {data.department}  ·  Effective from {data.joiningDate}
-        </Text>
+        {/* Signature */}
+        <Text style={[s.bgvSigLbl, { marginTop: 22 }]}>Signature:</Text>
+        <View style={[s.acceptLine, { marginTop: 28, marginBottom: 4 }]} />
+        <Text style={s.bgvSigName}>{data.employeeName}</Text>
 
-        <View style={s.table}>
-          {/* Header */}
-          <View style={s.tHead}>
-            <Text style={[s.tHeadText, s.col1]}>Particular</Text>
-            <Text style={[s.tHeadText, s.col2]}>Monthly</Text>
-            <Text style={[s.tHeadText, s.col3]}>Yearly</Text>
-          </View>
-
-          {/* Earnings */}
-          <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>Basic Salary</Text>
-            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.basic)}</Text>
-            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.basic * 12)}</Text>
-          </TRow>
-          <TRow variant="alt">
-            <Text style={[s.tCell, s.col1]}>HRA</Text>
-            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.hra)}</Text>
-            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.hra * 12)}</Text>
-          </TRow>
-          <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>Other Allowances</Text>
-            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.allowances)}</Text>
-            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.allowances * 12)}</Text>
-          </TRow>
-
-          {/* Deductions section */}
-          <TRow variant="sec">
-            <Text style={[s.tCellBold, { flex: 8, color: DARK }]}>Deductions</Text>
-          </TRow>
-          <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>Employee PF</Text>
-            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.employeePF)}</Text>
-            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.employeePF * 12)}</Text>
-          </TRow>
-          {sal.esi > 0 && (
-            <TRow variant="alt">
-              <Text style={[s.tCell, s.col1]}>ESI</Text>
-              <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.esi)}</Text>
-              <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.esi * 12)}</Text>
-            </TRow>
-          )}
-          {sal.tds > 0 && (
-            <TRow variant={sal.esi > 0 ? "plain" : "alt"}>
-              <Text style={[s.tCell, s.col1]}>Income Tax (TDS)</Text>
-              <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.tds)}</Text>
-              <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.tds * 12)}</Text>
-            </TRow>
-          )}
-
-          {/* Employer Contributions section */}
-          <TRow variant="sec">
-            <Text style={[s.tCellBold, { flex: 8, color: DARK }]}>Employer Contributions</Text>
-          </TRow>
-          <TRow variant="plain">
-            <Text style={[s.tCell, s.col1]}>Employer PF</Text>
-            <Text style={[s.tCell, s.col2]}>₹ {fmt(sal.employerPF)}</Text>
-            <Text style={[s.tCell, s.col3]}>₹ {fmt(sal.employerPF * 12)}</Text>
-          </TRow>
-          <TRow variant="grat">
-            <Text style={[s.tCellAmber, s.col1]}>Gratuity</Text>
-            <Text style={[s.tCellAmber, s.col2]}>₹ {fmt(sal.gratuity)}</Text>
-            <Text style={[s.tCellAmber, s.col3]}>₹ {fmt(sal.gratuity * 12)}</Text>
-          </TRow>
-
-          {/* Summary section */}
-          <TRow variant="sec">
-            <Text style={[s.tCellBold, { flex: 8, color: DARK }]}>Summary</Text>
-          </TRow>
-          <TRow variant="total">
-            <Text style={[s.tCellBold, s.col1]}>Cost to Company (CTC)</Text>
-            <Text style={[s.tCellBold, s.col2]}>₹ {fmt(Math.round(sal.annualCTC / 12))}</Text>
-            <Text style={[s.tCellBold, s.col3]}>₹ {fmt(sal.annualCTC)}</Text>
-          </TRow>
-          <TRow variant="alt">
-            <Text style={[s.tCellBold, s.col1]}>Gross Salary</Text>
-            <Text style={[s.tCellBold, s.col2]}>₹ {fmt(sal.grossMonthly)}</Text>
-            <Text style={[s.tCellBold, s.col3]}>₹ {fmt(sal.grossAnnual)}</Text>
-          </TRow>
-          <TRow variant="net">
-            <Text style={[s.tCellGreen, s.col1]}>In-Hand Salary</Text>
-            <Text style={[s.tCellGreen, s.col2]}>₹ {fmt(sal.netMonthly)}</Text>
-            <Text style={[s.tCellGreen, s.col3]}>₹ {fmt(sal.netMonthly * 12)}</Text>
-          </TRow>
-        </View>
-
-        {/* Benefits box */}
-        <View style={s.benefitBox}>
-          <Text style={s.benefitHead}>Additional Benefits (Company-Funded — Separate from CTC)</Text>
-          <View style={s.benefitRow}>
-            <Text style={s.benefitDot}>•</Text>
-            <Text style={s.benefitText}>Group Medical Insurance: ₹3,00,000 per annum — premium fully paid by the Company</Text>
-          </View>
-          <View style={s.benefitRow}>
-            <Text style={s.benefitDot}>•</Text>
-            <Text style={s.benefitText}>Group Personal Accident Insurance: ₹20,00,000 per annum — premium fully paid by the Company</Text>
-          </View>
-          <View style={s.benefitRow}>
-            <Text style={s.benefitDot}>•</Text>
-            <Text style={s.benefitText}>Paid Annual Leave: 24 days per year (2 days/month) — non-accumulative, lapses on 31st December</Text>
-          </View>
-        </View>
-
-        {/* Note */}
-        <View style={s.noteBox}>
-          <Text style={s.noteHead}>Important Notes</Text>
-          <Text style={s.noteText}>
-            1. Gratuity is payable only upon separation after completing five (5) continuous years of service as per the Payment of Gratuity Act, 1972. The monthly provision shown above is an actuarial accrual forming part of CTC and is not credited to your salary account.{"\n"}
-            2. Net take-home may vary based on actual working days, Loss of Pay (LOP), performance bonus, or other applicable adjustments.{"\n"}
-            3. Income Tax (TDS) is computed under the New Tax Regime (FY 2025-26) and is subject to change based on declarations and applicable tax laws.{"\n"}
-            4. This salary structure is subject to revision as per Company policy and performance appraisal cycles.
-          </Text>
-        </View>
-
-        <Footer label={`${data.refNumber}  ·  Page 2 of 3  ·  Annexure I`} />
+        <Ftr />
       </Page>
 
       {/* ══════════════════════════════════════════════════════════════════
-          PAGE 3 — Annexure II: Documents Required
+          PAGE 3 — Annexure-2: Documents Required
       ══════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={s.page}>
-        <CompanyHeader refNumber={data.refNumber} date={data.generatedDate} />
+        <Hdr />
 
-        <Text style={[s.annexTitle, { marginTop: 4 }]}>Annexure II — Documents Required</Text>
-        <Text style={s.annexSub}>{data.employeeName}  ·  {data.designation}  ·  {data.department}</Text>
+        <View style={{ marginTop: 80 }}>
+          <Text style={s.annexTitle}>Annexure – 2</Text>
+          <Text style={s.annexLabel}>Documents Required</Text>
 
-        {/* Intro paragraph */}
-        <View style={[s.toBlock, { marginBottom: 14 }]}>
-          <Text style={[s.body, { marginBottom: 0 }]}>
-            The offer is extended to you subject to the following pre-conditions, without which the offer may be considered{" "}
-            <Text style={s.bodyBold}>null and void.</Text>
+          <Text style={[s.para, { marginBottom: 14 }]}>
+            The offer is extended to you subject to the following pre-conditions, without which the
+            offer may be considered <Text style={s.bold}>null and void.</Text>
           </Text>
-          <Text style={[s.body, { marginTop: 6, marginBottom: 0 }]}>
-            You are required to submit the following documents in <Text style={s.bodyBold}>soft copy</Text> and update all
-            necessary details before the date of joining, if not already provided, within{" "}
-            <Text style={s.bodyBold}>10 days of the offer release.</Text> In the case of early joining, the required
-            updates should be completed prior to your joining date.
+          <Text style={[s.para, { marginBottom: 20 }]}>
+            You are required to submit the following documents in soft copy and update all necessary
+            details before the date of joining, if not already provided, within{" "}
+            <Text style={s.bold}>10 days of the offer release.</Text> In the case of early joining,
+            the required updates should be completed prior to your joining date.
           </Text>
-        </View>
 
-        {/* Document list */}
-        <View style={s.table}>
-          <View style={s.tHead}>
-            <Text style={[s.tHeadText, { flex: 0.5 }]}>S. No.</Text>
-            <Text style={[s.tHeadText, { flex: 5 }]}>Document</Text>
-          </View>
           {[
             "Updated Resume.",
             "Latest passport-sized photograph — 2 Nos.",
@@ -717,42 +528,98 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
             "Identity Proof (PAN Card / Passport / Driving License / Voter ID).",
             "Relieving & Experience letter of all previous employments.",
             "Appointment, Relieving & Experience letter of current employment.",
-            "Salary slips of last 3 months of current employment.",
+            "Salary slips of last 3 months of your current employment.",
           ].map((doc, i) => (
-            <TRow key={i} variant={i % 2 === 0 ? "plain" : "alt"}>
-              <Text style={[s.tCellBold, { flex: 0.5 }]}>{String.fromCharCode(97 + i)}.</Text>
-              <Text style={[s.tCell, { flex: 5 }]}>{doc}</Text>
-            </TRow>
+            <View key={i} style={s.docItem}>
+              <Text style={s.docLbl}>{String.fromCharCode(97 + i)}.</Text>
+              <Text style={s.docText}>{doc}</Text>
+            </View>
           ))}
         </View>
 
-        {/* Warning note */}
-        <View style={[s.noteBox, { marginTop: 16 }]}>
-          <Text style={s.noteHead}>Please Note</Text>
-          <Text style={s.noteText}>
-            Failure to submit the above documents within the stipulated timeframe may result in delay of onboarding,
-            deferral of the joining date, or withdrawal of the offer at the sole discretion of the Company.
-            All documents submitted are subject to verification and this offer is contingent upon their authenticity.
+        <Ftr />
+      </Page>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          PAGE 4 — Annexure-3: Background Verification Consent
+      ══════════════════════════════════════════════════════════════════ */}
+      <Page size="A4" style={s.page}>
+        <Hdr />
+
+        <View style={{ marginTop: 80 }}>
+          <Text style={s.annexTitle}>Annexure – 3</Text>
+          <Text style={s.annexLabel}>Background Verification Consent Form</Text>
+
+          <Text style={s.annexName}>{data.employeeName}</Text>
+          <Text style={s.annexRef}>Ref: Offer letter dated {data.generatedDate}</Text>
+
+          <Text style={s.bgvPara}>
+            I understand that my employment is contingent and will stand valid subject to the
+            successful completion of background verification as mentioned in the offer/appointment letter.
           </Text>
+          <Text style={s.bgvPara}>
+            I understand and agree that Gehnax Technologies LLP reserves the right to take the
+            necessary action in case any discrepancy is found in the Background Verification.
+          </Text>
+          <Text style={s.bgvPara}>
+            I provide my consent to do the background verification by the assigned vendor of
+            Gehnax Technologies LLP.
+          </Text>
+
+          <Text style={s.bgvSigLbl}>Signature:</Text>
+          <View style={[s.acceptLine, { marginTop: 28, marginBottom: 5 }]} />
+          <Text style={s.bgvSigName}>Name: {data.employeeName}</Text>
+          <Text style={s.bgvDate}>Date: {data.generatedDate}</Text>
         </View>
 
-        {/* Acceptance */}
-        <View style={[s.sigSection, { marginTop: 28 }]}>
-          <View style={s.sigBlock}>
-            <Text style={s.sigSub}>Employee Acknowledgement</Text>
-            <View style={s.sigLine} />
-            <Text style={s.sigName}>{data.employeeName}</Text>
-            <Text style={s.sigSub}>Date: ________________________</Text>
-          </View>
-          <View style={[s.sigBlock, { alignItems: "flex-end" }]}>
-            <Text style={s.sigSub}>For Gehnax Technologies LLP</Text>
-            <View style={[s.sigLine, { marginLeft: "auto" }]} />
-            <Text style={s.sigName}>Authorised Signatory</Text>
-            <Text style={s.sigSub}>Human Resources Department</Text>
-          </View>
+        <Ftr />
+      </Page>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          PAGE 5 — Annexure-4: Self-Declaration for Medical Fitness
+      ══════════════════════════════════════════════════════════════════ */}
+      <Page size="A4" style={s.page}>
+        <Hdr />
+
+        <View style={{ marginTop: 80 }}>
+          <Text style={s.annexTitle}>Annexure – 4</Text>
+          <Text style={s.annexLabel}>Self-Declaration for Medical Fitness</Text>
+
+          <Text style={s.annexName}>{data.employeeName}</Text>
+          <Text style={s.annexRef}>Ref: Offer letter dated {data.generatedDate}</Text>
+
+          <Text style={s.bgvPara}>
+            I understand that my employment with Gehnax Technologies LLP is conditional upon my
+            suitability for the position and my ability to fully meet the inherent requirements of the role.
+          </Text>
+          <Text style={s.bgvPara}>
+            When completing the health declaration, I, as an applicant, do so with full knowledge of the
+            position as outlined in the relevant role statement and/or selection criteria.
+          </Text>
+          <Text style={s.bgvPara}>
+            I confirm that I do not have any pre-existing illness, disease, injury, ailment, or condition
+            that I am aware of, which could reasonably be expected to affect my ability to perform the
+            duties of the proposed employment.
+          </Text>
+
+          <Text style={s.bgvPara}>
+            Declaration of any pre-existing disease (Please list below if any, or put NA):
+          </Text>
+          <View style={s.medBlank} />
+          <View style={s.medBlank} />
+
+          <Text style={s.bgvPara}>
+            If any circumstances change that may impact my ability to perform the inherent requirements
+            of the position I am undertaking, I am obligated to promptly inform my reporting manager or HR.
+          </Text>
+
+          <Text style={s.bgvSigLbl}>Signature:</Text>
+          <View style={[s.acceptLine, { marginTop: 28, marginBottom: 5 }]} />
+          <Text style={s.bgvSigName}>Name: {data.employeeName}</Text>
+          <Text style={s.bgvDate}>Date: {data.generatedDate}</Text>
         </View>
 
-        <Footer label={`${data.refNumber}  ·  Page 3 of 3  ·  Annexure II`} />
+        <Ftr />
       </Page>
     </Document>
   );
