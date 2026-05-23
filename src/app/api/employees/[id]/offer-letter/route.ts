@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 import OfferLetter from "@/models/OfferLetter";
-import { uploadToFTP } from "@/lib/ftp-upload";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 import { generateOfferLetterBuffer } from "@/lib/offer-letter-pdf";
 import crypto from "crypto";
 
@@ -118,15 +118,20 @@ export async function POST(
     return NextResponse.json({ error: "PDF generation failed: " + err.message }, { status: 500 });
   }
 
-  // ── Upload to FTP ─────────────────────────────────────────────
-  const fileName = `offer-letter-${verificationToken.slice(0, 10)}.pdf`;
+  // ── Upload to Cloudinary ─────────────────────────────────────
+  const fileName = `offer-letter-${emp.employeeCode}-${verificationToken.slice(0, 10)}`;
   let fileUrl: string;
   try {
-    const result = await uploadToFTP(pdfBuffer, fileName, `employee-docs/${params.id}/offer-letters`);
+    const result = await uploadToCloudinary(
+      pdfBuffer,
+      fileName,
+      `hrms/offer-letters/${params.id}`,
+      "application/pdf"
+    );
     fileUrl = result.url;
   } catch (err: any) {
-    console.error("FTP upload failed:", err);
-    return NextResponse.json({ error: "FTP upload failed: " + err.message }, { status: 500 });
+    console.error("Cloudinary upload failed:", err);
+    return NextResponse.json({ error: "Upload failed: " + err.message }, { status: 500 });
   }
 
   // ── Save OfferLetter record ──────────────────────────────────
