@@ -60,8 +60,8 @@ function formatSalary(val: number) {
 ══════════════════════════════════════════════════════════ */
 export default function HiringClient() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role;
-  const canManage = ["super_admin", "hr_admin"].includes(role);
+  const roles: string[] = (session?.user as any)?.roles || [];
+  const canManage = roles.some(r => ["super_admin", "hr_admin"].includes(r));
 
   const [activeTab, setActiveTab] = useState<string>("jobs");
   const [addJobOpen, setAddJobOpen] = useState(false);

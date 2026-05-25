@@ -28,9 +28,9 @@ const PRIORITY_CONFIG: Record<string, { border: string; badge: string; icon: Rea
 
 export default function AnnouncementsClient() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role || "employee";
+  const roles: string[] = (session?.user as any)?.roles || ["employee"];
   const [addOpen, setAddOpen] = useState(false);
-  const isAdminOrHR = ["super_admin","hr_admin"].includes(role);
+  const isAdminOrHR = roles.some(r => ["super_admin","hr_admin"].includes(r));
 
   const { data: announcements, isLoading } = useSWR("/api/announcements", fetcher);
   const list = Array.isArray(announcements) ? announcements : [];

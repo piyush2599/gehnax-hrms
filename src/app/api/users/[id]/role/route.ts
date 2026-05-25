@@ -13,7 +13,8 @@ export async function PATCH(
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if ((session.user as any).role !== "super_admin") {
+  const sessionRoles: string[] = (session.user as any).roles || [];
+  if (!sessionRoles.includes("super_admin")) {
     return NextResponse.json({ error: "Only Super Admin can change roles" }, { status: 403 });
   }
 
@@ -21,14 +22,18 @@ export async function PATCH(
     return NextResponse.json({ error: "You cannot change your own role" }, { status: 400 });
   }
 
-  const { role, password } = await req.json();
+  const { roles, password } = await req.json();
 
   if (!password) {
     return NextResponse.json({ error: "Password is required to change roles" }, { status: 400 });
   }
 
-  if (!VALID_ROLES.includes(role)) {
-    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  if (!Array.isArray(roles) || roles.length === 0) {
+    return NextResponse.json({ error: "At least one role is required" }, { status: 400 });
+  }
+
+  if (roles.some((r: string) => !VALID_ROLES.includes(r))) {
+    return NextResponse.json({ error: "Invalid role(s) provided" }, { status: 400 });
   }
 
   await connectDB();
@@ -44,7 +49,7 @@ export async function PATCH(
 
   const user = await User.findByIdAndUpdate(
     params.id,
-    { role },
+    { roles },
     { new: true }
   ).select("-password -avatarData");
 

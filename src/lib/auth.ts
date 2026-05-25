@@ -39,18 +39,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user.mfaDisabledUntil instanceof Date &&
           user.mfaDisabledUntil > now;
 
+        const roles = user.roles?.length ? user.roles : (user.role ? [user.role] : ["employee"]);
         return {
           id: user._id.toString(),
           email: user.email,
           name: user.name,
-          role: user.role,
+          roles,
           employeeId: user.employeeId?.toString(),
           avatar: user.avatar,
           mfaEnabled:          user.mfaEnabled && !tempDisabled,
           mfaSkipCount:        user.mfaSkipCount,
           mfaForceSetup:       user.mfaForceSetup && !user.mfaEnabled,
           mustChangePassword:  !!user.mustChangePassword,
-        };
+        } as any;
       },
     }),
   ],
@@ -58,7 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, trigger }) {
       // Initial sign-in — populate token from the authorized user object
       if (user) {
-        token.role        = (user as any).role;
+        token.roles       = (user as any).roles;
         token.employeeId  = (user as any).employeeId;
         token.avatar      = (user as any).avatar;
         // MFA state — only set on initial sign-in, never re-set on refresh
@@ -78,11 +79,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (trigger === "update" || !token.role) {
         await connectDB();
         const dbUser = await User.findById(token.sub).select(
-          "name role employeeId avatar isActive mfaEnabled mfaVerifiedAt mfaSkippedAt"
+          "name roles role employeeId avatar isActive mfaEnabled mfaVerifiedAt mfaSkippedAt"
         );
         if (dbUser) {
           if (dbUser.name) token.name = dbUser.name;
-          token.role       = dbUser.role;
+          token.roles      = dbUser.roles?.length ? dbUser.roles : (dbUser.role ? [dbUser.role] : ["employee"]);
           token.employeeId = dbUser.employeeId?.toString();
           token.avatar     = dbUser.avatar;
 
@@ -117,7 +118,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.name  = (token.name  as string) ?? session.user.name;
         session.user.email = (token.email as string) ?? session.user.email;
         session.user.id = token.sub!;
-        (session.user as any).role = token.role;
+        (session.user as any).roles = token.roles;
         (session.user as any).employeeId = token.employeeId;
         (session.user as any).avatar = token.avatar;
       }

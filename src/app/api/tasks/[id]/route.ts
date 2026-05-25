@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role   = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const userId = (session.user as any).id;
   const empId  = (session.user as any).employeeId;
 
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json();
 
   // Employees can only update status of their own assigned tasks
-  if (!MANAGE_ROLES.includes(role)) {
+  if (!roles.some(r => MANAGE_ROLES.includes(r))) {
     const isAssigned = empId && task.assignee?.toString() === empId;
     if (!isAssigned) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     if (body.status) task.status = body.status;
@@ -63,8 +63,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!MANAGE_ROLES.includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => MANAGE_ROLES.includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
   const task = await Task.findById(params.id);

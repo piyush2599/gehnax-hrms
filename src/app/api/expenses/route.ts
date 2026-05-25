@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Expense from "@/models/Expense";
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   await connectDB();
 
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const sessionEmployeeId = (session.user as any).employeeId;
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status") || "";
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
   const query: any = {};
 
-  if (!["super_admin", "hr_admin", "manager"].includes(role)) {
+  if (!roles.some(r => ["super_admin", "hr_admin", "manager"].includes(r))) {
     query.employeeId = sessionEmployeeId;
   } else if (employeeId) {
     query.employeeId = employeeId;

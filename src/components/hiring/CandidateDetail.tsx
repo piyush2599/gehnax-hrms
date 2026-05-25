@@ -411,7 +411,7 @@ function ConvertToEmployee({
     reportingManager: "",
     basic:       ctcBD ? ctcBD.basicMonthly : 0,
     hra:         ctcBD ? ctcBD.hraMonthly : 0,
-    allowances:  ctcBD ? ctcBD.specialAllowanceMonthly : 0,
+    allowances:  ctcBD ? ctcBD.otherAllowancesMonthly : 0,
     deductions:  ctcBD ? Math.round(ctcBD.basicMonthly * 0.12) : 0,
   });
   const [converting, setConverting] = useState(false);
@@ -875,7 +875,7 @@ function OfferLetterPreview({
               {[
                 { label: "Basic Salary", a: breakdown.basicMonthly * 12, m: breakdown.basicMonthly },
                 { label: `HRA (${offer.isMetro !== false ? "Metro 50%" : "Non-Metro 40%"})`, a: breakdown.hraMonthly * 12, m: breakdown.hraMonthly },
-                { label: "Special Allowance", a: breakdown.specialAllowanceMonthly * 12, m: breakdown.specialAllowanceMonthly },
+                { label: "Other Allowances", a: breakdown.otherAllowancesMonthly * 12, m: breakdown.otherAllowancesMonthly },
               ].map((row) => (
                 <tr key={row.label}>
                   <td className="border border-slate-200 px-3 py-2 text-slate-700">{row.label}</td>
@@ -894,9 +894,9 @@ function OfferLetterPreview({
                 <td className="border border-slate-200 px-3 py-2 text-right text-slate-600">{fmt(breakdown.employerPFMonthly)}</td>
               </tr>
               <tr className="bg-blue-50 font-bold">
-                <td className="border border-slate-200 px-3 py-2 text-blue-800">Total CTC</td>
-                <td className="border border-slate-200 px-3 py-2 text-right text-blue-800">{fmt(breakdown.ctcAnnual)}</td>
-                <td className="border border-slate-200 px-3 py-2 text-right text-blue-800">{fmt(Math.round(breakdown.ctcAnnual / 12))}</td>
+                <td className="border border-slate-200 px-3 py-2 text-blue-800">Total CRM</td>
+                <td className="border border-slate-200 px-3 py-2 text-right text-blue-800">{fmt(breakdown.crmAnnual)}</td>
+                <td className="border border-slate-200 px-3 py-2 text-right text-blue-800">{fmt(Math.round(breakdown.crmAnnual / 12))}</td>
               </tr>
             </tbody>
           </table>
@@ -989,7 +989,7 @@ function DocumentsTab({ candidate, canManage, onUpdate }: { candidate: any; canM
                   {doc.createdAt && <p className="text-xs text-slate-400">{formatDate(doc.createdAt)}</p>}
                 </div>
                 {doc.fileUrl && (
-                  <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                  <a href={`/api/hiring/candidates/${candidate._id}/documents/${doc._id}`} target="_blank" rel="noopener noreferrer"
                     className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                     <Download className="w-4 h-4" />
                   </a>

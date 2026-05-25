@@ -343,7 +343,7 @@ export default function ProfileClient() {
                         </span>
                       </div>
                       <div className="flex gap-2 pt-1">
-                        <a href={ol.fileUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+                        <a href={`/api/employees/${employeeId}/offer-letter/${ol._id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
                           <button className="w-full flex items-center justify-center gap-1.5 text-xs h-8 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors">
                             <Download className="w-3.5 h-3.5" />
                             Download PDF

@@ -25,8 +25,8 @@ const DEPT_COLORS = [
 
 export default function DepartmentsClient() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role;
-  const canManage = ["super_admin", "hr_admin"].includes(role);
+  const roles: string[] = (session?.user as any)?.roles || [];
+  const canManage = roles.some(r => ["super_admin", "hr_admin"].includes(r));
 
   const [addOpen, setAddOpen] = useState(false);
   const [editDept, setEditDept] = useState<any>(null);
@@ -96,7 +96,7 @@ export default function DepartmentsClient() {
       )}
 
       {/* Delete Confirmation Dialog */}
-      {canManage && role === "super_admin" && (
+      {canManage && roles.includes("super_admin") && (
         <Dialog open={!!deleteDept} onOpenChange={() => setDeleteDept(null)}>
           <DialogContent>
             <DialogHeader><DialogTitle>Delete Department</DialogTitle></DialogHeader>
@@ -162,7 +162,7 @@ export default function DepartmentsClient() {
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                           )}
-                          {role === "super_admin" && (
+                          {roles.includes("super_admin") && (
                             <button
                               onClick={() => setDeleteDept(dept)}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"

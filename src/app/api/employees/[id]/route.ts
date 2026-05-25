@@ -23,12 +23,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const sessionEmployeeId = (session.user as any).employeeId;
 
   // Allow employee to update own profile (limited fields)
   const isOwnProfile = sessionEmployeeId === params.id;
-  if (!["super_admin", "hr_admin"].includes(role) && !isOwnProfile) {
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r)) && !isOwnProfile) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -37,7 +37,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const body = await req.json();
 
   // Employees can only update limited fields on their own profile
-  const allowedFields = isOwnProfile && !["super_admin", "hr_admin"].includes(role)
+  const allowedFields = isOwnProfile && !roles.some(r => ["super_admin", "hr_admin"].includes(r))
     ? { phone: body.phone, address: body.address, avatar: body.avatar }
     : body;
 
@@ -62,8 +62,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (role !== "super_admin") {
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.includes("super_admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

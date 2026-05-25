@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
@@ -7,8 +7,8 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!["super_admin", "hr_admin"].includes(role)) {
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
       { email: { $regex: search, $options: "i" } },
     ];
   }
-  if (filterRole) query.role = filterRole;
+  // MongoDB array field: { roles: "super_admin" } matches docs where the array contains the value
+  if (filterRole) query.roles = filterRole;
 
   const users = await User.find(query)
     .select("-password -avatarData -mfaSecret")
@@ -34,7 +35,8 @@ export async function GET(req: NextRequest) {
     .lean();
 
   const counts = await User.aggregate([
-    { $group: { _id: "$role", count: { $sum: 1 } } },
+    { $unwind: "$roles" },
+    { $group: { _id: "$roles", count: { $sum: 1 } } },
   ]);
 
   const roleCounts: Record<string, number> = {

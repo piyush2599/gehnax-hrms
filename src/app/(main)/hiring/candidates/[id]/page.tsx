@@ -9,8 +9,8 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function CandidateDetailPage({ params }: { params: { id: string } }) {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role;
-  const canManage = ["super_admin", "hr_admin"].includes(role);
+  const roles: string[] = (session?.user as any)?.roles || [];
+  const canManage = roles.some(r => ["super_admin", "hr_admin"].includes(r));
 
   const { data: candidate, isLoading } = useSWR(
     `/api/hiring/candidates/${params.id}`,

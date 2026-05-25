@@ -33,7 +33,7 @@ const STATUS_DOT: Record<string, string> = {
 
 export default function PayrollClient() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role || "employee";
+  const roles: string[] = (session?.user as any)?.roles || ["employee"];
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [year, setYear] = useState(today.getFullYear());
@@ -41,8 +41,8 @@ export default function PayrollClient() {
   const [processing, setProcessing] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
-  const isAdminOrHR = ["super_admin", "hr_admin"].includes(role);
-  const isEmployee = role === "employee";
+  const isAdminOrHR = roles.some(r => ["super_admin", "hr_admin"].includes(r));
+  const isEmployee = roles.every(r => r === "employee");
 
   // Admin: filter by month+year. Employee: fetch entire year at once.
   const adminUrl    = `/api/payroll?month=${month}&year=${year}`;

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Leave from "@/models/Leave";
@@ -26,12 +26,12 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status");
   const year = searchParams.get("year");
 
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const sessionEmployeeId = (session.user as any).employeeId;
 
   const query: any = {};
 
-  if (role === "employee") {
+  if (roles.every(r => r === "employee")) {
     query.employeeId = sessionEmployeeId;
   } else if (employeeId) {
     query.employeeId = employeeId;

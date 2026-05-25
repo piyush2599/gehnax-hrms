@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { NativeSelect } from "@/components/ui/native-select";
 import { toast } from "sonner";
 import { Search, Shield, ShieldCheck, User, Users, Loader2, Lock, Eye, EyeOff, ShieldAlert, ShieldOff, Clock, KeyRound } from "lucide-react";
 import { getInitials, formatDate } from "@/lib/utils";
@@ -44,13 +43,13 @@ const STAT_ICONS: Record<string, React.ReactNode> = {
 interface PendingChange {
   userId: string;
   userName: string;
-  currentRole: string;
-  newRole: string;
+  currentRoles: string[];
+  newRoles: string[];
 }
 
 export default function RolesClient() {
   const { data: session } = useSession();
-  const isSuperAdmin = (session?.user as any)?.role === "super_admin";
+  const isSuperAdmin = ((session?.user as any)?.roles || []).includes("super_admin");
   const myId = (session?.user as any)?.id;
 
   const [search, setSearch] = useState("");
@@ -62,6 +61,10 @@ export default function RolesClient() {
 
   // Reset password modal state
   const [pwResetTarget, setPwResetTarget] = useState<any | null>(null);
+
+  // Role picker popover state
+  const [pickerUserId, setPickerUserId] = useState<string | null>(null);
+  const [pickerRoles, setPickerRoles] = useState<string[]>([]);
 
   // Password confirmation modal state
   const [pending, setPending] = useState<PendingChange | null>(null);
@@ -84,15 +87,31 @@ export default function RolesClient() {
   const users: any[] = data?.users || [];
   const roleCounts: Record<string, number> = data?.roleCounts || {};
 
-  // Step 1: capture the change and open the modal
-  const requestRoleChange = useCallback((userId: string, userName: string, currentRole: string, newRole: string) => {
-    if (newRole === currentRole) return;
-    setPending({ userId, userName, currentRole, newRole });
+  // Open the role picker popover
+  const openPicker = useCallback((userId: string, currentRoles: string[]) => {
+    setPickerUserId(userId);
+    setPickerRoles([...currentRoles]);
+  }, []);
+
+  const togglePickerRole = useCallback((roleVal: string) => {
+    setPickerRoles(prev =>
+      prev.includes(roleVal) ? prev.filter(r => r !== roleVal) : [...prev, roleVal]
+    );
+  }, []);
+
+  // Step 1: capture the change and open the confirm modal
+  const requestRoleChange = useCallback((user: any) => {
+    const currentRoles: string[] = user.roles || [];
+    if (pickerRoles.length === 0) return;
+    const same = pickerRoles.length === currentRoles.length && pickerRoles.every(r => currentRoles.includes(r));
+    if (same) { setPickerUserId(null); return; }
+    setPending({ userId: user._id, userName: user.name, currentRoles, newRoles: pickerRoles });
+    setPickerUserId(null);
     setPassword("");
     setPwError("");
     setShowPassword(false);
     setTimeout(() => passwordRef.current?.focus(), 80);
-  }, []);
+  }, [pickerRoles]);
 
   // Step 2: submit with password
   const confirmRoleChange = useCallback(async () => {
@@ -107,7 +126,7 @@ export default function RolesClient() {
       const res = await fetch(`/api/users/${pending.userId}/role`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: pending.newRole, password }),
+        body: JSON.stringify({ roles: pending.newRoles, password }),
       });
       const json = await res.json();
 
@@ -115,13 +134,13 @@ export default function RolesClient() {
         if (res.status === 401) {
           setPwError("Incorrect password. Please try again.");
         } else {
-          toast.error(json.error || "Failed to update role");
+          toast.error(json.error || "Failed to update roles");
           setPending(null);
         }
         return;
       }
 
-      toast.success(`${pending.userName}'s role updated to ${ROLES.find(r => r.value === pending.newRole)?.label}`);
+      toast.success(`${pending.userName}'s roles updated`);
       mutate();
       setPending(null);
     } finally {
@@ -159,14 +178,22 @@ export default function RolesClient() {
                 <h3 className="text-base font-bold text-slate-900">Confirm Role Change</h3>
               </div>
               <p className="text-sm text-slate-500 mt-2">
-                You are changing <span className="font-semibold text-slate-700">{pending.userName}</span>'s role from{" "}
-                <Badge variant="outline" className={`text-xs ${ROLE_STYLE[pending.currentRole]}`}>
-                  {ROLES.find(r => r.value === pending.currentRole)?.label}
-                </Badge>{" "}
+                You are updating <span className="font-semibold text-slate-700">{pending.userName}</span>'s roles from{" "}
+                <span className="inline-flex flex-wrap gap-1">
+                  {pending.currentRoles.map(r => (
+                    <Badge key={r} variant="outline" className={`text-xs ${ROLE_STYLE[r]}`}>
+                      {ROLES.find(x => x.value === r)?.label ?? r}
+                    </Badge>
+                  ))}
+                </span>{" "}
                 to{" "}
-                <Badge variant="outline" className={`text-xs ${ROLE_STYLE[pending.newRole]}`}>
-                  {ROLES.find(r => r.value === pending.newRole)?.label}
-                </Badge>
+                <span className="inline-flex flex-wrap gap-1">
+                  {pending.newRoles.map(r => (
+                    <Badge key={r} variant="outline" className={`text-xs ${ROLE_STYLE[r]}`}>
+                      {ROLES.find(x => x.value === r)?.label ?? r}
+                    </Badge>
+                  ))}
+                </span>
               </p>
             </div>
 
@@ -366,21 +393,61 @@ export default function RolesClient() {
                     <td className="px-4 py-3.5">
                       {isSuperAdmin && !isMe ? (
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <NativeSelect
-                              value={user.role}
-                              onChange={(e) => requestRoleChange(user._id, user.name, user.role, e.target.value)}
-                              disabled={updatingId === user._id}
-                              className="h-7 text-xs w-36 border-slate-200"
-                            >
-                              {ROLES.map((r) => (
-                                <option key={r.value} value={r.value}>{r.label}</option>
-                              ))}
-                            </NativeSelect>
-                            {updatingId === user._id && (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
-                            )}
+                          {/* Role badges + edit button */}
+                          <div className="flex flex-wrap items-center gap-1">
+                            {(user.roles || [user.role]).map((r: string) => (
+                              <Badge key={r} variant="outline" className={`text-xs ${ROLE_STYLE[r] || ""}`}>
+                                {ROLES.find(x => x.value === r)?.label ?? r}
+                              </Badge>
+                            ))}
+                            {updatingId === user._id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                              : (
+                                <button
+                                  onClick={() => openPicker(user._id, user.roles || [user.role])}
+                                  className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                  title="Edit roles"
+                                >
+                                  <Shield className="w-3.5 h-3.5" />
+                                </button>
+                              )
+                            }
                           </div>
+
+                          {/* Inline role picker */}
+                          {pickerUserId === user._id && (
+                            <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 space-y-1.5 w-48 z-50">
+                              {ROLES.map((r) => (
+                                <label key={r.value} className="flex items-center gap-2.5 cursor-pointer group">
+                                  <input
+                                    type="checkbox"
+                                    checked={pickerRoles.includes(r.value)}
+                                    onChange={() => togglePickerRole(r.value)}
+                                    className="w-3.5 h-3.5 accent-blue-600"
+                                  />
+                                  <Badge variant="outline" className={`text-xs pointer-events-none ${ROLE_STYLE[r.value]}`}>
+                                    {r.label}
+                                  </Badge>
+                                </label>
+                              ))}
+                              <div className="flex gap-1.5 pt-1 border-t border-slate-100">
+                                <button
+                                  onClick={() => setPickerUserId(null)}
+                                  className="flex-1 text-xs py-1 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => requestRoleChange(user)}
+                                  disabled={pickerRoles.length === 0}
+                                  className="flex-1 text-xs py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40"
+                                >
+                                  Apply
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="flex items-center gap-1">
                             <MfaCell user={user} onManage={() => setMfaTarget(user)} isMe={false} />
                             <button
@@ -393,9 +460,13 @@ export default function RolesClient() {
                           </div>
                         </div>
                       ) : (
-                        <Badge variant="outline" className={`text-xs ${ROLE_STYLE[user.role] || ""}`}>
-                          {ROLES.find(r => r.value === user.role)?.label ?? user.role}
-                        </Badge>
+                        <div className="flex flex-wrap gap-1">
+                          {(user.roles || [user.role]).map((r: string) => (
+                            <Badge key={r} variant="outline" className={`text-xs ${ROLE_STYLE[r] || ""}`}>
+                              {ROLES.find(x => x.value === r)?.label ?? r}
+                            </Badge>
+                          ))}
+                        </div>
                       )}
                     </td>
                   </tr>

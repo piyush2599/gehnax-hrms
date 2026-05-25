@@ -20,16 +20,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role  = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const empId = (session.user as any).employeeId;
-  if (!VIEW_ROLES.includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!roles.some(r => VIEW_ROLES.includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
   const project = await populated(params.id);
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Employee access guard
-  if (role === "employee" && empId) {
+  if (roles.every(r => r === "employee") && empId) {
     const inTeam = project.team.some((m: any) => m._id.toString() === empId);
     const isManager = project.manager?._id?.toString() === empId;
     if (!inTeam && !isManager) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -53,8 +53,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!MANAGE_ROLES.includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => MANAGE_ROLES.includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
   const project = await Project.findById(params.id);
@@ -78,8 +78,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!["super_admin","hr_admin"].includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => ["super_admin","hr_admin"].includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
   const project = await Project.findById(params.id);

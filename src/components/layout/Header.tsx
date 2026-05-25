@@ -123,7 +123,7 @@ export default function Header() {
                     {user?.name ?? "—"}
                   </p>
                   <p className="text-[10px] text-slate-400 leading-tight truncate">
-                    {user?.email ?? ROLE_LABELS[user?.role] ?? user?.role ?? ""}
+                    {user?.email ?? (user?.roles || []).map((r: string) => ROLE_LABELS[r] ?? r).join(" · ") ?? ""}
                   </p>
                 </div>
               </div>
@@ -146,10 +146,10 @@ export default function Header() {
                     <p className="font-semibold text-sm text-slate-900 truncate">{user?.name}</p>
                     <p className="text-xs text-slate-500 truncate">{user?.email}</p>
                     <Badge
-                      className={`w-fit text-[10px] mt-1.5 font-semibold ${ROLE_STYLES[user?.role] ?? ""}`}
+                      className={`w-fit text-[10px] mt-1.5 font-semibold ${ROLE_STYLES[(user?.roles || [])[0]] ?? ""}`}
                       variant="outline"
                     >
-                      {ROLE_LABELS[user?.role] ?? user?.role}
+                      {(user?.roles || []).map((r: string) => ROLE_LABELS[r] ?? r).join(" · ")}
                     </Badge>
                   </div>
                 </div>

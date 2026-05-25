@@ -91,8 +91,8 @@ function StatCard({
 
 export default function ExpensesClient() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role ?? "employee";
-  const isAdminOrManager = ["super_admin", "hr_admin", "manager"].includes(role);
+  const roles: string[] = (session?.user as any)?.roles || ["employee"];
+  const isAdminOrManager = roles.some(r => ["super_admin", "hr_admin", "manager"].includes(r));
 
   const [filter, setFilter] = useState<Filter>("all");
   const [submitOpen, setSubmitOpen] = useState(false);

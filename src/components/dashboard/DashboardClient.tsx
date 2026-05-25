@@ -215,7 +215,7 @@ function lakhs(n: number) {
 /* ─── Main Dashboard ─────────────────────────────────────────────────── */
 export default function DashboardClient() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role || "employee";
+  const roles: string[] = (session?.user as any)?.roles || ["employee"];
   const user = session?.user as any;
   const router = useRouter();
   const { data, isLoading } = useSWR("/api/dashboard", fetcher, { refreshInterval: 60000 });
@@ -230,9 +230,9 @@ export default function DashboardClient() {
   }, []);
 
   const firstName = user?.name?.split(" ")[0] || "there";
-  const isAdmin   = ["super_admin","hr_admin"].includes(role);
-  const isPower   = ["super_admin","hr_admin","finance_admin","manager"].includes(role);
-  const isEmployee = role === "employee";
+  const isAdmin   = roles.some(r => ["super_admin","hr_admin"].includes(r));
+  const isPower   = roles.some(r => ["super_admin","hr_admin","finance_admin","manager"].includes(r));
+  const isEmployee = roles.every(r => r === "employee");
   const s = data?.stats || {};
 
   /* attendance trend & dept chart data */

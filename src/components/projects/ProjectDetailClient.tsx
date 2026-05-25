@@ -127,9 +127,9 @@ function AddTaskDialog({ open, onOpenChange, projectId, defaultStatus, employees
 export default function ProjectDetailClient({ projectId }: { projectId: string }) {
   const { data: session } = useSession();
   const router = useRouter();
-  const role     = (session?.user as any)?.role ?? "employee";
-  const canManage = ["super_admin","hr_admin","manager"].includes(role);
-  const canDelete = ["super_admin","hr_admin"].includes(role);
+  const roles: string[] = (session?.user as any)?.roles || ["employee"];
+  const canManage = roles.some(r => ["super_admin","hr_admin","manager"].includes(r));
+  const canDelete = roles.some(r => ["super_admin","hr_admin"].includes(r));
 
   const [tab, setTab] = useState<Tab>("overview");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);

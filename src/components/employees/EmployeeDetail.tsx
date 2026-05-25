@@ -46,9 +46,9 @@ const EMP_TYPE_COLORS: Record<string, string> = {
 export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Props) {
   const router = useRouter();
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role;
+  const roles: string[] = (session?.user as any)?.roles || [];
   const myEmployeeId = (session?.user as any)?.employeeId?.toString();
-  const canEdit = ["super_admin", "hr_admin"].includes(role);
+  const canEdit = roles.some(r => ["super_admin", "hr_admin"].includes(r));
   const canManageDocs = canEdit || myEmployeeId === employeeId;
 
   const { data: emp, isLoading } = useSWR(`/api/employees/${employeeId}`, fetcher);

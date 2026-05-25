@@ -35,11 +35,11 @@ const LEAVE_TYPES = ["Annual","Sick","Casual","Maternity","Paternity","Unpaid"];
 
 export default function LeavesClient() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role || "employee";
+  const roles: string[] = (session?.user as any)?.roles || ["employee"];
   const [applyOpen, setApplyOpen] = useState(false);
   const [reviewLeave, setReviewLeave] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState("all");
-  const isAdminOrHR = ["super_admin","hr_admin","manager"].includes(role);
+  const isAdminOrHR = roles.some(r => ["super_admin","hr_admin","manager"].includes(r));
 
   const url = `/api/leaves${filterStatus !== "all" ? `?status=${filterStatus}` : ""}`;
   const { data: leaves, isLoading } = useSWR(url, fetcher);
@@ -72,7 +72,7 @@ export default function LeavesClient() {
       </Dialog>
 
       {/* Leave balance (employee) */}
-      {role === "employee" && <LeaveBalanceCard />}
+      {roles.every(r => r === "employee") && <LeaveBalanceCard />}
 
       {/* Status filters */}
       <div className="flex gap-2 flex-wrap">

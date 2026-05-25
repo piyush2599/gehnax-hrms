@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Project from "@/models/Project";
@@ -17,11 +17,11 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role     = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const userId   = (session.user as any).id;
   const empId    = (session.user as any).employeeId;
 
-  if (!VIEW_ROLES.includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!roles.some(r => VIEW_ROLES.includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   const filter: any = {};
 
   // Employees only see projects they're part of
-  if (role === "employee" && empId) {
+  if (roles.every(r => r === "employee") && empId) {
     filter.$or = [{ team: empId }, { manager: empId }];
   }
 
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
   }));
 
   // Stats
-  const all = await Project.find(role === "employee" && empId ? { $or: [{ team: empId }, { manager: empId }] } : {});
+  const all = await Project.find(roles.every(r => r === "employee") && empId ? { $or: [{ team: empId }, { manager: empId }] } : {});
   const stats = {
     total: all.length,
     active: all.filter((p) => p.status === "active").length,
@@ -89,9 +89,9 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role   = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const userId = (session.user as any).id;
-  if (!MANAGE_ROLES.includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!roles.some(r => MANAGE_ROLES.includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
 

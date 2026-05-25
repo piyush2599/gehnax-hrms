@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Payroll from "@/models/Payroll";
@@ -16,12 +16,12 @@ export async function GET(req: NextRequest) {
   const month = searchParams.get("month");
   const year = searchParams.get("year");
 
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const sessionEmployeeId = (session.user as any).employeeId;
 
   const query: any = {};
 
-  if (role === "employee") {
+  if (roles.every(r => r === "employee")) {
     query.employeeId = sessionEmployeeId;
   } else if (employeeId) {
     query.employeeId = employeeId;
@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!["super_admin", "hr_admin"].includes(role)) {
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

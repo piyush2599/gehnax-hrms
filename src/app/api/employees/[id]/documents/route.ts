@@ -18,10 +18,10 @@ export async function GET(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const sessionUser = session.user as any;
-  const role = sessionUser.role;
+  const roles: string[] = sessionUser.roles || [];
   const myEmployeeId = sessionUser.employeeId?.toString();
 
-  if (!["super_admin", "hr_admin"].includes(role) && myEmployeeId !== params.id) {
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r)) && myEmployeeId !== params.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -29,7 +29,13 @@ export async function GET(
   const emp = await Employee.findById(params.id).select("documents");
   if (!emp) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
 
-  return NextResponse.json({ documents: emp.documents || [] });
+  // Strip the raw fileUrl — clients should use the /documents/[docId] proxy endpoint instead
+  const documents = (emp.documents || []).map((d: any) => {
+    const { fileUrl, ...rest } = d.toObject ? d.toObject() : d;
+    return rest;
+  });
+
+  return NextResponse.json({ documents });
 }
 
 export async function POST(
@@ -40,10 +46,10 @@ export async function POST(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const sessionUser = session.user as any;
-  const role = sessionUser.role;
+  const roles: string[] = sessionUser.roles || [];
   const myEmployeeId = sessionUser.employeeId?.toString();
 
-  if (!["super_admin", "hr_admin"].includes(role) && myEmployeeId !== params.id) {
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r)) && myEmployeeId !== params.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

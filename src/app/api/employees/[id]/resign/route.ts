@@ -17,8 +17,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   if (!emp) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
 
   const myEmpId = (session.user as any).employeeId?.toString();
-  const role = (session.user as any).role;
-  const isHR = ["super_admin", "hr_admin"].includes(role);
+  const roles: string[] = (session.user as any).roles || [];
+  const isHR = roles.some(r => ["super_admin", "hr_admin"].includes(r));
   const isOwner = myEmpId === params.id;
 
   if (!isOwner && !isHR) {
@@ -75,9 +75,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   if (!emp) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
 
   const myEmpId = (session.user as any).employeeId?.toString();
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const userId = (session.user as any).id;
-  const isHR = ["super_admin", "hr_admin"].includes(role);
+  const isHR = roles.some(r => ["super_admin", "hr_admin"].includes(r));
   const isOwner = myEmpId === params.id;
 
   const { action, hrNotes } = await req.json();

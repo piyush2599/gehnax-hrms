@@ -82,9 +82,9 @@ function StatCard({
 export default function PurchaseOrdersClient() {
   const { data: session } = useSession();
   const router = useRouter();
-  const role = (session?.user as any)?.role ?? "employee";
-  const canWrite  = ["super_admin", "finance_admin", "manager"].includes(role);
-  const canDelete = ["super_admin", "finance_admin"].includes(role);
+  const roles: string[] = (session?.user as any)?.roles || ["employee"];
+  const canWrite  = roles.some(r => ["super_admin", "finance_admin", "manager"].includes(r));
+  const canDelete = roles.some(r => ["super_admin", "finance_admin"].includes(r));
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [search, setSearch]             = useState("");

@@ -19,8 +19,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!VIEW_ROLES.includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => VIEW_ROLES.includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
   const po = await populated(params.id);
@@ -32,8 +32,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!STATUS_ROLES.includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => STATUS_ROLES.includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
 
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     po.status = status;
     po.statusHistory.push({ status, changedBy: userId, changedAt: new Date(), note: note?.trim() || undefined } as any);
     await po.save();
-  } else if (FULL_EDIT_ROLES.includes(role)) {
+  } else if (roles.some(r => FULL_EDIT_ROLES.includes(r))) {
     const {
       title, clientName, clientEmail, clientPhone, clientAddress, clientGSTIN,
       poDate, dueDate, priority, lineItems, taxRate, currency,
@@ -106,8 +106,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!FULL_EDIT_ROLES.includes(role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => FULL_EDIT_ROLES.includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await connectDB();
 

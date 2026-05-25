@@ -15,17 +15,20 @@ export async function GET(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const sessionUser = session.user as any;
-  const role = sessionUser.role;
+  const roles: string[] = sessionUser.roles || [];
   const myEmployeeId = sessionUser.employeeId?.toString();
 
-  if (!["super_admin", "hr_admin"].includes(role) && myEmployeeId !== params.id) {
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r)) && myEmployeeId !== params.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   await connectDB();
-  const offerLetters = await OfferLetter.find({ employee: params.id })
+  const raw = await OfferLetter.find({ employee: params.id })
     .sort({ generatedAt: -1 })
     .lean();
+
+  // Strip raw fileUrl — clients use the /offer-letter/[letterId] proxy endpoint
+  const offerLetters = raw.map(({ fileUrl, ...rest }: any) => rest);
 
   return NextResponse.json({ offerLetters });
 }
@@ -38,9 +41,9 @@ export async function POST(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const sessionUser = session.user as any;
-  const role = sessionUser.role;
+  const roles: string[] = sessionUser.roles || [];
 
-  if (!["super_admin", "hr_admin"].includes(role)) {
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) {
     return NextResponse.json({ error: "Forbidden — HR/Admin only" }, { status: 403 });
   }
 

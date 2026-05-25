@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   await connectDB();
 
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const sessionEmployeeId = String((session.user as any).employeeId);
 
   const expense = await Expense.findById(params.id);
@@ -33,7 +33,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   // Manager / HR approves or rejects
-  if (!["super_admin", "hr_admin", "manager"].includes(role)) {
+  if (!roles.some(r => ["super_admin", "hr_admin", "manager"].includes(r))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -67,13 +67,13 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   await connectDB();
 
   const sessionEmployeeId = String((session.user as any).employeeId);
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
 
   const expense = await Expense.findById(params.id);
   if (!expense) return NextResponse.json({ error: "Expense not found" }, { status: 404 });
 
   const isOwner = String(expense.employeeId) === sessionEmployeeId;
-  const isAdmin = ["super_admin", "hr_admin"].includes(role);
+  const isAdmin = roles.some(r => ["super_admin", "hr_admin"].includes(r));
 
   if (!isOwner && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

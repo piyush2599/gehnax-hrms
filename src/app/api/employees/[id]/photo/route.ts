@@ -12,9 +12,9 @@ export async function POST(
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const myEmployeeId = (session.user as any).employeeId?.toString();
-  const isHR = ["super_admin", "hr_admin"].includes(role);
+  const isHR = roles.some(r => ["super_admin", "hr_admin"].includes(r));
   const isOwner = myEmployeeId === params.id;
 
   if (!isHR && !isOwner) {

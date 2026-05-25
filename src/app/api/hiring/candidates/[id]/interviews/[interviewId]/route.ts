@@ -9,7 +9,7 @@ export async function PATCH(
 ) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!["super_admin", "hr_admin"].includes((session.user as any).role)) {
+  if (!["super_admin", "hr_admin"].includes(((session.user as any).roles || []))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -35,7 +35,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!["super_admin", "hr_admin"].includes((session.user as any).role)) {
+  if (!["super_admin", "hr_admin"].includes(((session.user as any).roles || []))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

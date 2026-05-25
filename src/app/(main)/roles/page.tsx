@@ -7,9 +7,9 @@ export const metadata: Metadata = { title: "Roles & Permissions" };
 
 export default async function RolesPage() {
   const session = await auth();
-  const role = (session?.user as any)?.role;
+  const roles: string[] = (session?.user as any)?.roles || [];
 
-  if (!["super_admin", "hr_admin"].includes(role)) redirect("/dashboard");
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) redirect("/dashboard");
 
   return (
     <div className="space-y-6">

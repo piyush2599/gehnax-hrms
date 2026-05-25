@@ -176,7 +176,7 @@ export default function EmployeeDocuments({ employeeId, canUpload = true }: Prop
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                <a href={`/api/employees/${employeeId}/documents/${doc._id}`} target="_blank" rel="noopener noreferrer">
                   <Button
                     size="sm"
                     variant="outline"

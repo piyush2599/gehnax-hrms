@@ -28,7 +28,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = (session.user as any).id;
-  const role   = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
 
   await connectDB();
   const task = await Task.findById(params.id);
@@ -39,7 +39,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!comment) return NextResponse.json({ error: "Comment not found" }, { status: 404 });
 
   const isAuthor = comment.author.toString() === userId;
-  const isAdmin  = ["super_admin","hr_admin"].includes(role);
+  const isAdmin  = roles.some(r => ["super_admin","hr_admin"].includes(r));
   if (!isAuthor && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   comment.deleteOne();

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Candidate from "@/models/Candidate";
@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!["super_admin", "hr_admin"].includes(role)) {
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

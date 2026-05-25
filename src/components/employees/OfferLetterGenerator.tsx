@@ -207,7 +207,7 @@ export default function OfferLetterGenerator({
 
               {/* Actions */}
               <div className="px-4 py-2.5 flex items-center gap-2">
-                <a href={ol.fileUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+                <a href={`/api/employees/${employeeId}/offer-letter/${ol._id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
                   <Button
                     size="sm"
                     variant="outline"

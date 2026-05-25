@@ -14,7 +14,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const body = await req.json();
   const { status, reviewComments, action } = body;
 
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const sessionEmployeeId = (session.user as any).employeeId;
 
   const leave = await Leave.findById(params.id).populate("employeeId");
@@ -34,7 +34,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 
   // Approve/Reject (HR Admin, Manager)
-  if (!["super_admin", "hr_admin", "manager"].includes(role)) {
+  if (!roles.some(r => ["super_admin", "hr_admin", "manager"].includes(r))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

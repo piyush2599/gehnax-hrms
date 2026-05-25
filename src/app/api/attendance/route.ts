@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Attendance from "@/models/Attendance";
@@ -16,12 +16,12 @@ export async function GET(req: NextRequest) {
   const year = searchParams.get("year");
   const date = searchParams.get("date");
 
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
   const sessionEmployeeId = (session.user as any).employeeId;
 
   const query: any = {};
 
-  if (["employee"].includes(role)) {
+  if (roles.every(r => r === "employee")) {
     query.employeeId = sessionEmployeeId;
   } else if (employeeId) {
     query.employeeId = employeeId;
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const { action } = body; // "checkin" | "checkout" | "manual"
 
   const sessionEmployeeId = (session.user as any).employeeId;
-  const role = (session.user as any).role;
+  const roles: string[] = (session.user as any).roles || [];
 
   if (action === "checkin" || action === "checkout") {
     const employee = await Employee.findById(sessionEmployeeId);
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
 
   // Manual attendance (HR/Admin only)
   if (action === "manual") {
-    if (!["super_admin", "hr_admin", "manager"].includes(role)) {
+    if (!roles.some(r => ["super_admin", "hr_admin", "manager"].includes(r))) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

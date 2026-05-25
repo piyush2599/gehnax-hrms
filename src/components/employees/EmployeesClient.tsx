@@ -35,8 +35,8 @@ export default function EmployeesClient() {
   const [addOpen, setAddOpen] = useState(false);
   const [deptFilter, setDeptFilter] = useState("all");
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role;
-  const canAdd = ["super_admin", "hr_admin"].includes(role);
+  const roles: string[] = (session?.user as any)?.roles || [];
+  const canAdd = roles.some(r => ["super_admin", "hr_admin"].includes(r));
 
   const apiUrl = `/api/employees?search=${search}&department=${deptFilter === "all" ? "" : deptFilter}`;
   const { data, isLoading } = useSWR(apiUrl, fetcher);

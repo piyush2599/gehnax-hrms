@@ -7,8 +7,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!["super_admin", "hr_admin"].includes(role)) {
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -32,8 +32,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (role !== "super_admin") {
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.includes("super_admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

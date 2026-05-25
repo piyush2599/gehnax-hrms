@@ -39,8 +39,8 @@ const MONTHS = [
 
 export default function HolidaysClient() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role || "employee";
-  const canManage = ["super_admin", "hr_admin"].includes(role);
+  const roles: string[] = (session?.user as any)?.roles || ["employee"];
+  const canManage = roles.some(r => ["super_admin", "hr_admin"].includes(r));
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [addOpen, setAddOpen] = useState(false);

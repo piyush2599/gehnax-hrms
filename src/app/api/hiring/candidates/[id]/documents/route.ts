@@ -9,9 +9,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   await connectDB();
 
-  const documents = await HiringDocument.find({ candidate: params.id }).sort({
-    createdAt: -1,
-  });
+  const raw = await HiringDocument.find({ candidate: params.id })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // Strip raw fileUrl — clients use the /documents/[docId] proxy endpoint
+  const documents = raw.map(({ fileUrl, ...rest }: any) => rest);
 
   return NextResponse.json({ documents });
 }
@@ -20,8 +23,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!["super_admin", "hr_admin"].includes(role)) {
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

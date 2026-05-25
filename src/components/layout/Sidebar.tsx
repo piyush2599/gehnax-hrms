@@ -77,7 +77,8 @@ const ROLE_BADGE: Record<string, string> = {
 function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const userRole = (session?.user as any)?.role || "employee";
+  const userRoles: string[] = (session?.user as any)?.roles || ["employee"];
+  const primaryRole = userRoles[0] || "employee";
   const user = session?.user as any;
 
   return (
@@ -104,8 +105,8 @@ function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => vo
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <p className="text-white font-bold text-sm leading-none tracking-tight">Gehnax HRMS</p>
-            <p className={cn("text-xs mt-1.5 leading-none font-medium px-1.5 py-0.5 rounded-md border w-fit", ROLE_BADGE[userRole] ?? "bg-slate-500/20 text-slate-300 border-slate-500/20")}>
-              {roleLabels[userRole] ?? userRole.replace("_"," ")}
+            <p className={cn("text-xs mt-1.5 leading-none font-medium px-1.5 py-0.5 rounded-md border w-fit", ROLE_BADGE[primaryRole] ?? "bg-slate-500/20 text-slate-300 border-slate-500/20")}>
+              {userRoles.map(r => roleLabels[r] ?? r.replace("_"," ")).join(" · ")}
             </p>
           </div>
         )}
@@ -114,7 +115,7 @@ function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => vo
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-0.5 scrollbar-thin">
         {navGroups.map((group) => {
-          const visible = group.items.filter((i) => i.roles.includes(userRole));
+          const visible = group.items.filter((i) => userRoles.some(ur => i.roles.includes(ur)));
           if (!visible.length) return null;
           return (
             <div key={group.label} className="mb-1">

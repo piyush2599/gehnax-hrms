@@ -15,8 +15,8 @@ export async function POST(
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const role = (session.user as any).role;
-    if (!["super_admin", "hr_admin"].includes(role)) {
+    const roles: string[] = (session.user as any).roles || [];
+    if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -66,7 +66,7 @@ export async function POST(
         name: `${firstName} ${lastName}`.trim() || invite.email,
         email: invite.email,
         password: hashedPassword,
-        role: "employee",
+        roles: ["employee"],
         mustChangePassword: true,
         isActive: true,
       });

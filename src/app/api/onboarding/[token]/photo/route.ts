@@ -10,8 +10,8 @@ export async function GET(
   const session = await auth();
   if (!session) return new NextResponse("Unauthorized", { status: 401 });
 
-  const role = (session.user as any).role;
-  if (!["super_admin", "hr_admin"].includes(role)) {
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 

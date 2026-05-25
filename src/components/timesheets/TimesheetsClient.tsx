@@ -26,11 +26,11 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function TimesheetsClient() {
   const { data: session } = useSession();
-  const role = (session?.user as any)?.role || "employee";
+  const roles: string[] = (session?.user as any)?.roles || ["employee"];
   const [weekOffset, setWeekOffset] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
   const [reviewTs, setReviewTs] = useState<any>(null);
-  const isAdminOrHR = ["super_admin","hr_admin","manager"].includes(role);
+  const isAdminOrHR = roles.some(r => ["super_admin","hr_admin","manager"].includes(r));
 
   const today = new Date();
   const weekStart = startOfWeek(addWeeks(today, weekOffset), { weekStartsOn: 1 });
