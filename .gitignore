@@ -45,6 +45,9 @@ next-env.d.ts
 
 .vercel
 
+# local dev/debug/deploy scripts
+deploy.ps1
+
 # local dev/debug scripts and artifacts
 verify-role-switcher.mjs
 verify-screenshots/
