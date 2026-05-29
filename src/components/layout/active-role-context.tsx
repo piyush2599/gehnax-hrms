@@ -15,10 +15,20 @@ const ActiveRoleContext = createContext<ActiveRoleCtx>({
   userRoles: ["employee"],
 });
 
+const ALL_ROLES = ["super_admin", "hr_admin", "manager", "finance_admin", "employee"] as const;
+
+function expandRoles(dbRoles: string[]): string[] {
+  if (!dbRoles.length) return ["employee"];
+  if (dbRoles.includes("super_admin")) return [...ALL_ROLES];
+  const expanded = [...dbRoles];
+  if (!expanded.includes("employee")) expanded.push("employee");
+  return expanded;
+}
+
 export function ActiveRoleProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const user = session?.user as any;
-  const userRoles: string[] = user?.roles?.length ? user.roles : ["employee"];
+  const userRoles: string[] = expandRoles(user?.roles ?? []);
   const storageKey = `active_role_${user?.id || "guest"}`;
 
   const [activeRole, setActiveRole] = useState<string>("employee");
