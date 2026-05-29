@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { Clock, LogIn, LogOut, Plus, CheckCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useActiveRole } from "@/components/layout/active-role-context";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -36,7 +37,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AttendanceClient() {
   const { data: session } = useSession();
-  const roles: string[] = (session?.user as any)?.roles || ["employee"];
+  const { activeRole } = useActiveRole();
   const sessionEmployeeId = (session?.user as any)?.employeeId || "";
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth() + 1);
@@ -45,7 +46,7 @@ export default function AttendanceClient() {
   const [manualOpen, setManualOpen] = useState(false);
 
   const todayStr = format(today, "yyyy-MM-dd");
-  const isAdminOrHR = roles.some(r => ["super_admin", "hr_admin", "manager"].includes(r));
+  const isAdminOrHR = ["super_admin", "hr_admin", "manager"].includes(activeRole);
 
   const { data: todayAttendance } = useSWR(
     `/api/attendance?date=${todayStr}`,
@@ -99,7 +100,7 @@ export default function AttendanceClient() {
       </div>
 
       {/* Clock in/out card (employee only) */}
-      {roles.every(r => r === "employee") && (
+      {activeRole === "employee" && (
         <Card className="border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-sm">
           <CardContent className="p-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

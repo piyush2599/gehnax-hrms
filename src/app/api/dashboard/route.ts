@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Employee from "@/models/Employee";
@@ -126,6 +126,7 @@ export async function GET() {
       approvedExpenses: expenseByStatus.approved?.count ?? 0,
       approvedExpensesAmount: expenseByStatus.approved?.amount ?? 0,
       rejectedExpenses: expenseByStatus.rejected?.count ?? 0,
+      rejectedExpensesAmount: expenseByStatus.rejected?.amount ?? 0,
       // leaves
       leavePending:  leaveByStatus.pending  ?? 0,
       leaveApproved: leaveByStatus.approved ?? 0,

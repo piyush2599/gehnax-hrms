@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { Search, Shield, ShieldCheck, User, Users, Loader2, Lock, Eye, EyeOff, ShieldAlert, ShieldOff, Clock, KeyRound } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { getInitials, formatDate } from "@/lib/utils";
 import AdminMFAModal from "./AdminMFAModal";
 import ResetPasswordModal from "./ResetPasswordModal";
@@ -55,6 +56,7 @@ export default function RolesClient() {
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // MFA modal state
   const [mfaTarget, setMfaTarget] = useState<any | null>(null);
@@ -86,6 +88,22 @@ export default function RolesClient() {
 
   const users: any[] = data?.users || [];
   const roleCounts: Record<string, number> = data?.roleCounts || {};
+
+  const toggleRoleAccess = useCallback(async (userId: string, userName: string, currentlyActive: boolean) => {
+    setTogglingId(userId);
+    try {
+      const res = await fetch(`/api/users/${userId}/toggle-roles`, { method: "PATCH" });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Failed to toggle"); return; }
+      toast.success(data.rolesActive
+        ? `${userName}'s full role access restored`
+        : `${userName} restricted to Employee access`
+      );
+      mutate();
+    } finally {
+      setTogglingId(null);
+    }
+  }, [mutate]);
 
   // Open the role picker popover
   const openPicker = useCallback((userId: string, currentRoles: string[]) => {
@@ -393,10 +411,27 @@ export default function RolesClient() {
                     <td className="px-4 py-3.5">
                       {isSuperAdmin && !isMe ? (
                         <div className="space-y-2">
+                          {/* Role active toggle */}
+                          <div className="flex items-center gap-2">
+                            {togglingId === user._id
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
+                              : (
+                                <Switch
+                                  checked={user.rolesActive !== false}
+                                  onCheckedChange={() => toggleRoleAccess(user._id, user.name, user.rolesActive !== false)}
+                                  className="scale-75 origin-left"
+                                />
+                              )
+                            }
+                            <span className={`text-xs font-medium ${user.rolesActive !== false ? "text-emerald-600" : "text-slate-400"}`}>
+                              {user.rolesActive !== false ? "Role Active" : "Employee Only"}
+                            </span>
+                          </div>
+
                           {/* Role badges + edit button */}
                           <div className="flex flex-wrap items-center gap-1">
                             {(user.roles || [user.role]).map((r: string) => (
-                              <Badge key={r} variant="outline" className={`text-xs ${ROLE_STYLE[r] || ""}`}>
+                              <Badge key={r} variant="outline" className={`text-xs ${user.rolesActive !== false ? ROLE_STYLE[r] || "" : "bg-slate-50 text-slate-400 border-slate-200"}`}>
                                 {ROLES.find(x => x.value === r)?.label ?? r}
                               </Badge>
                             ))}

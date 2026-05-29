@@ -7,12 +7,14 @@ import { useSession, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/utils";
 import { useSidebar } from "./sidebar-context";
+import { useActiveRole } from "./active-role-context";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   LayoutDashboard, Users, Building2, Clock, Calendar,
   FileText, DollarSign, Megaphone, UserCircle,
   ChevronLeft, ChevronRight, LogOut,
   CalendarDays, UserPlus, ClipboardCheck, ShieldCheck, X, ReceiptText, ShoppingCart, FolderKanban,
+  ChevronsUpDown, Check,
 } from "lucide-react";
 
 const navGroups = [
@@ -77,9 +79,16 @@ const ROLE_BADGE: Record<string, string> = {
 function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const userRoles: string[] = (session?.user as any)?.roles || ["employee"];
-  const primaryRole = userRoles[0] || "employee";
   const user = session?.user as any;
+  const { activeRole, switchRole, userRoles } = useActiveRole();
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+
+  const handleRoleSwitch = (role: string) => {
+    switchRole(role);
+    setSwitcherOpen(false);
+  };
+
+  const hasMultipleRoles = userRoles.length > 1;
 
   return (
     <div className="flex flex-col h-full">
@@ -105,17 +114,60 @@ function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => vo
         {!collapsed && (
           <div className="min-w-0 flex-1">
             <p className="text-white font-bold text-sm leading-none tracking-tight">Gehnax HRMS</p>
-            <p className={cn("text-xs mt-1.5 leading-none font-medium px-1.5 py-0.5 rounded-md border w-fit", ROLE_BADGE[primaryRole] ?? "bg-slate-500/20 text-slate-300 border-slate-500/20")}>
-              {userRoles.map(r => roleLabels[r] ?? r.replace("_"," ")).join(" · ")}
-            </p>
           </div>
         )}
       </div>
 
+      {/* Role Switcher — below brand, above nav */}
+      {!collapsed && (
+        <div className="px-2.5 pt-3 pb-1 flex-shrink-0 relative">
+          <button
+            onClick={() => hasMultipleRoles && setSwitcherOpen(v => !v)}
+            className={cn(
+              "w-full flex items-center gap-2 px-3 py-2 rounded-xl border transition-all",
+              ROLE_BADGE[activeRole] ?? "bg-slate-500/20 text-slate-300 border-slate-500/20",
+              hasMultipleRoles ? "cursor-pointer hover:brightness-110" : "cursor-default"
+            )}
+          >
+            <span className="text-xs font-semibold flex-1 text-left truncate">
+              {roleLabels[activeRole] ?? activeRole.replace("_", " ")}
+            </span>
+            {hasMultipleRoles && (
+              <ChevronsUpDown className="w-3 h-3 opacity-70 flex-shrink-0" />
+            )}
+          </button>
+
+          {/* Dropdown */}
+          {switcherOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setSwitcherOpen(false)} />
+              <div className="absolute left-2.5 right-2.5 top-full mt-1 bg-[#161b22] border border-white/10 rounded-xl shadow-xl z-20 overflow-hidden">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 px-3 pt-2.5 pb-1">Switch Role</p>
+                {userRoles.map(role => (
+                  <button
+                    key={role}
+                    onClick={() => handleRoleSwitch(role)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-white/6 transition-colors text-left"
+                  >
+                    <span className={cn(
+                      "text-xs font-medium px-2 py-0.5 rounded-md border flex-1",
+                      ROLE_BADGE[role] ?? "bg-slate-500/20 text-slate-300 border-slate-500/20"
+                    )}>
+                      {roleLabels[role] ?? role.replace("_", " ")}
+                    </span>
+                    {activeRole === role && <Check className="w-3 h-3 text-emerald-400 flex-shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-0.5 scrollbar-thin">
+      <nav className="flex-1 overflow-y-auto py-2 px-2.5 space-y-0.5 scrollbar-thin">
         {navGroups.map((group) => {
-          const visible = group.items.filter((i) => userRoles.some(ur => i.roles.includes(ur)));
+          const visible = group.items.filter((i) => i.roles.includes(activeRole));
           if (!visible.length) return null;
           return (
             <div key={group.label} className="mb-1">

@@ -43,6 +43,7 @@ export async function POST() {
   }) {
     let user = await User.findOne({ email: opts.email });
     if (user) {
+      await User.findByIdAndUpdate(user._id, { roles: opts.roles, isActive: true });
       const emp = await Employee.findOne({ userId: user._id });
       return { user, employee: emp };
     }
@@ -76,7 +77,7 @@ export async function POST() {
   /* ── Create all employees ──────────────────────────── */
   const { employee: adminEmp } = await createEmployee({
     code: "EMP0001", firstName: "Rahul", lastName: "Sharma",
-    email: "admin@gehnax.com", password: "Admin@123", roles: ["super_admin"],
+    email: "admin@gehnax.com", password: "Admin@123", roles: ["super_admin", "finance_admin", "employee"],
     dept: "HR", designation: "System Administrator",
     joiningDate: new Date("2020-01-15"),
     salary: { basic: 90000, hra: 36000, allowances: 12000, deductions: 0 },

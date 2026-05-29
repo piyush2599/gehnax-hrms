@@ -23,6 +23,7 @@ export interface IUser extends Document {
   mfaDisabledUntil?: Date;
   mfaForceSetup: boolean;
   mustChangePassword: boolean;
+  rolesActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,6 +55,7 @@ const UserSchema = new Schema<IUser>(
     mfaDisabledUntil: { type: Date },   // super admin temp bypass
     mfaForceSetup:       { type: Boolean, default: false }, // super admin force re-register
     mustChangePassword:  { type: Boolean, default: false },
+    rolesActive:         { type: Boolean, default: true },
   },
   { timestamps: true }
 );

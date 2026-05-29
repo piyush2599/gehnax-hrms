@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
+import { useActiveRole } from "@/components/layout/active-role-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -91,8 +92,8 @@ function StatCard({
 
 export default function ExpensesClient() {
   const { data: session } = useSession();
-  const roles: string[] = (session?.user as any)?.roles || ["employee"];
-  const isAdminOrManager = roles.some(r => ["super_admin", "hr_admin", "manager"].includes(r));
+  const { activeRole } = useActiveRole();
+  const isAdminOrManager = ["super_admin", "hr_admin", "manager", "finance_admin"].includes(activeRole);
 
   const [filter, setFilter] = useState<Filter>("all");
   const [submitOpen, setSubmitOpen] = useState(false);

@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { format, startOfWeek, endOfWeek, addWeeks } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, Clock, Check, X, Save, Send } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useActiveRole } from "@/components/layout/active-role-context";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -26,11 +27,11 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function TimesheetsClient() {
   const { data: session } = useSession();
-  const roles: string[] = (session?.user as any)?.roles || ["employee"];
+  const { activeRole } = useActiveRole();
   const [weekOffset, setWeekOffset] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
   const [reviewTs, setReviewTs] = useState<any>(null);
-  const isAdminOrHR = roles.some(r => ["super_admin","hr_admin","manager"].includes(r));
+  const isAdminOrHR = ["super_admin","hr_admin","manager"].includes(activeRole);
 
   const today = new Date();
   const weekStart = startOfWeek(addWeeks(today, weekOffset), { weekStartsOn: 1 });

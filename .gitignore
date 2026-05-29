@@ -44,3 +44,12 @@ next-env.d.ts
 /public/workbox-*.js.map
 
 .vercel
+
+# local dev/debug scripts and artifacts
+verify-role-switcher.mjs
+verify-screenshots/
+check-emp.js
+take-screenshot.js
+dev.log
+hrms-backup.json
+ss-*.png

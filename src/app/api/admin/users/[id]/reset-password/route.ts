@@ -4,35 +4,46 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
-type Ctx = { params: { id: string } };
-
-export async function POST(req: NextRequest, { params }: Ctx) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if ((session.user as any).role !== "super_admin") {
-    return NextResponse.json({ error: "Super Admin only" }, { status: 403 });
-  }
-  if ((session.user as any).id === params.id) {
-    return NextResponse.json({ error: "Cannot reset your own password here" }, { status: 400 });
+
+  const sessionRoles: string[] = (session.user as any).roles || [];
+  if (!sessionRoles.includes("super_admin")) {
+    return NextResponse.json({ error: "Only Super Admin can reset passwords" }, { status: 403 });
   }
 
   const { newPassword, adminPassword } = await req.json();
 
-  if (!adminPassword) return NextResponse.json({ error: "Your password is required to confirm" }, { status: 400 });
   if (!newPassword || newPassword.length < 6) {
     return NextResponse.json({ error: "New password must be at least 6 characters" }, { status: 400 });
+  }
+  if (!adminPassword) {
+    return NextResponse.json({ error: "Admin password is required" }, { status: 400 });
   }
 
   await connectDB();
 
+  // Verify super admin's own password
   const admin = await User.findById((session.user as any).id).select("+password");
   if (!admin) return NextResponse.json({ error: "Admin not found" }, { status: 404 });
-  const valid = await bcrypt.compare(adminPassword, admin.password);
-  if (!valid) return NextResponse.json({ error: "Incorrect admin password" }, { status: 401 });
+
+  const passwordMatch = await bcrypt.compare(adminPassword, admin.password);
+  if (!passwordMatch) {
+    return NextResponse.json({ error: "Incorrect admin password" }, { status: 401 });
+  }
+
+  const target = await User.findById(params.id);
+  if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const hashed = await bcrypt.hash(newPassword, 12);
-  const user = await User.findByIdAndUpdate(params.id, { password: hashed, mustChangePassword: true }, { new: true }).select("name email");
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  await User.findByIdAndUpdate(params.id, {
+    password: hashed,
+    mustChangePassword: true,
+  });
 
-  return NextResponse.json({ success: true, userName: user.name });
+  return NextResponse.json({ message: "Password reset successfully" });
 }

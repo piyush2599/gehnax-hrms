@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await User.findOne({
           email: credentials.email,
           isActive: true,
-        }).select("+password mfaEnabled mfaSkipCount mfaDisabledUntil mfaForceSetup mustChangePassword");
+        }).select("+password mfaEnabled mfaSkipCount mfaDisabledUntil mfaForceSetup mustChangePassword rolesActive");
 
         if (!user) return null;
 
@@ -39,7 +39,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user.mfaDisabledUntil instanceof Date &&
           user.mfaDisabledUntil > now;
 
-        const roles = user.roles?.length ? user.roles : (user.role ? [user.role] : ["employee"]);
+        const rolesActive = user.rolesActive !== false;
+        const allRoles: string[] = user.roles?.length ? [...user.roles].map(String) : (user.role ? [String(user.role)] : ["employee"]);
+        const roles: string[] = rolesActive ? allRoles : ["employee"];
         return {
           id: user._id.toString(),
           email: user.email,
@@ -79,11 +81,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (trigger === "update" || !token.role) {
         await connectDB();
         const dbUser = await User.findById(token.sub).select(
-          "name roles role employeeId avatar isActive mfaEnabled mfaVerifiedAt mfaSkippedAt"
+          "name roles role employeeId avatar isActive mfaEnabled mfaVerifiedAt mfaSkippedAt rolesActive"
         );
         if (dbUser) {
           if (dbUser.name) token.name = dbUser.name;
-          token.roles      = dbUser.roles?.length ? dbUser.roles : (dbUser.role ? [dbUser.role] : ["employee"]);
+          const rolesActive = dbUser.rolesActive !== false;
+          const allRoles = dbUser.roles?.length ? [...dbUser.roles].map(String) : (dbUser.role ? [String(dbUser.role)] : ["employee"]);
+          token.roles      = rolesActive ? allRoles : ["employee"];
           token.employeeId = dbUser.employeeId?.toString();
           token.avatar     = dbUser.avatar;
 

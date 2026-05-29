@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { DollarSign, FileText, Download, Play, Loader2, ExternalLink, TrendingUp, TrendingDown, Clock, Calendar } from "lucide-react";
 import { formatCurrency, getMonthName } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { useActiveRole } from "@/components/layout/active-role-context";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -33,7 +34,8 @@ const STATUS_DOT: Record<string, string> = {
 
 export default function PayrollClient() {
   const { data: session } = useSession();
-  const roles: string[] = (session?.user as any)?.roles || ["employee"];
+  const { activeRole } = useActiveRole();
+  const sessionEmployeeId = (session?.user as any)?.employeeId;
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [year, setYear] = useState(today.getFullYear());
@@ -41,12 +43,12 @@ export default function PayrollClient() {
   const [processing, setProcessing] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
-  const isAdminOrHR = roles.some(r => ["super_admin", "hr_admin"].includes(r));
-  const isEmployee = roles.every(r => r === "employee");
+  const isAdminOrHR = ["super_admin", "hr_admin"].includes(activeRole);
+  const isEmployee  = activeRole === "employee";
 
-  // Admin: filter by month+year. Employee: fetch entire year at once.
+  // Admin: filter by month+year. Employee: restrict to own records via employeeId.
   const adminUrl    = `/api/payroll?month=${month}&year=${year}`;
-  const employeeUrl = `/api/payroll?year=${year}`;
+  const employeeUrl = `/api/payroll?year=${year}${sessionEmployeeId ? `&employeeId=${sessionEmployeeId}` : ""}`;
 
   const { data: payrolls, isLoading } = useSWR(
     isEmployee ? employeeUrl : adminUrl,

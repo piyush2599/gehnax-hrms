@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Plus, Calendar, Check, X, Clock } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useActiveRole } from "@/components/layout/active-role-context";
 import { formatDate } from "@/lib/utils";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -35,11 +36,11 @@ const LEAVE_TYPES = ["Annual","Sick","Casual","Maternity","Paternity","Unpaid"];
 
 export default function LeavesClient() {
   const { data: session } = useSession();
-  const roles: string[] = (session?.user as any)?.roles || ["employee"];
+  const { activeRole } = useActiveRole();
   const [applyOpen, setApplyOpen] = useState(false);
   const [reviewLeave, setReviewLeave] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState("all");
-  const isAdminOrHR = roles.some(r => ["super_admin","hr_admin","manager"].includes(r));
+  const isAdminOrHR = ["super_admin","hr_admin","manager"].includes(activeRole);
 
   const url = `/api/leaves${filterStatus !== "all" ? `?status=${filterStatus}` : ""}`;
   const { data: leaves, isLoading } = useSWR(url, fetcher);
@@ -72,7 +73,7 @@ export default function LeavesClient() {
       </Dialog>
 
       {/* Leave balance (employee) */}
-      {roles.every(r => r === "employee") && <LeaveBalanceCard />}
+      {activeRole === "employee" && <LeaveBalanceCard />}
 
       {/* Status filters */}
       <div className="flex gap-2 flex-wrap">

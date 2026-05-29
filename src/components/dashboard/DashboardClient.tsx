@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useActiveRole } from "@/components/layout/active-role-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge }    from "@/components/ui/badge";
 import {
@@ -215,9 +216,9 @@ function lakhs(n: number) {
 /* ─── Main Dashboard ─────────────────────────────────────────────────── */
 export default function DashboardClient() {
   const { data: session } = useSession();
-  const roles: string[] = (session?.user as any)?.roles || ["employee"];
   const user = session?.user as any;
   const router = useRouter();
+  const { activeRole } = useActiveRole();
   const { data, isLoading } = useSWR("/api/dashboard", fetcher, { refreshInterval: 60000 });
 
   const [greeting, setGreeting] = useState("Welcome");
@@ -230,9 +231,10 @@ export default function DashboardClient() {
   }, []);
 
   const firstName = user?.name?.split(" ")[0] || "there";
-  const isAdmin   = roles.some(r => ["super_admin","hr_admin"].includes(r));
-  const isPower   = roles.some(r => ["super_admin","hr_admin","finance_admin","manager"].includes(r));
-  const isEmployee = roles.every(r => r === "employee");
+  const isAdmin    = ["super_admin","hr_admin"].includes(activeRole);
+  const isPower    = ["super_admin","hr_admin","manager"].includes(activeRole);
+  const isFinance  = activeRole === "finance_admin";
+  const isEmployee = activeRole === "employee";
   const s = data?.stats || {};
 
   /* attendance trend & dept chart data */
@@ -294,6 +296,19 @@ export default function DashboardClient() {
                 ))}
               </div>
             )}
+            {isFinance && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {[
+                  { label: "Pending Expenses", value: s.pendingExpenses ?? 0 },
+                  { label: "Active Projects", value: s.projectsActive ?? 0 },
+                  { label: "Active POs", value: s.poActiveCount ?? 0 },
+                ].map(({ label, value }) => (
+                  <span key={label} className="text-xs bg-white/10 px-2.5 py-1 rounded-full border border-white/15 font-medium">
+                    <span className="font-bold">{value}</span> {label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {isPower && (
@@ -312,6 +327,22 @@ export default function DashboardClient() {
               </button>
             </div>
           )}
+          {isFinance && (
+            <div className="flex gap-3 flex-shrink-0">
+              <button onClick={() => router.push("/payroll")} className="bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl px-4 py-3 text-center transition-all hover:scale-105">
+                <p className="text-lg font-bold tabular-nums">{lakhs(s.payrollNetPay ?? 0)}</p>
+                <p className="text-blue-200 text-xs mt-0.5 font-medium">Net Pay</p>
+              </button>
+              <button onClick={() => router.push("/expenses")} className="bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl px-4 py-3 text-center transition-all hover:scale-105">
+                <p className="text-2xl font-bold tabular-nums"><AnimatedNumber value={s.pendingExpenses ?? 0} /></p>
+                <p className="text-blue-200 text-xs mt-0.5 font-medium">Pending Exp.</p>
+              </button>
+              <button onClick={() => router.push("/purchase-orders")} className="bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl px-4 py-3 text-center transition-all hover:scale-105 hidden sm:block">
+                <p className="text-2xl font-bold tabular-nums"><AnimatedNumber value={s.poActiveCount ?? 0} /></p>
+                <p className="text-blue-200 text-xs mt-0.5 font-medium">Active POs</p>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -319,6 +350,132 @@ export default function DashboardClient() {
       {isEmployee && (
         <div className="animate-fade-up" style={{ animationDelay: "60ms" }}>
           <AttendanceWidget />
+        </div>
+      )}
+
+      {/* ── Finance Admin KPI cards ─────────────────────────────────── */}
+      {isFinance && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 stagger">
+          <StatCard title="Payroll This Month" value={s.payrollNetPay ?? 0}    sub={`${s.payrollProcessed ?? 0} processed · ${s.payrollPaid ?? 0} paid`} icon={IndianRupee}  color="teal"   onClick={() => router.push("/payroll")} />
+          <StatCard title="Pending Expenses"   value={s.pendingExpenses ?? 0}  sub={lakhs(s.pendingExpensesAmount ?? 0) + " pending"}                      icon={ReceiptText}  color="orange" onClick={() => router.push("/expenses")} />
+          <StatCard title="Active PO Pipeline" value={s.poActiveCount ?? 0}    sub={lakhs(s.poActiveValue ?? 0) + " value"}                                icon={ShoppingCart} color="indigo" onClick={() => router.push("/purchase-orders")} />
+          <StatCard title="Active Projects"    value={s.projectsActive ?? 0}   sub={`${s.projectsTotal ?? 0} total`}                                       icon={FolderKanban} color="blue"   onClick={() => router.push("/projects")} />
+        </div>
+      )}
+
+      {/* ── Finance Admin Widgets ────────────────────────────────────── */}
+      {isFinance && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
+
+          {/* Payroll */}
+          <Widget title="Payroll" icon={IndianRupee} iconBg="bg-teal-50" iconColor="text-teal-600" gradient="from-teal-500 to-cyan-600" href="/payroll">
+            <div className="mb-3">
+              <p className="text-xs text-slate-400 mb-1">Net Pay Processed (This Month)</p>
+              <p className="text-2xl font-bold text-teal-600 tabular-nums"><AnimatedNumber value={s.payrollNetPay ?? 0} prefix="₹" /></p>
+            </div>
+            <div className="space-y-1.5">
+              <StatRow label="Processed" value={s.payrollProcessed ?? 0} dot="bg-teal-500"    bg="bg-teal-50"    textColor="text-teal-700" />
+              <StatRow label="Paid"      value={s.payrollPaid      ?? 0} dot="bg-emerald-500" bg="bg-emerald-50" textColor="text-emerald-700" />
+            </div>
+          </Widget>
+
+          {/* Expenses */}
+          <Widget title="Expenses" icon={ReceiptText} iconBg="bg-orange-50" iconColor="text-orange-600" gradient="from-orange-400 to-red-500" href="/expenses" badge={s.pendingExpenses > 0 ? String(s.pendingExpenses) : ""}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1">
+                <p className="text-3xl font-bold text-slate-900 tabular-nums"><AnimatedNumber value={s.pendingExpenses ?? 0} /></p>
+                <p className="text-xs text-slate-400 mt-0.5">Pending approval</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-orange-600">{lakhs(s.pendingExpensesAmount ?? 0)}</p>
+                <p className="text-[10px] text-slate-400">amount</p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <StatRow label="Approved" value={s.approvedExpenses ?? 0} dot="bg-emerald-500" bg="bg-emerald-50" textColor="text-emerald-700" sub={lakhs(s.approvedExpensesAmount ?? 0)} />
+              <StatRow label="Rejected" value={s.rejectedExpenses ?? 0} dot="bg-red-400"     bg="bg-red-50"     textColor="text-red-600"     sub={lakhs(s.rejectedExpensesAmount ?? 0)} />
+            </div>
+          </Widget>
+
+          {/* Purchase Orders */}
+          <Widget title="Purchase Orders" icon={ShoppingCart} iconBg="bg-indigo-50" iconColor="text-indigo-600" gradient="from-indigo-400 to-blue-500" href="/purchase-orders">
+            <div className="flex items-start gap-4 mb-4">
+              <div>
+                <p className="text-xs text-slate-400">Active Pipeline</p>
+                <p className="text-2xl font-bold text-indigo-600 tabular-nums">{lakhs(s.poActiveValue ?? 0)}</p>
+              </div>
+              <div className="ml-auto text-right">
+                <p className="text-xs text-slate-400">Total POs</p>
+                <p className="text-2xl font-bold text-slate-800 tabular-nums"><AnimatedNumber value={s.poTotal ?? 0} /></p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <StatRow label="Active (Rcv/Ack/WIP)" value={s.poActiveCount ?? 0} dot="bg-indigo-500" bg="bg-indigo-50"   textColor="text-indigo-700" />
+              <StatRow label="Invoiced" value={s.poInvoiced ?? 0} dot="bg-violet-500" bg="bg-violet-50" textColor="text-violet-700" sub={lakhs(s.poInvoicedValue ?? 0)} />
+              <StatRow label="Paid"     value={s.poPaid     ?? 0} dot="bg-emerald-500" bg="bg-emerald-50" textColor="text-emerald-700" sub={lakhs(s.poPaidValue ?? 0)} />
+            </div>
+          </Widget>
+        </div>
+      )}
+
+      {/* ── Finance Admin Row 2: Projects + Timesheets ───────────────── */}
+      {isFinance && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
+          <Widget title="Projects" icon={FolderKanban} iconBg="bg-blue-50" iconColor="text-blue-600" gradient="from-blue-500 to-indigo-600" href="/projects" className="lg:col-span-2">
+            <div className="flex gap-5 items-start">
+              <div className="flex-1 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: "Active",    value: s.projectsActive    ?? 0, color: "text-emerald-600 bg-emerald-50" },
+                    { label: "Planning",  value: s.projectsPlanning  ?? 0, color: "text-blue-600 bg-blue-50" },
+                    { label: "On Hold",   value: s.projectsOnHold    ?? 0, color: "text-amber-600 bg-amber-50" },
+                    { label: "Completed", value: s.projectsCompleted ?? 0, color: "text-violet-600 bg-violet-50" },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className={cn("rounded-xl p-2.5 text-center", color.split(" ")[1])}>
+                      <p className={cn("text-xl font-bold tabular-nums", color.split(" ")[0])}><AnimatedNumber value={value} /></p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>Tasks Completion</span>
+                    <span className="font-semibold">{s.tasksDone ?? 0}/{s.tasksTotal ?? 0}</span>
+                  </div>
+                  {[
+                    { label: "Done",        value: s.tasksDone       ?? 0, total: s.tasksTotal ?? 1, color: "#10b981" },
+                    { label: "In Progress", value: s.tasksInProgress ?? 0, total: s.tasksTotal ?? 1, color: "#3b82f6" },
+                    { label: "To Do",       value: s.tasksTodo       ?? 0, total: s.tasksTotal ?? 1, color: "#94a3b8" },
+                  ].map(({ label, value, total, color }) => (
+                    <div key={label}>
+                      <div className="flex justify-between text-[10px] text-slate-400 mb-0.5"><span>{label}</span><span>{value}</span></div>
+                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${Math.round((value / total) * 100)}%`, background: color }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <ProgressRing pct={taskDonePct} size={72} strokeWidth={7} color="#6366f1" label="done" />
+            </div>
+          </Widget>
+
+          <Widget title="Timesheets" icon={ClipboardList} iconBg="bg-violet-50" iconColor="text-violet-600" gradient="from-violet-500 to-purple-600" href="/timesheets" badge={s.tsSubmitted > 0 ? String(s.tsSubmitted) : ""}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1">
+                <p className="text-3xl font-bold text-slate-900 tabular-nums"><AnimatedNumber value={s.tsSubmitted ?? 0} /></p>
+                <p className="text-xs text-slate-400 mt-0.5">Awaiting review</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-violet-600 tabular-nums"><AnimatedNumber value={s.tsHoursTotal ?? 0} suffix="h" /></p>
+                <p className="text-[10px] text-slate-400">hours logged</p>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <StatRow label="Approved" value={s.tsApproved ?? 0} dot="bg-emerald-500" bg="bg-emerald-50" textColor="text-emerald-700" />
+              <StatRow label="Rejected" value={s.tsRejected ?? 0} dot="bg-red-400"     bg="bg-red-50"     textColor="text-red-600" />
+            </div>
+          </Widget>
         </div>
       )}
 
