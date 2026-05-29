@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/db";
+import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
 const SECRET = process.env.MIGRATION_SECRET;

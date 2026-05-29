@@ -19,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await User.findOne({
           email: credentials.email,
           isActive: true,
-        }).select("+password mfaEnabled mfaSkipCount mfaDisabledUntil mfaForceSetup mustChangePassword rolesActive");
+        }).select("+password roles role name email employeeId avatar mfaEnabled mfaSkipCount mfaDisabledUntil mfaForceSetup mustChangePassword rolesActive");
 
         if (!user) return null;
 
@@ -78,7 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       // On explicit session update or periodic refresh — only UPDATE (never re-set) MFA flags
-      if (trigger === "update" || !token.role) {
+      if (trigger === "update" || !(token.roles as string[] | undefined)?.length) {
         await connectDB();
         const dbUser = await User.findById(token.sub).select(
           "name roles role employeeId avatar isActive mfaEnabled mfaVerifiedAt mfaSkippedAt rolesActive"
