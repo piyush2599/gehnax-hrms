@@ -1,0 +1,33 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel Production
+        id: deploy
+        run: |
+          DEPLOY_URL=$(vercel --prod --yes --token ${{ secrets.VERCEL_TOKEN }} 2>&1 | grep -oE 'https://hrms-[a-zA-Z0-9]+-[a-zA-Z0-9-]+\.vercel\.app' | head -1)
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOY_URL"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Assign production domain alias
+        run: |
+          curl -s -X POST \
+            "https://api.vercel.com/v2/deployments/${{ steps.deploy.outputs.url }}/aliases?teamId=${{ secrets.VERCEL_ORG_ID }}" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"alias":"myapp.gehnax.com"}'
