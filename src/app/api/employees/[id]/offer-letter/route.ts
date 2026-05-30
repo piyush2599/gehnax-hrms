@@ -62,8 +62,8 @@ export async function POST(
 
   const grossMonthly = basic + hra + allowances;
   const grossAnnual  = grossMonthly * 12;
-  const employeePF   = Math.round(basic * 0.12);
-  const employerPF   = Math.round(basic * 0.12);
+  const employeePF   = Math.round(Math.min(basic, 15_000) * 0.12);
+  const employerPF   = Math.round(Math.min(basic, 15_000) * 0.12);
   const esi          = grossMonthly <= 21_000 ? Math.round(grossMonthly * 0.0075) : 0;
   // Gratuity provision per Payment of Gratuity Act, 1972 (Basic × 15/26 ÷ 12 ≈ 4.81%)
   const gratuity     = Math.round(basic * 15 / 26 / 12);

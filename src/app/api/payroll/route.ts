@@ -91,8 +91,9 @@ export async function POST(req: NextRequest) {
     const overtimePay = (basic / (workingDays * 8)) * overtimeHours;
 
     // Calculate deductions (Indian payroll)
+    // PF capped at EPFO wage ceiling of ₹15,000 (max ₹1,800/mo at 12%)
     const pfRate = 0.12;
-    const pfAmount = basic * pfRate;
+    const pfAmount = Math.round(Math.min(basic, 15_000) * pfRate);
     const esiRate = basic + hra + allowances <= 21000 ? 0.0175 : 0;
     const esiAmount = (basic + hra + allowances) * esiRate;
 

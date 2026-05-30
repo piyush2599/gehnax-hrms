@@ -45,7 +45,7 @@ export default function OfferLetterGenerator({
   const grossMonthly = (salary?.basic || 0) + (salary?.hra || 0) + (salary?.allowances || 0);
   const netMonthly   = grossMonthly - (salary?.deductions || 0);
   const grossAnnual  = grossMonthly * 12;
-  const empPF        = Math.round((salary?.basic || 0) * 0.12);
+  const empPF        = Math.round(Math.min(salary?.basic || 0, 15_000) * 0.12);
   const empPFAnnual  = empPF * 12;
   const gratuity     = Math.round((salary?.basic || 0) * 0.0481);
   const gratuityAnnual = gratuity * 12;
