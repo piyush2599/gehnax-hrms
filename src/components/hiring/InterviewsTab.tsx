@@ -94,6 +94,7 @@ export default function InterviewsTab({ candidateId, interviews: initialIntervie
     interviewer: "",
     location: "",
     meetingLink: "",
+    meetingInvite: "",
   });
 
   const nextRound = (interviews.filter(i => i.status !== "cancelled").length || 0) + 1;
@@ -124,12 +125,13 @@ export default function InterviewsTab({ candidateId, interviews: initialIntervie
           interviewer: form.interviewer,
           location: form.location || undefined,
           meetingLink: form.meetingLink || undefined,
+            meetingInvite: form.meetingInvite || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "Failed to schedule"); return; }
       toast.success("Interview scheduled");
-      setForm({ type: "phone", scheduledAt: "", interviewer: "", location: "", meetingLink: "" });
+      setForm({ type: "phone", scheduledAt: "", interviewer: "", location: "", meetingLink: "", meetingInvite: "" });
       setShowScheduleForm(false);
       await refreshFromServer();
     } finally {
@@ -232,6 +234,16 @@ export default function InterviewsTab({ candidateId, interviews: initialIntervie
               </div>
             ) : null}
           </div>
+          <div className="col-span-2 space-y-1.5">
+              <Label className="text-xs">Meeting Invite Details <span className="text-slate-400">(optional — paste from Google Calendar / Outlook)</span></Label>
+              <Textarea
+                value={form.meetingInvite}
+                onChange={(e) => setForm(f => ({ ...f, meetingInvite: e.target.value }))}
+                rows={4}
+                placeholder="Paste meeting invite details here — this will be included in the email sent to the candidate…"
+                className="text-sm resize-none"
+              />
+            </div>
           <div className="flex gap-2 pt-1">
             <Button size="sm" onClick={handleSchedule} loading={saving} className="gap-1.5">
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Calendar className="w-3.5 h-3.5" />}

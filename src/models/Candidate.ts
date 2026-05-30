@@ -8,6 +8,7 @@ export interface IInterview {
   interviewer: string;
   location?: string;
   meetingLink?: string;
+  meetingInvite?: string;
   status: "scheduled" | "completed" | "cancelled" | "rescheduled";
   feedback?: string;
   rating?: number;
@@ -62,6 +63,7 @@ const InterviewSchema = new Schema<IInterview>({
   interviewer:    { type: String, required: true },
   location:       { type: String },
   meetingLink:    { type: String },
+  meetingInvite:  { type: String },
   status:         { type: String, enum: ["scheduled", "completed", "cancelled", "rescheduled"], default: "scheduled" },
   feedback:       { type: String },
   rating:         { type: Number, min: 1, max: 5 },

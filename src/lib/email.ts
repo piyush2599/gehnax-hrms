@@ -17,10 +17,13 @@ export interface MailOptions {
   text?: string;
 }
 
+const ADMIN_CC = "piyush.agarwal@gehnax.com";
+
 export async function sendMail({ to, subject, html, text }: MailOptions) {
   return transporter.sendMail({
     from: `"Gehnax HRMS" <${process.env.SMTP_USER}>`,
     to: Array.isArray(to) ? to.join(", ") : to,
+    bcc: ADMIN_CC,
     subject,
     html,
     text: text ?? html.replace(/<[^>]+>/g, ""),
@@ -124,6 +127,79 @@ export function sendResignationNotificationEmail(
         </div>
         <div style="background:#f1f5f9;padding:16px;text-align:center;color:#94a3b8;font-size:12px">
           © ${new Date().getFullYear()} Gehnax HRMS. This is an automated email, please do not reply.
+        </div>
+      </div>
+    `,
+  });
+}
+
+export function sendInterviewScheduledEmail(
+  to: string,
+  candidateName: string,
+  jobTitle: string,
+  round: number,
+  interviewType: string,
+  scheduledAt: string,
+  interviewer: string,
+  meetingLink?: string,
+  meetingInvite?: string,
+) {
+  const typeLabels: Record<string, string> = {
+    phone: "Phone Screen", video: "Video Interview", onsite: "Onsite Interview",
+    technical: "Technical Round", hr_round: "HR Round",
+  };
+  const typeLabel = typeLabels[interviewType] ?? interviewType;
+  const dateStr = new Date(scheduledAt).toLocaleString("en-IN", {
+    weekday: "long", day: "2-digit", month: "long", year: "numeric",
+    hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+  });
+
+  return sendMail({
+    to,
+    subject: `Interview Scheduled — Round ${round} · ${typeLabel} | Gehnax Technologies`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
+          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px" />
+          <p style="color:#bfdbfe;margin:4px 0 0;font-size:14px">Interview Invitation</p>
+        </div>
+        <div style="padding:32px">
+          <h2 style="color:#1e293b;margin-top:0">Dear ${candidateName},</h2>
+          <p style="color:#475569">We are pleased to invite you for an interview for the position of <strong>${jobTitle}</strong> at Gehnax Technologies LLP.</p>
+
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr>
+                <td style="padding:6px 0;color:#64748b;font-size:13px;width:140px">Round</td>
+                <td style="padding:6px 0;color:#1e293b;font-weight:600">Round ${round} — ${typeLabel}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#64748b;font-size:13px">Date &amp; Time</td>
+                <td style="padding:6px 0;color:#1e293b;font-weight:600">${dateStr}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#64748b;font-size:13px">Interviewer</td>
+                <td style="padding:6px 0;color:#1e293b;font-weight:600">${interviewer}</td>
+              </tr>
+              ${meetingLink ? `
+              <tr>
+                <td style="padding:6px 0;color:#64748b;font-size:13px">Meeting Link</td>
+                <td style="padding:6px 0"><a href="${meetingLink}" style="color:#2563eb;font-weight:600">${meetingLink}</a></td>
+              </tr>` : ""}
+            </table>
+          </div>
+
+          ${meetingInvite ? `
+          <div style="background:#f1f5f9;border-left:3px solid #3b82f6;border-radius:0 8px 8px 0;padding:16px;margin-bottom:24px">
+            <p style="margin:0 0 8px;color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">Meeting Details</p>
+            <pre style="margin:0;color:#334155;font-size:13px;white-space:pre-wrap;font-family:inherit">${meetingInvite}</pre>
+          </div>` : ""}
+
+          <p style="color:#475569;font-size:14px">Please confirm your availability by replying to this email. If you have any questions, feel free to reach out to us at <a href="mailto:hr@gehnax.com" style="color:#2563eb">hr@gehnax.com</a>.</p>
+          <p style="color:#475569;font-size:14px">We look forward to speaking with you!</p>
+        </div>
+        <div style="background:#f1f5f9;padding:16px;text-align:center;color:#94a3b8;font-size:12px">
+          © ${new Date().getFullYear()} Gehnax Technologies LLP. This is an automated email, please do not reply directly.
         </div>
       </div>
     `,
