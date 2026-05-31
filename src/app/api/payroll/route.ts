@@ -97,15 +97,15 @@ export async function POST(req: NextRequest) {
     const overtimePay = (basic / (workingDays * 8)) * overtimeHours;
 
     // Calculate deductions (Indian payroll)
-    // PF capped at EPFO wage ceiling of ₹15,000 (max ₹1,800/mo at 12%)
-    const pfRate = 0.12;
-    const pfAmount = Math.round(Math.min(basic, 15_000) * pfRate);
-    const esiRate = basic + hra + allowances <= 21000 ? 0.0175 : 0;
-    const esiAmount = (basic + hra + allowances) * esiRate;
+    // PF: use the amount configured on the employee record (set via CTC calculator).
+    // salary.deductions holds the employee's monthly PF contribution — 0 means no PF.
+    const pfAmount  = Math.round(employee.salary.deductions || 0);
+    const esiRate   = basic + hra + allowances <= 21_000 ? 0.0175 : 0;
+    const esiAmount = Math.round((basic + hra + allowances) * esiRate);
 
-    const grossPay = basic + hra + allowances + overtimePay;
-    const totalDeductions = pfAmount + esiAmount + employee.salary.deductions;
-    const netPay = grossPay - totalDeductions;
+    const grossPay       = basic + hra + allowances + overtimePay;
+    const totalDeductions = pfAmount + esiAmount;
+    const netPay          = grossPay - totalDeductions;
 
     const payroll = await Payroll.create({
       employeeId: employee._id,
@@ -120,11 +120,11 @@ export async function POST(req: NextRequest) {
         bonus: 0,
       },
       deductions: {
-        pf: Math.round(pfAmount),
-        esi: Math.round(esiAmount),
-        tax: 0,
+        pf:      pfAmount,
+        esi:     esiAmount,
+        tax:     0,
         advance: 0,
-        other: employee.salary.deductions || 0,
+        other:   0,
       },
       grossPay: Math.round(grossPay),
       totalDeductions: Math.round(totalDeductions),
