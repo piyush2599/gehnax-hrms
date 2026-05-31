@@ -291,10 +291,9 @@ export default function JobDetailPage() {
             <>
             <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              Signed in as <strong>{candidateAccount.firstName} {candidateAccount.lastName}</strong>
-              {candidateAccount.resumeUrl && " · Resume on file"}
+              <span>Signed in as <strong>{candidateAccount.firstName} {candidateAccount.lastName}</strong>{candidateAccount.resumeUrl ? " · Resume on file" : ""}</span>
             </div>
-            <p className="text-sm text-slate-500 mb-6">Your profile has been pre-filled. Review and submit.</p>
+            <p className="text-sm text-slate-500 mb-6">Your profile has been pre-filled. Review and submit your application.</p>
 
             {/* ── Resume upload zone ── */}
             <div className="mb-6">
