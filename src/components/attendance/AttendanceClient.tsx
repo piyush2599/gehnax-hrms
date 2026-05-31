@@ -83,8 +83,8 @@ export default function AttendanceClient() {
       if (!res.ok) toast.error(data.error);
       else {
         toast.success(action === "checkin" ? "Checked in!" : "Checked out!");
-        mutate(`/api/attendance?date=${todayStr}`);
-        mutate(`/api/attendance?month=${month}&year=${year}`);
+        mutate(`/api/attendance?date=${todayStr}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`);
+        mutate(`/api/attendance?month=${month}&year=${year}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`);
       }
     } finally {
       setClockLoading(false);
@@ -305,7 +305,7 @@ export default function AttendanceClient() {
             <ManualAttendanceForm
               onSuccess={() => {
                 setManualOpen(false);
-                mutate(`/api/attendance?month=${month}&year=${year}`);
+                mutate(`/api/attendance?month=${month}&year=${year}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`);
               }}
             />
           </DialogContent>
