@@ -2,6 +2,7 @@
 import { connectDB } from "@/lib/mongodb";
 import Candidate from "@/models/Candidate";
 import JobPosting from "@/models/JobPosting";
+import CandidateAccount from "@/models/CandidateAccount";
 
 export async function POST(req: NextRequest) {
   await connectDB();
@@ -42,6 +43,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Fall back to candidate account's stored resume if none passed in form
+  let finalResumeUrl = resumeUrl?.trim() || undefined;
+  if (!finalResumeUrl && candidateAccountId) {
+    const account = await CandidateAccount.findById(candidateAccountId).select("resumeUrl").lean() as any;
+    finalResumeUrl = account?.resumeUrl || undefined;
+  }
+
   const candidate = await Candidate.create({
     firstName: firstName.trim(),
     lastName: lastName.trim(),
@@ -53,7 +61,7 @@ export async function POST(req: NextRequest) {
     totalExperience: totalExperience ? Number(totalExperience) : 0,
     skills: skills ? skills.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
     notes: coverNote?.trim(),
-    resumeUrl: resumeUrl?.trim() || undefined,
+    resumeUrl: finalResumeUrl,
     candidateAccountId: candidateAccountId || undefined,
     source: "job_portal",
     stage: "applied",

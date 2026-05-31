@@ -298,6 +298,22 @@ export default function JobDetailPage() {
             {/* ── Resume upload zone ── */}
             <div className="mb-6">
               {!resumeFile ? (
+                candidateAccount && resumeUrl ? (
+                  // Logged-in candidate already has resume on file
+                  <div className="flex items-center gap-3 p-4 border border-emerald-200 bg-emerald-50 rounded-2xl">
+                    <div className="p-2 bg-emerald-100 rounded-xl flex-shrink-0">
+                      <FileText className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-emerald-800">Resume on file</p>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">{resumeUrl.split("/").pop()}</p>
+                    </div>
+                    <label className="text-xs text-blue-600 font-medium cursor-pointer hover:underline flex-shrink-0">
+                      Replace
+                      <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleResumeChange} />
+                    </label>
+                  </div>
+                ) : (
                 <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-blue-200 rounded-2xl p-8 cursor-pointer hover:border-blue-400 hover:bg-blue-50/40 transition-all group">
                   <div className="p-3 bg-blue-100 rounded-2xl group-hover:bg-blue-200 transition-colors">
                     <Upload className="w-6 h-6 text-blue-600" />
@@ -314,6 +330,7 @@ export default function JobDetailPage() {
                     onChange={handleResumeChange}
                   />
                 </label>
+                )
               ) : (
                 <div className={`rounded-2xl border p-4 ${autofilled ? "border-emerald-200 bg-emerald-50/40" : "border-slate-200 bg-slate-50"}`}>
                   {parsing ? (
