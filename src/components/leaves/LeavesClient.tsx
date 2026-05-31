@@ -8,8 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -32,7 +30,6 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-slate-50 text-slate-500 border-slate-200",
 };
 
-const LEAVE_TYPES = ["Annual","Sick","Casual","Maternity","Paternity","Unpaid"];
 
 export default function LeavesClient() {
   const { data: session } = useSession();
@@ -183,25 +180,67 @@ export default function LeavesClient() {
 
 function LeaveBalanceCard() {
   const { data: employee } = useSWR("/api/employees/me", fetcher);
-  if (!employee?.leaveBalance) return null;
+  const balance = employee?.leaveBalance?.leaves ?? null;
+
+  if (balance === null) return null;
+
+  const maxDisplay   = Math.max(balance, 24); // scale bar to at least 24
+  const pct          = Math.min(100, Math.round((balance / maxDisplay) * 100));
+  const color        = balance >= 10 ? "bg-emerald-500" : balance >= 5 ? "bg-amber-500" : "bg-red-500";
+  const textColor    = balance >= 10 ? "text-emerald-600" : balance >= 5 ? "text-amber-600" : "text-red-600";
+
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-      {Object.entries(employee.leaveBalance).map(([type, days]) => (
-        <Card key={type} className="border-slate-200 shadow-sm text-center">
-          <CardContent className="p-3">
-            <p className="text-xl font-bold text-blue-600">{days as number}</p>
-            <p className="text-xs text-slate-500 capitalize mt-0.5">{type}</p>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <Card className="border-slate-200 shadow-sm">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Leave Balance</p>
+            <p className={`text-4xl font-bold ${textColor}`}>
+              {balance}
+              <span className="text-lg font-medium text-slate-400 ml-1">days</span>
+            </p>
+          </div>
+          <div className="text-right text-xs text-slate-400 space-y-1">
+            <p className="flex items-center gap-1.5 justify-end">
+              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+              2 leaves credited every month
+            </p>
+            <p className="flex items-center gap-1.5 justify-end">
+              <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
+              Max 10 days carry forward per year
+            </p>
+            <p className="flex items-center gap-1.5 justify-end">
+              <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+              Excess lapses on Jan 1
+            </p>
+          </div>
+        </div>
+        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
+        </div>
+        <p className="text-xs text-slate-400 mt-2">{balance} day{balance !== 1 ? "s" : ""} available</p>
+      </CardContent>
+    </Card>
   );
 }
 
 function ApplyLeaveForm({ onSuccess }: { onSuccess: () => void }) {
-  const [form, setForm] = useState({ leaveType: "", startDate: "", endDate: "", reason: "" });
+  const { data: employee } = useSWR("/api/employees/me", fetcher);
+  const balance = employee?.leaveBalance?.leaves ?? null;
+
+  const [form, setForm]   = useState({ startDate: "", endDate: "", reason: "" });
   const [loading, setLoading] = useState(false);
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const weekdays = form.startDate && form.endDate
+    ? (() => {
+        let n = 0;
+        const cur = new Date(form.startDate);
+        const end = new Date(form.endDate);
+        while (cur <= end) { const d = cur.getDay(); if (d !== 0 && d !== 6) n++; cur.setDate(cur.getDate() + 1); }
+        return n;
+      })()
+    : 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,28 +259,34 @@ function ApplyLeaveForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-      <div className="space-y-1.5">
-        <Label>Leave Type *</Label>
-        <NativeSelect value={form.leaveType} onChange={(e) => set("leaveType", e.target.value)} required>
-          <option value="">Select leave type</option>
-          {LEAVE_TYPES.map((t) => <option key={t} value={t}>{t} Leave</option>)}
-        </NativeSelect>
-      </div>
+      {balance !== null && (
+        <div className={`flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm font-medium ${
+          balance >= 5 ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-amber-50 border-amber-200 text-amber-700"
+        }`}>
+          <span>Available Balance</span>
+          <span className="font-bold">{balance} day{balance !== 1 ? "s" : ""}</span>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Start Date *</Label>
-          <Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} required />
+          <Input type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} required min={new Date().toISOString().split("T")[0]} />
         </div>
         <div className="space-y-1.5">
           <Label>End Date *</Label>
-          <Input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} required />
+          <Input type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} required min={form.startDate || new Date().toISOString().split("T")[0]} />
         </div>
       </div>
+      {weekdays > 0 && (
+        <p className="text-xs text-slate-500 -mt-1">
+          {weekdays} working day{weekdays !== 1 ? "s" : ""} selected (weekends excluded)
+        </p>
+      )}
       <div className="space-y-1.5">
         <Label>Reason *</Label>
         <Textarea value={form.reason} onChange={(e) => set("reason", e.target.value)} placeholder="Reason for leave…" rows={3} required />
       </div>
-      <Button type="submit" loading={loading} className="w-full">
+      <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
         {loading ? "Submitting…" : "Submit Application"}
       </Button>
     </form>

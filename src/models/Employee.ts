@@ -48,12 +48,16 @@ export interface IEmployee extends Document {
   terminationDate?: Date;
   terminationReason?: string;
   leaveBalance: {
-    annual: number;
-    sick: number;
-    casual: number;
-    maternity: number;
-    paternity: number;
-    unpaid: number;
+    leaves: number;
+    leaveCreditedMonth: number;
+    leaveCreditedYear: number;
+    // legacy fields kept for existing records
+    annual?: number;
+    sick?: number;
+    casual?: number;
+    maternity?: number;
+    paternity?: number;
+    unpaid?: number;
   };
   resignation?: {
     submittedAt: Date;
@@ -133,12 +137,16 @@ const EmployeeSchema = new Schema<IEmployee>(
     terminationDate: { type: Date },
     terminationReason: { type: String },
     leaveBalance: {
-      annual: { type: Number, default: 12 },
-      sick: { type: Number, default: 7 },
-      casual: { type: Number, default: 7 },
-      maternity: { type: Number, default: 0 },
-      paternity: { type: Number, default: 0 },
-      unpaid: { type: Number, default: 0 },
+      leaves:              { type: Number, default: 0 },
+      leaveCreditedMonth:  { type: Number, default: 0 },
+      leaveCreditedYear:   { type: Number, default: 0 },
+      // legacy fields kept for existing records
+      annual:   { type: Number },
+      sick:     { type: Number },
+      casual:   { type: Number },
+      maternity:{ type: Number },
+      paternity:{ type: Number },
+      unpaid:   { type: Number },
     },
     resignation: {
       submittedAt: Date,

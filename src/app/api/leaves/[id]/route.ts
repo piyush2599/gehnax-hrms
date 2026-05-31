@@ -45,13 +45,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const employee = leave.employeeId as any;
 
   if (status === "approved" && leave.status !== "approved") {
-    // Deduct leave balance
-    const balanceKey = leave.leaveType.toLowerCase() as string;
-    if (leave.leaveType !== "Unpaid") {
-      await Employee.findByIdAndUpdate(employee._id, {
-        $inc: { [`leaveBalance.${balanceKey}`]: -leave.totalDays },
-      });
-    }
+    // Deduct from unified leaves balance (legacy types also deduct from leaves)
+    await Employee.findByIdAndUpdate(employee._id, {
+      $inc: { "leaveBalance.leaves": -leave.totalDays },
+    });
 
     // Mark attendance as on_leave for those days
     const current = new Date(leave.startDate);
@@ -72,13 +69,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 
   if (status === "rejected" && leave.status === "approved") {
-    // Restore leave balance
-    const balanceKey = leave.leaveType.toLowerCase() as string;
-    if (leave.leaveType !== "Unpaid") {
-      await Employee.findByIdAndUpdate(employee._id, {
-        $inc: { [`leaveBalance.${balanceKey}`]: leave.totalDays },
-      });
-    }
+    // Restore leaves balance
+    await Employee.findByIdAndUpdate(employee._id, {
+      $inc: { "leaveBalance.leaves": leave.totalDays },
+    });
   }
 
   leave.status = status;

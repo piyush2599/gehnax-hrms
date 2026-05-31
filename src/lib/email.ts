@@ -133,6 +133,47 @@ export function sendResignationNotificationEmail(
   });
 }
 
+export function sendLeaveApplicationEmail(
+  to: string[],
+  employeeName: string,
+  employeeCode: string,
+  startDate: string,
+  endDate: string,
+  totalDays: number,
+  reason: string,
+) {
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return sendMail({
+    to: to.join(", "),
+    subject: `Leave Application — ${employeeName} (${fmt(startDate)} to ${fmt(endDate)})`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
+          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px" />
+          <p style="color:#bfdbfe;margin:4px 0 0;font-size:14px">Leave Application</p>
+        </div>
+        <div style="padding:32px">
+          <h2 style="color:#1e293b;margin-top:0">New Leave Request</h2>
+          <p style="color:#475569">The following employee has applied for leave and requires your review.</p>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px;width:130px">Employee</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${employeeName} <span style="color:#64748b;font-weight:400">(${employeeCode})</span></td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px">From</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${fmt(startDate)}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px">To</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${fmt(endDate)}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px">Duration</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${totalDays} working day${totalDays !== 1 ? "s" : ""}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px;vertical-align:top">Reason</td><td style="padding:6px 0;color:#475569">${reason}</td></tr>
+            </table>
+          </div>
+          <a href="${process.env.NEXTAUTH_URL ?? "https://myapp.gehnax.com"}/leaves" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px">Review Leave Request</a>
+        </div>
+        <div style="background:#f1f5f9;padding:16px;text-align:center;color:#94a3b8;font-size:12px">
+          © ${new Date().getFullYear()} Gehnax Technologies LLP. This is an automated email.
+        </div>
+      </div>
+    `,
+  });
+}
+
 export function sendInterviewScheduledEmail(
   to: string,
   candidateName: string,
