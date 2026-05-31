@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { getInitials, formatDate, formatCurrency } from "@/lib/utils";
+import { getInitials, formatDate, formatCurrency, secureDocUrl } from "@/lib/utils";
 import { User, Phone, MapPin, Building2, Calendar, Pencil, FolderOpen, LogOut, IdCard, ShieldCheck, Eye, EyeOff, Check, X as XIcon, ScrollText, Download, Copy, ExternalLink, FileText } from "lucide-react";
 import { validatePassword } from "@/lib/password";
 import { useSession } from "next-auth/react";
@@ -400,7 +400,7 @@ export default function ProfileClient() {
                         <p className="text-xs text-slate-400">{p.presentDays}/{p.workingDays} days · Net ₹{(p.netPay || 0).toLocaleString("en-IN")}</p>
                       </div>
                       {p.payslipUrl ? (
-                        <a href={p.payslipUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={secureDocUrl(p.payslipUrl)} target="_blank" rel="noopener noreferrer">
                           <button className="flex items-center gap-1.5 text-xs h-7 px-3 rounded-lg border border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
                             <Download className="w-3.5 h-3.5" />
                             PDF

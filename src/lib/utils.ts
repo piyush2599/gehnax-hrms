@@ -72,6 +72,13 @@ export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export const LEAVE_TYPES = ["Annual", "Sick", "Casual", "Maternity", "Paternity", "Unpaid"];
 
+/** Returns an auth-gated proxy URL for a Cloudinary document. Use instead of raw Cloudinary URLs. */
+export function secureDocUrl(url: string): string {
+  if (!url) return "";
+  const encoded = btoa(url).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `/api/secure-file?u=${encoded}`;
+}
+
 export const DEPARTMENTS = [
   "Engineering",
   "Human Resources",

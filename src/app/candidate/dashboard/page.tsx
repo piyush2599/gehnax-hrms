@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Briefcase, FileText, LogOut, Download, Clock, CheckCircle2, XCircle, ChevronRight } from "lucide-react";
 
+function secureDocUrl(url: string): string {
+  if (!url) return "";
+  const encoded = btoa(url).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `/api/secure-file?u=${encoded}`;
+}
+
 const STAGE_LABEL: Record<string, string> = {
   applied:   "Applied",
   screening: "Screening",
@@ -162,7 +168,7 @@ export default function CandidateDashboard() {
                           {badge.label}
                         </div>
                         {approval === "approved" && app.offer?.offerPdfUrl && (
-                          <a href={app.offer.offerPdfUrl} target="_blank" rel="noopener noreferrer"
+                          <a href={secureDocUrl(app.offer.offerPdfUrl)} target="_blank" rel="noopener noreferrer"
                             className="flex items-center gap-1 text-emerald-700 hover:underline font-semibold">
                             <Download className="w-3.5 h-3.5" />
                             Download Offer

@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { DollarSign, FileText, Download, Play, Loader2, ExternalLink, TrendingUp, TrendingDown, Clock, Calendar } from "lucide-react";
-import { formatCurrency, getMonthName } from "@/lib/utils";
+import { formatCurrency, getMonthName, secureDocUrl } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
 import { useImpersonate } from "@/components/layout/impersonate-context";
@@ -306,9 +306,9 @@ export default function PayrollClient() {
                         >
                           <FileText className="w-4 h-4" />
                         </button>
-                        {p.payslipUrl ? (
+                        {secureDocUrl(p.payslipUrl) ? (
                           <a
-                            href={p.payslipUrl}
+                            href={secureDocUrl(p.payslipUrl)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
@@ -359,7 +359,7 @@ export default function PayrollClient() {
 
 // ── Employee payslip card ─────────────────────────────────────────────────────
 function EmployeePayslipCard({ payroll, onView }: { payroll: any; onView: () => void }) {
-  const hasPdf = !!payroll.payslipUrl;
+  const hasPdf = !!secureDocUrl(payroll.payslipUrl);
   const attendancePct = payroll.workingDays
     ? Math.round((payroll.presentDays / payroll.workingDays) * 100)
     : 0;
@@ -424,7 +424,7 @@ function EmployeePayslipCard({ payroll, onView }: { payroll: any; onView: () => 
               Details
             </Button>
             {hasPdf ? (
-              <a href={payroll.payslipUrl} target="_blank" rel="noopener noreferrer">
+              <a href={secureDocUrl(payroll.payslipUrl)} target="_blank" rel="noopener noreferrer">
                 <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">
                   <Download className="w-3.5 h-3.5 mr-1.5" />
                   PDF
@@ -554,8 +554,8 @@ function PaySlip({ payroll, isAdmin, generating, onGeneratePdf }: {
 
       {/* Actions */}
       <div className="flex gap-2">
-        {payroll.payslipUrl ? (
-          <a href={payroll.payslipUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+        {secureDocUrl(payroll.payslipUrl) ? (
+          <a href={secureDocUrl(payroll.payslipUrl)} target="_blank" rel="noopener noreferrer" className="flex-1">
             <Button variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50">
               <Download className="w-4 h-4 mr-2" />
               Download PDF

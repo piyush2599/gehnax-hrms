@@ -11,6 +11,25 @@ export interface CloudinaryUploadResult {
   publicId: string;
 }
 
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME ?? "";
+
+/**
+ * Returns the auth-protected proxy URL for a Cloudinary document.
+ * Works in both server and client contexts (no Node-only APIs).
+ */
+export function secureDocUrl(cloudinaryUrl: string): string {
+  if (!cloudinaryUrl) return "";
+  const encoded = typeof window === "undefined"
+    ? Buffer.from(cloudinaryUrl).toString("base64url")
+    : btoa(cloudinaryUrl).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `/api/secure-file?u=${encoded}`;
+}
+
+/** Returns true if the URL belongs to our Cloudinary account. */
+export function isOurCloudinaryUrl(url: string): boolean {
+  return url.startsWith(`https://res.cloudinary.com/${CLOUD_NAME}/`);
+}
+
 export async function uploadToCloudinary(
   buffer: Buffer,
   fileName: string,

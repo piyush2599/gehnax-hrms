@@ -12,7 +12,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { FileText, Check, X, Eye, Clock, RefreshCw, Calendar } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, secureDocUrl } from "@/lib/utils";
 import { format } from "date-fns";
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
@@ -98,7 +98,7 @@ function OfferApprovals() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {c.offer?.offerPdfUrl && (
-              <a href={c.offer.offerPdfUrl} target="_blank" rel="noopener noreferrer">
+              <a href={secureDocUrl(c.offer.offerPdfUrl)} target="_blank" rel="noopener noreferrer">
                 <Button size="sm" variant="outline" className="gap-1.5 border-slate-200"><Eye className="w-3.5 h-3.5" />Preview</Button>
               </a>
             )}

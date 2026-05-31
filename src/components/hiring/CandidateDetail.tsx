@@ -18,7 +18,7 @@ import {
   Calendar, UserPlus, Sparkles, ChevronDown, ChevronUp, Copy, ChevronLeft,
   BadgeCheck, Clock, AlertCircle,
 } from "lucide-react";
-import { formatDate, cn } from "@/lib/utils";
+import { formatDate, cn, secureDocUrl } from "@/lib/utils";
 import { calculateCTC, type CTCBreakdown } from "@/lib/ctc-calculator";
 import CTCCalculator from "@/components/employees/CTCCalculator";
 import InterviewsTab from "./InterviewsTab";
@@ -227,7 +227,7 @@ export default function CandidateDetail({ candidate: initialCandidate, jobs, can
                   <p className="text-sm font-semibold text-emerald-800">Resume uploaded</p>
                   <p className="text-xs text-emerald-600 truncate">{candidate.resumeUrl.split("/").pop()}</p>
                 </div>
-                <a href={candidate.resumeUrl} target="_blank" rel="noopener noreferrer"
+                <a href={secureDocUrl(candidate.resumeUrl)} target="_blank" rel="noopener noreferrer"
                   className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-100 transition-colors">
                   <Download className="w-4 h-4" />
                 </a>
@@ -734,7 +734,7 @@ function OfferLetterTab({
                   <p className="text-xs mt-0.5 opacity-80">{displayOffer.approvalComments}</p>
                 )}
                 {displayOffer.approvalStatus === "approved" && displayOffer.offerPdfUrl && (
-                  <a href={displayOffer.offerPdfUrl} target="_blank" rel="noopener noreferrer"
+                  <a href={secureDocUrl(displayOffer.offerPdfUrl)} target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs font-semibold mt-1.5 underline">
                     <Download className="w-3 h-3" /> Download Approved Offer
                   </a>
