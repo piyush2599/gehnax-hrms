@@ -15,36 +15,22 @@ export async function POST(req: NextRequest) {
 
   await connectDB();
 
-  const now  = new Date();
-  const thisMonth = now.getMonth() + 1; // 1-12
-  const thisYear  = now.getFullYear();
+  // Policy: all currently onboarded employees start leave from July 2026.
+  // Set creditedMonth=6, creditedYear=2026 (June) so the credit function
+  // fires 2 leaves in July on first API call. Reset balance to 0.
+  const POLICY_MONTH = 6;   // June — so July is the first credited month
+  const POLICY_YEAR  = 2026;
 
-  // Previous month (so credit function will credit the current month on next call)
-  const prevMonth = thisMonth === 1 ? 12 : thisMonth - 1;
-  const prevYear  = thisMonth === 1 ? thisYear - 1 : thisYear;
-
-  // Find employees not yet migrated (leaveCreditedYear === 0 or undefined)
-  const employees = await Employee.find({
-    $or: [
-      { "leaveBalance.leaveCreditedYear": { $exists: false } },
-      { "leaveBalance.leaveCreditedYear": 0 },
-    ],
-  }).select("leaveBalance joiningDate");
-
-  let updated = 0;
-  for (const emp of employees) {
-    const annualBalance = (emp.leaveBalance as any)?.annual ?? 0;
-    const initialLeaves = Math.min(annualBalance, 10); // carry-forward max is 10
-
-    await Employee.findByIdAndUpdate(emp._id, {
+  const result = await Employee.updateMany(
+    { isActive: true },
+    {
       $set: {
-        "leaveBalance.leaves":             initialLeaves,
-        "leaveBalance.leaveCreditedMonth": prevMonth,
-        "leaveBalance.leaveCreditedYear":  prevYear,
+        "leaveBalance.leaves":             0,
+        "leaveBalance.leaveCreditedMonth": POLICY_MONTH,
+        "leaveBalance.leaveCreditedYear":  POLICY_YEAR,
       },
-    });
-    updated++;
-  }
+    }
+  );
 
-  return NextResponse.json({ ok: true, updated });
+  return NextResponse.json({ ok: true, updated: result.modifiedCount });
 }

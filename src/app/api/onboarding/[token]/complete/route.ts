@@ -123,6 +123,17 @@ export async function POST(
         avatar: hasProfilePic ? invite.profilePicture : undefined,
         documents: onboardingDocs,
         salary: { basic: 0, hra: 0, allowances: 0, deductions: 0 },
+        // Seed leave credit to the month before completion so first credit fires immediately
+        leaveBalance: (() => {
+          const now = new Date();
+          const m = now.getMonth() + 1; // 1-12
+          const y = now.getFullYear();
+          return {
+            leaves: 0,
+            leaveCreditedMonth: m === 1 ? 12 : m - 1,
+            leaveCreditedYear:  m === 1 ? y - 1 : y,
+          };
+        })(),
       });
     } catch (empErr: any) {
       // Roll back the User creation so admin can retry cleanly
