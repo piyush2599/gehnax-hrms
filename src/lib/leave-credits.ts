@@ -2,7 +2,7 @@
  * Lazy leave credit system.
  * Rules:
  *  - 2 leaves credited per calendar month
- *  - At every Jan 1 boundary (carry-forward), balance is capped at 10
+ *  - At every Jan 1 boundary ALL unused leaves lapse (reset to 0) — no carry-forward
  *  - Run this before any balance check or display
  */
 
@@ -40,8 +40,8 @@ export function calcLeaveCredits(employee: any): CreditResult {
     if (m > 12) {
       m = 1;
       y++;
-      // Year-end carry-forward: cap at 10 before crediting Jan
-      leaves = Math.min(leaves, 10);
+      // Year-end: ALL unused leaves lapse — reset to 0 before crediting Jan
+      leaves = 0;
     }
     leaves += 2;
     monthsCredited++;

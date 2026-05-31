@@ -293,14 +293,25 @@ export default function ProfileClient() {
               <CardTitle className="text-sm font-semibold text-slate-700">Leave Balance</CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {Object.entries(emp.leaveBalance || {}).map(([type, balance]) => (
-                  <div key={type} className="text-center p-3 bg-blue-50 rounded-xl border border-blue-100">
-                    <p className="text-xl font-bold text-blue-600">{balance as number}</p>
-                    <p className="text-xs text-slate-500 capitalize mt-0.5">{type}</p>
+              {(() => {
+                const balance = emp.leaveBalance?.leaves ?? 0;
+                const color = balance >= 10 ? "text-emerald-600" : balance >= 5 ? "text-amber-600" : "text-red-600";
+                const bg    = balance >= 10 ? "bg-emerald-50 border-emerald-100" : balance >= 5 ? "bg-amber-50 border-amber-100" : "bg-red-50 border-red-100";
+                return (
+                  <div className="space-y-3">
+                    <div className={`flex items-center justify-between px-5 py-4 rounded-xl border ${bg}`}>
+                      <div>
+                        <p className="text-xs text-slate-500 font-medium">Available Leaves</p>
+                        <p className={`text-3xl font-bold mt-0.5 ${color}`}>{balance} <span className="text-base font-medium text-slate-400">days</span></p>
+                      </div>
+                      <div className="text-right text-xs text-slate-400 space-y-1">
+                        <p>+2 credited every month</p>
+                        <p>Resets to 0 on Jan 1</p>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
