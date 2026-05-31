@@ -133,6 +133,88 @@ export function sendResignationNotificationEmail(
   });
 }
 
+export function sendLeaveConfirmationEmail(
+  to: string,
+  employeeName: string,
+  startDate: string,
+  endDate: string,
+  totalDays: number,
+  reason: string,
+) {
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return sendMail({
+    to,
+    subject: `Leave Application Submitted — ${fmt(startDate)} to ${fmt(endDate)}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
+          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px"/>
+          <p style="color:#bfdbfe;margin:4px 0 0;font-size:14px">Leave Management</p>
+        </div>
+        <div style="padding:32px">
+          <h2 style="color:#1e293b;margin-top:0">Hi ${employeeName},</h2>
+          <p style="color:#475569">Your leave application has been submitted and is <strong>pending approval</strong>.</p>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px;width:120px">From</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${fmt(startDate)}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px">To</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${fmt(endDate)}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px">Duration</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${totalDays} working day${totalDays !== 1 ? "s" : ""}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px;vertical-align:top">Reason</td><td style="padding:6px 0;color:#475569">${reason}</td></tr>
+            </table>
+          </div>
+          <p style="color:#475569;font-size:14px">You will receive an email once your leave is reviewed by your manager or HR.</p>
+        </div>
+        <div style="background:#f1f5f9;padding:16px;text-align:center;color:#94a3b8;font-size:12px">
+          © ${new Date().getFullYear()} Gehnax Technologies LLP
+        </div>
+      </div>
+    `,
+  });
+}
+
+export function sendLeaveStatusEmail(
+  to: string,
+  employeeName: string,
+  status: "approved" | "rejected",
+  startDate: string,
+  endDate: string,
+  totalDays: number,
+  comments?: string,
+) {
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const isApproved = status === "approved";
+  return sendMail({
+    to,
+    subject: `Leave ${isApproved ? "Approved" : "Rejected"} — ${fmt(startDate)} to ${fmt(endDate)}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
+        <div style="background:${isApproved ? "linear-gradient(135deg,#065f46,#059669)" : "linear-gradient(135deg,#991b1b,#dc2626)"};padding:32px;text-align:center">
+          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px"/>
+          <p style="color:${isApproved ? "#a7f3d0" : "#fecaca"};margin:4px 0 0;font-size:14px">Leave ${isApproved ? "Approved ✓" : "Rejected ✗"}</p>
+        </div>
+        <div style="padding:32px">
+          <h2 style="color:#1e293b;margin-top:0">Hi ${employeeName},</h2>
+          <p style="color:#475569">Your leave application has been <strong style="color:${isApproved ? "#059669" : "#dc2626"}">${status}</strong>.</p>
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px;width:120px">From</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${fmt(startDate)}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px">To</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${fmt(endDate)}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:13px">Duration</td><td style="padding:6px 0;color:#1e293b;font-weight:600">${totalDays} working day${totalDays !== 1 ? "s" : ""}</td></tr>
+              ${comments ? `<tr><td style="padding:6px 0;color:#64748b;font-size:13px;vertical-align:top">Comments</td><td style="padding:6px 0;color:#475569">${comments}</td></tr>` : ""}
+            </table>
+          </div>
+          ${isApproved
+            ? `<p style="color:#475569;font-size:14px">Your leave has been approved. Enjoy your time off!</p>`
+            : `<p style="color:#475569;font-size:14px">If you have questions, please contact your HR or manager.</p>`}
+        </div>
+        <div style="background:#f1f5f9;padding:16px;text-align:center;color:#94a3b8;font-size:12px">
+          © ${new Date().getFullYear()} Gehnax Technologies LLP
+        </div>
+      </div>
+    `,
+  });
+}
+
 export function sendLeaveApplicationEmail(
   to: string[],
   employeeName: string,

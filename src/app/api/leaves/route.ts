@@ -5,7 +5,7 @@ import Leave from "@/models/Leave";
 import Employee from "@/models/Employee";
 import User from "@/models/User";
 import { calcLeaveCredits } from "@/lib/leave-credits";
-import { sendLeaveApplicationEmail } from "@/lib/email";
+import { sendLeaveApplicationEmail, sendLeaveConfirmationEmail } from "@/lib/email";
 
 function countWeekdays(start: Date, end: Date): number {
   let count = 0;
@@ -166,6 +166,18 @@ export async function POST(req: NextRequest) {
         recipients,
         `${employee.firstName} ${employee.lastName}`,
         employee.employeeCode,
+        startDate,
+        endDate,
+        totalDays,
+        reason,
+      ).catch(() => {});
+    }
+
+    // Confirmation email to the employee themselves
+    if (employee.email) {
+      sendLeaveConfirmationEmail(
+        employee.email,
+        employee.firstName,
         startDate,
         endDate,
         totalDays,

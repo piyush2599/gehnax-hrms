@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import Leave from "@/models/Leave";
 import Employee from "@/models/Employee";
 import Attendance from "@/models/Attendance";
+import { sendLeaveStatusEmail } from "@/lib/email";
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth();
@@ -80,6 +81,22 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   leave.reviewedOn = new Date();
   leave.reviewComments = reviewComments;
   await leave.save();
+
+  // Email the employee about the decision (fire-and-forget)
+  try {
+    const emp = await Employee.findById(employee._id).select("email firstName");
+    if (emp?.email) {
+      sendLeaveStatusEmail(
+        emp.email,
+        emp.firstName,
+        status as "approved" | "rejected",
+        leave.startDate.toISOString(),
+        leave.endDate.toISOString(),
+        leave.totalDays,
+        reviewComments,
+      ).catch(() => {});
+    }
+  } catch {}
 
   return NextResponse.json(leave);
 }
