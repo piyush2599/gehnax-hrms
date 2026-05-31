@@ -26,23 +26,38 @@ export async function GET(req: NextRequest) {
   await connectDB();
 
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status");
-  const search = searchParams.get("search");
+  const status     = searchParams.get("status");
+  const search     = searchParams.get("search");
+  // activeRole sent by the client role-switcher — only trust it if it's actually in the user's roles
+  const activeRole = searchParams.get("activeRole") ?? "";
+  const effectiveRole = roles.includes(activeRole) ? activeRole : (roles[0] ?? "employee");
 
   const filter: any = {};
 
-  // Employees only see projects they're part of
-  if (roles.every(r => r === "employee") && empId) {
-    filter.$or = [{ team: empId }, { manager: empId }];
+  // Restrict to assigned projects when viewing as employee
+  const isEmployeeOnly = effectiveRole === "employee" ||
+    !roles.some(r => ["super_admin", "finance_admin", "hr_admin", "manager"].includes(r));
+
+  if (isEmployeeOnly) {
+    filter.$or = empId
+      ? [{ team: empId }, { manager: empId }]
+      : [{ _id: null }]; // no linked employee record → show nothing
   }
 
   if (status && status !== "all") filter.status = status;
   if (search) {
-    filter.$or = [
+    const searchConditions = [
       { name: { $regex: search, $options: "i" } },
       { key:  { $regex: search, $options: "i" } },
       { projectCode: { $regex: search, $options: "i" } },
     ];
+    // Combine search with existing employee filter using $and
+    if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, { $or: searchConditions }];
+      delete filter.$or;
+    } else {
+      filter.$or = searchConditions;
+    }
   }
 
   const projects = await Project.find(filter)
@@ -73,7 +88,10 @@ export async function GET(req: NextRequest) {
   }));
 
   // Stats
-  const all = await Project.find(roles.every(r => r === "employee") && empId ? { $or: [{ team: empId }, { manager: empId }] } : {});
+  const statsFilter = isEmployeeOnly
+    ? (empId ? { $or: [{ team: empId }, { manager: empId }] } : { _id: null })
+    : {};
+  const all = await Project.find(statsFilter);
   const stats = {
     total: all.length,
     active: all.filter((p) => p.status === "active").length,

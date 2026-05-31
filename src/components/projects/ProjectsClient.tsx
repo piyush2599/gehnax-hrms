@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
+import { useActiveRole } from "@/components/layout/active-role-context";
 import { Button }   from "@/components/ui/button";
 import { Input }    from "@/components/ui/input";
 import { Badge }    from "@/components/ui/badge";
@@ -63,6 +64,7 @@ function StatCard({ label, value, icon: Icon, color, bg }: any) {
 
 export default function ProjectsClient() {
   const { data: session } = useSession();
+  const { activeRole } = useActiveRole();
   const router = useRouter();
   const roles: string[] = (session?.user as any)?.roles || ["employee"];
   const canManage = roles.some(r => ["super_admin","hr_admin","manager"].includes(r));
@@ -75,6 +77,7 @@ export default function ProjectsClient() {
   const params = new URLSearchParams();
   if (statusFilter !== "all") params.set("status", statusFilter);
   if (search) params.set("search", search);
+  params.set("activeRole", activeRole);
 
   const { data, isLoading, mutate } = useSWR(
     `/api/projects?${params.toString()}`,

@@ -22,7 +22,10 @@ export async function POST(
 
     await connectDB();
 
-    const invite = await OnboardingInvite.findOne({ token: params.token });
+    const invite = await OnboardingInvite.findOne({ token: params.token }).select(
+      "status employeeCode email personalEmail firstName lastName department designation " +
+      "employmentType joiningDate formData documents profilePicture"
+    );
 
     if (!invite) return NextResponse.json({ error: "Invite not found" }, { status: 404 });
     if (invite.status !== "submitted") {
@@ -54,7 +57,7 @@ export async function POST(
     const firstName = personal.firstName || invite.firstName || "";
     const lastName = personal.lastName || invite.lastName || "";
     const personalEmail = invite.personalEmail || "";
-    const hashedPassword = await bcrypt.hash(invite.employeeCode, 12);
+    const hashedPassword = await bcrypt.hash(invite.employeeCode, 10);
 
     // profilePicture is a Cloudinary URL when uploaded via onboarding form
     const hasProfilePic = !!invite.profilePicture;
@@ -135,10 +138,11 @@ export async function POST(
     const avatarUrl = hasProfilePic ? invite.profilePicture : undefined;
     await User.findByIdAndUpdate(user._id, { employeeId: employee._id, ...(avatarUrl ? { avatar: avatarUrl } : {}) });
 
-    invite.status = "completed";
-    invite.completedAt = new Date();
-    invite.employeeId = employee._id;
-    await invite.save();
+    // Use updateOne to avoid sending the full invite document back to MongoDB
+    await OnboardingInvite.updateOne(
+      { token: params.token },
+      { $set: { status: "completed", completedAt: new Date(), employeeId: employee._id } }
+    );
 
     const fullName = `${firstName} ${lastName}`.trim() || invite.email;
     const emailTarget = personalEmail || invite.email;

@@ -45,7 +45,7 @@ export async function PUT(
 ) {
   await connectDB();
 
-  const invite = await OnboardingInvite.findOne({ token: params.token });
+  const invite = await OnboardingInvite.findOne({ token: params.token }).select("status");
 
   if (!invite) {
     return NextResponse.json({ error: "Invalid onboarding link" }, { status: 404 });
@@ -57,13 +57,15 @@ export async function PUT(
 
   const { formData, submit, profilePicture } = await req.json();
 
-  invite.formData = formData;
-  invite.status = submit ? "submitted" : "in_progress";
-  // Re-save profilePicture on every PUT so it is never lost
-  if (profilePicture) invite.profilePicture = profilePicture;
-  await invite.save();
+  const update: any = {
+    formData,
+    status: submit ? "submitted" : "in_progress",
+  };
+  if (profilePicture) update.profilePicture = profilePicture;
 
-  return NextResponse.json({ invite });
+  await OnboardingInvite.updateOne({ token: params.token }, { $set: update });
+
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(
