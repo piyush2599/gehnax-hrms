@@ -52,6 +52,36 @@ export async function GET(req: NextRequest) {
     .populate("employeeId", "firstName lastName employeeCode")
     .sort({ date: -1 });
 
+  // For employee monthly view: compute absent days (weekdays with no record, before today)
+  if (isEmployeeView && month && year) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const endDate   = new Date(parseInt(year), parseInt(month), 1);
+    const recordedDates = new Set(attendance.map((a: any) => new Date(a.date).toDateString()));
+    const absentRecords: any[] = [];
+
+    const cur = new Date(startDate);
+    while (cur < endDate && cur < today) {
+      const dow = cur.getDay();
+      if (dow !== 0 && dow !== 6 && !recordedDates.has(cur.toDateString())) {
+        absentRecords.push({
+          _id: `absent-${cur.toISOString()}`,
+          employeeId: sessionEmployeeId,
+          date: cur.toISOString(),
+          status: "absent",
+          checkIn: null,
+          checkOut: null,
+          workingHours: 0,
+          isComputed: true,
+        });
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    return NextResponse.json([...attendance, ...absentRecords]);
+  }
+
   return NextResponse.json(attendance);
 }
 

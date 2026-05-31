@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { Clock, LogIn, LogOut, Plus, CheckCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Clock, LogIn, LogOut, Plus, CheckCircle, RefreshCw } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
 import { useImpersonate } from "@/components/layout/impersonate-context";
@@ -47,6 +48,7 @@ export default function AttendanceClient() {
   const [year, setYear] = useState(today.getFullYear());
   const [clockLoading, setClockLoading] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [regularizeDate, setRegularizeDate] = useState<string | null>(null);
 
   const todayStr = format(today, "yyyy-MM-dd");
   const isAdminOrHR = ["super_admin", "hr_admin", "manager"].includes(activeRole);
@@ -233,11 +235,12 @@ export default function AttendanceClient() {
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Check Out</TableHead>
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Hours</TableHead>
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</TableHead>
+                  {!isAdminOrHR && <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Action</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {records.map((record: any) => (
-                  <TableRow key={record._id} className="hover:bg-slate-50">
+                {records.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((record: any) => (
+                  <TableRow key={record._id} className={`hover:bg-slate-50 ${record.status === "absent" ? "bg-red-50/30" : ""}`}>
                     <TableCell className="text-sm font-medium text-slate-700">
                       {format(new Date(record.date), "EEE, MMM d")}
                     </TableCell>
@@ -256,6 +259,19 @@ export default function AttendanceClient() {
                         {record.status.replace("_", " ")}
                       </Badge>
                     </TableCell>
+                    {!isAdminOrHR && (
+                      <TableCell>
+                        {record.status === "absent" && (
+                          <button
+                            onClick={() => setRegularizeDate(new Date(record.date).toISOString().split("T")[0])}
+                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            Regularize
+                          </button>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -263,6 +279,23 @@ export default function AttendanceClient() {
           )}
         </CardContent>
       </Card>
+
+      {/* Regularization Dialog */}
+      {regularizeDate && (
+        <Dialog open onOpenChange={() => setRegularizeDate(null)} disablePointerDismissal>
+          <DialogContent>
+            <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="w-4 h-4 text-blue-600" />Request Attendance Regularization</DialogTitle></DialogHeader>
+            <RegularizeForm
+              date={regularizeDate}
+              onSuccess={() => {
+                setRegularizeDate(null);
+                mutate(`/api/attendance?month=${month}&year=${year}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`);
+              }}
+              onCancel={() => setRegularizeDate(null)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Manual Entry Dialog */}
       {isAdminOrHR && (
@@ -349,6 +382,55 @@ function ManualAttendanceForm({ onSuccess }: { onSuccess: () => void }) {
       <Button type="submit" loading={loading} className="w-full">
         {loading ? "Saving…" : "Save Attendance"}
       </Button>
+    </form>
+  );
+}
+
+function RegularizeForm({ date, onSuccess, onCancel }: { date: string; onSuccess: () => void; onCancel: () => void }) {
+  const [form, setForm] = useState({ checkIn: "09:00", checkOut: "18:00", reason: "" });
+  const [loading, setLoading] = useState(false);
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch("/api/attendance/regularize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, ...form }),
+      });
+      const data = await res.json();
+      if (!res.ok) toast.error(data.error || "Failed to submit");
+      else { toast.success("Regularization request submitted — pending Super Admin approval"); onSuccess(); }
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+      <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+        Requesting regularization for <strong>{format(new Date(date), "EEEE, MMMM d, yyyy")}</strong>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Check-in Time *</Label>
+          <Input type="time" value={form.checkIn} onChange={e => set("checkIn", e.target.value)} required />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Check-out Time *</Label>
+          <Input type="time" value={form.checkOut} onChange={e => set("checkOut", e.target.value)} required />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Reason *</Label>
+        <Textarea value={form.reason} onChange={e => set("reason", e.target.value)} placeholder="Why were you unable to check in/out on this day?" rows={3} required />
+      </div>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={loading} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
+          {loading ? "Submitting…" : "Submit for Approval"}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel} className="border-slate-200">Cancel</Button>
+      </div>
     </form>
   );
 }
