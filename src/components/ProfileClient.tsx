@@ -15,6 +15,7 @@ import { getInitials, formatDate, formatCurrency } from "@/lib/utils";
 import { User, Phone, MapPin, Building2, Calendar, Pencil, FolderOpen, LogOut, IdCard, ShieldCheck, Eye, EyeOff, Check, X as XIcon, ScrollText, Download, Copy, ExternalLink, FileText } from "lucide-react";
 import { validatePassword } from "@/lib/password";
 import { useSession } from "next-auth/react";
+import { useImpersonate } from "@/components/layout/impersonate-context";
 import EmployeeDocuments from "@/components/employees/EmployeeDocuments";
 import ResignModal from "@/components/employees/ResignModal";
 import EmployeeIDCard from "@/components/employees/EmployeeIDCard";
@@ -23,7 +24,9 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function ProfileClient() {
   const { data: session } = useSession();
-  const employeeId = (session?.user as any)?.employeeId || "";
+  const { impersonating } = useImpersonate();
+  // When super admin is impersonating, show that employee's profile
+  const employeeId = impersonating?.id || (session?.user as any)?.employeeId || "";
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showResign, setShowResign] = useState(false);
@@ -56,7 +59,10 @@ export default function ProfileClient() {
     address: { street: "", city: "", state: "", country: "India", pincode: "" },
   });
 
+  const isViewOnly = !!impersonating; // disable edits when impersonating
+
   const startEdit = () => {
+    if (isViewOnly) return;
     setForm({
       phone: emp?.phone || "",
       address: emp?.address || { street: "", city: "", state: "", country: "India", pincode: "" },
@@ -159,10 +165,12 @@ export default function ProfileClient() {
             </div>
             {!editing && (
               <div className="flex gap-2 flex-shrink-0">
+                {!isViewOnly && (
                 <Button onClick={startEdit} variant="outline" size="sm" className="border-slate-200">
                   <Pencil className="w-3.5 h-3.5 mr-1.5" />
                   Edit Profile
                 </Button>
+                )}
                 {emp.resignation?.status === "pending" || emp.resignation?.status === "accepted" ? (
                   <Button
                     size="sm"
