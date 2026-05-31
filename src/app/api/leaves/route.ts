@@ -47,10 +47,13 @@ export async function GET(req: NextRequest) {
   const year       = searchParams.get("year");
 
   const roles: string[]    = (session.user as any).roles || [];
-  const sessionEmployeeId  = (session.user as any).employeeId;
+  let sessionEmployeeId    = (session.user as any).employeeId;
   const activeRole     = searchParams.get("activeRole") ?? "";
+  const impersonateId  = searchParams.get("impersonateId") ?? "";
+  const isImpersonating = !!impersonateId && roles.includes("super_admin");
+  if (isImpersonating) sessionEmployeeId = impersonateId;
   const effectiveRole  = roles.includes(activeRole) ? activeRole : (roles[0] ?? "employee");
-  const isEmployeeOnly = effectiveRole === "employee" || !roles.some(r => ["super_admin","hr_admin","manager","finance_admin"].includes(r));
+  const isEmployeeOnly = isImpersonating || effectiveRole === "employee" || !roles.some(r => ["super_admin","hr_admin","manager","finance_admin"].includes(r));
 
   const query: any = {};
   if (isEmployeeOnly) {

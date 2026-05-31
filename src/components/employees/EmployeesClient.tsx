@@ -14,10 +14,12 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Users, ChevronRight } from "lucide-react";
+import { Plus, Search, Users, ChevronRight, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { useActiveRole } from "@/components/layout/active-role-context";
+import { useImpersonate } from "@/components/layout/impersonate-context";
 import CTCCalculator from "./CTCCalculator";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -37,6 +39,9 @@ export default function EmployeesClient() {
   const { data: session } = useSession();
   const roles: string[] = (session?.user as any)?.roles || [];
   const canAdd = roles.some(r => ["super_admin", "hr_admin"].includes(r));
+  const { activeRole } = useActiveRole();
+  const { startImpersonation, stopImpersonation, impersonating } = useImpersonate();
+  const isSuperAdmin = roles.includes("super_admin");
 
   const apiUrl = `/api/employees?search=${search}&department=${deptFilter === "all" ? "" : deptFilter}`;
   const { data, isLoading } = useSWR(apiUrl, fetcher);
@@ -178,8 +183,33 @@ export default function EmployeesClient() {
                         {emp.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <ChevronRight className="w-4 h-4 text-slate-300" />
+                    <TableCell onClick={e => e.stopPropagation()} className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {isSuperAdmin && emp.userId && (
+                          <button
+                            title="Preview as this employee"
+                            onClick={() => {
+                              if (impersonating?.id === emp._id) {
+                                stopImpersonation();
+                              } else {
+                                startImpersonation({
+                                  id: emp._id,
+                                  name: `${emp.firstName} ${emp.lastName}`,
+                                  employeeCode: emp.employeeCode,
+                                });
+                              }
+                            }}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              impersonating?.id === emp._id
+                                ? "bg-red-100 text-red-600"
+                                : "text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                            }`}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <ChevronRight className="w-4 h-4 text-slate-300" />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

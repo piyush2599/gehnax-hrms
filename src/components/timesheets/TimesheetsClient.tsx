@@ -15,6 +15,7 @@ import { format, startOfWeek, endOfWeek, addWeeks } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, Clock, Check, X, Save, Send } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
+import { useImpersonate } from "@/components/layout/impersonate-context";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -28,6 +29,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function TimesheetsClient() {
   const { data: session } = useSession();
   const { activeRole } = useActiveRole();
+  const { impersonating } = useImpersonate();
+  const impersonateId = impersonating?.id || "";
   const [weekOffset, setWeekOffset] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
   const [reviewTs, setReviewTs] = useState<any>(null);
@@ -39,10 +42,10 @@ export default function TimesheetsClient() {
   const weekDateStr = format(weekStart, "yyyy-MM-dd");
 
   const { data: timesheets, isLoading } = useSWR(
-    isAdminOrHR ? `/api/timesheets?status=submitted&activeRole=${activeRole}` : `/api/timesheets?activeRole=${activeRole}`,
+    isAdminOrHR && !impersonateId ? `/api/timesheets?status=submitted&activeRole=${activeRole}` : `/api/timesheets?activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`,
     fetcher
   );
-  const { data: currentWeekTs } = useSWR(`/api/timesheets?weekDate=${weekDateStr}&activeRole=${activeRole}`, fetcher);
+  const { data: currentWeekTs } = useSWR(`/api/timesheets?weekDate=${weekDateStr}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`, fetcher);
 
   const tsList = Array.isArray(timesheets) ? timesheets : [];
   const currentTs = Array.isArray(currentWeekTs) ? currentWeekTs[0] : null;

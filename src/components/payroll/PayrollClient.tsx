@@ -15,6 +15,7 @@ import { DollarSign, FileText, Download, Play, Loader2, ExternalLink, TrendingUp
 import { formatCurrency, getMonthName } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
+import { useImpersonate } from "@/components/layout/impersonate-context";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -35,6 +36,8 @@ const STATUS_DOT: Record<string, string> = {
 export default function PayrollClient() {
   const { data: session } = useSession();
   const { activeRole } = useActiveRole();
+  const { impersonating } = useImpersonate();
+  const impersonateId = impersonating?.id || "";
   const sessionEmployeeId = (session?.user as any)?.employeeId;
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth() + 1);
@@ -48,7 +51,7 @@ export default function PayrollClient() {
 
   // Admin: filter by month+year. Employee: restrict to own records via employeeId.
   const adminUrl    = `/api/payroll?month=${month}&year=${year}&activeRole=${activeRole}`;
-  const employeeUrl = `/api/payroll?year=${year}&activeRole=${activeRole}${sessionEmployeeId ? `&employeeId=${sessionEmployeeId}` : ""}`;
+  const employeeUrl = `/api/payroll?year=${year}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : (sessionEmployeeId ? `&employeeId=${sessionEmployeeId}` : "")}`;
 
   const { data: payrolls, isLoading } = useSWR(
     isEmployee ? employeeUrl : adminUrl,

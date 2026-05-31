@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { Clock, LogIn, LogOut, Plus, CheckCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
+import { useImpersonate } from "@/components/layout/impersonate-context";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -38,6 +39,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AttendanceClient() {
   const { data: session } = useSession();
   const { activeRole } = useActiveRole();
+  const { impersonating } = useImpersonate();
+  const impersonateId = impersonating?.id || "";
   const sessionEmployeeId = (session?.user as any)?.employeeId || "";
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth() + 1);
@@ -49,12 +52,12 @@ export default function AttendanceClient() {
   const isAdminOrHR = ["super_admin", "hr_admin", "manager"].includes(activeRole);
 
   const { data: todayAttendance } = useSWR(
-    `/api/attendance?date=${todayStr}&activeRole=${activeRole}`,
+    `/api/attendance?date=${todayStr}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`,
     fetcher,
     { refreshInterval: 30000 }
   );
   const { data: monthlyAttendance, isLoading } = useSWR(
-    `/api/attendance?month=${month}&year=${year}&activeRole=${activeRole}`,
+    `/api/attendance?month=${month}&year=${year}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`,
     fetcher
   );
 

@@ -6,6 +6,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { SidebarProvider } from "@/components/layout/sidebar-context";
 import { ActiveRoleProvider } from "@/components/layout/active-role-context";
+import { ImpersonateProvider } from "@/components/layout/impersonate-context";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <ActiveRoleProvider>
+    <ImpersonateProvider>
     <SidebarProvider>
       <div className="flex h-screen bg-[#f4f6fb] overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white">
         <div className="print:hidden h-full"><Sidebar /></div>
@@ -28,6 +30,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </div>
       <div className="print:hidden"><PWAInstallPrompt /></div>
     </SidebarProvider>
+    </ImpersonateProvider>
     </ActiveRoleProvider>
   );
 }

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Plus, Calendar, Check, X, Clock } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
+import { useImpersonate } from "@/components/layout/impersonate-context";
 import { formatDate } from "@/lib/utils";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -33,7 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function LeavesClient() {
   const { data: session } = useSession();
-  const { activeRole } = useActiveRole();
+  const { activeRole } = useActiveRole();\n  const { impersonating } = useImpersonate();\n  const impersonateId = impersonating?.id || "";
   const [applyOpen, setApplyOpen] = useState(false);
   const [reviewLeave, setReviewLeave] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState("all");

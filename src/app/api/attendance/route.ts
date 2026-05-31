@@ -17,10 +17,16 @@ export async function GET(req: NextRequest) {
   const date = searchParams.get("date");
 
   const roles: string[] = (session.user as any).roles || [];
-  const sessionEmployeeId = (session.user as any).employeeId;
+  let sessionEmployeeId = (session.user as any).employeeId;
   const activeRole  = searchParams.get("activeRole") ?? "";
+  const impersonateId = searchParams.get("impersonateId") ?? "";
+
+  // Super admin impersonation — treat as that employee
+  const isImpersonating = !!impersonateId && roles.includes("super_admin");
+  if (isImpersonating) sessionEmployeeId = impersonateId;
+
   const effectiveRole = roles.includes(activeRole) ? activeRole : (roles[0] ?? "employee");
-  const isEmployeeView = effectiveRole === "employee" || !roles.some(r => ["super_admin","finance_admin","hr_admin","manager"].includes(r));
+  const isEmployeeView = isImpersonating || effectiveRole === "employee" || !roles.some(r => ["super_admin","finance_admin","hr_admin","manager"].includes(r));
 
   const query: any = {};
 

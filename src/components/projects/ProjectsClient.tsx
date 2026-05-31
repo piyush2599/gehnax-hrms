@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
+import { useImpersonate } from "@/components/layout/impersonate-context";
 import { Button }   from "@/components/ui/button";
 import { Input }    from "@/components/ui/input";
 import { Badge }    from "@/components/ui/badge";
@@ -65,6 +66,8 @@ function StatCard({ label, value, icon: Icon, color, bg }: any) {
 export default function ProjectsClient() {
   const { data: session } = useSession();
   const { activeRole } = useActiveRole();
+  const { impersonating } = useImpersonate();
+  const impersonateId = impersonating?.id || "";
   const router = useRouter();
   const roles: string[] = (session?.user as any)?.roles || ["employee"];
   const canManage = roles.some(r => ["super_admin","hr_admin","manager"].includes(r));
@@ -78,6 +81,7 @@ export default function ProjectsClient() {
   if (statusFilter !== "all") params.set("status", statusFilter);
   if (search) params.set("search", search);
   params.set("activeRole", activeRole);
+  if (impersonateId) params.set("impersonateId", impersonateId);
 
   const { data, isLoading, mutate } = useSWR(
     `/api/projects?${params.toString()}`,

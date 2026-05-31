@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { getInitials } from "@/lib/utils";
-import { LogOut, User, Bell, Menu } from "lucide-react";
+import { LogOut, User, Bell, Menu, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { useSidebar } from "./sidebar-context";
+import { useImpersonate } from "./impersonate-context";
 
 const PAGE_NAMES: Record<string, string> = {
   "/dashboard":     "Dashboard",
@@ -57,6 +58,7 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const user = session?.user as any;
+  const { impersonating, stopImpersonation } = useImpersonate();
 
   const pageTitle =
     PAGE_NAMES[pathname] ??
@@ -71,6 +73,26 @@ export default function Header() {
   };
 
   return (
+    <>
+    {/* Impersonation banner */}
+    {impersonating && (
+      <div className="bg-red-600 text-white px-4 py-2 flex items-center justify-between gap-3 text-sm z-50 relative">
+        <div className="flex items-center gap-2">
+          <UserX className="w-4 h-4 flex-shrink-0" />
+          <span>
+            Viewing as <strong>{impersonating.name}</strong>
+            <span className="opacity-75 ml-1">({impersonating.employeeCode})</span>
+            {" "}— you are in employee preview mode
+          </span>
+        </div>
+        <button
+          onClick={() => { stopImpersonation(); router.refresh(); }}
+          className="flex-shrink-0 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1 rounded-lg transition-colors"
+        >
+          Exit Preview
+        </button>
+      </div>
+    )}
     <header className="sticky top-0 z-30 h-16 flex-shrink-0">
       {/* Glass background */}
       <div className="absolute inset-0 bg-white/85 backdrop-blur-xl border-b border-slate-200/60" />
@@ -174,5 +196,6 @@ export default function Header() {
         </div>
       </div>
     </header>
+    </>
   );
 }
