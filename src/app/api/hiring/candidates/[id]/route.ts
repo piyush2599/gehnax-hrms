@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Candidate from "@/models/Candidate";
+import CandidateAccount from "@/models/CandidateAccount";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth();
@@ -12,6 +13,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const candidate = await Candidate.findById(params.id).populate("jobPosting", "title");
 
   if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // If no resume on the candidate but they applied via the portal, fetch & sync from their account
+  if (!candidate.resumeUrl && candidate.candidateAccountId) {
+    const account = await CandidateAccount.findById(candidate.candidateAccountId)
+      .select("resumeUrl")
+      .lean() as any;
+    if (account?.resumeUrl) {
+      candidate.resumeUrl = account.resumeUrl;
+      await Candidate.findByIdAndUpdate(params.id, { resumeUrl: account.resumeUrl });
+    }
+  }
 
   return NextResponse.json({ candidate });
 }
