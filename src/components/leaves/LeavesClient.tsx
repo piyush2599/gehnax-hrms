@@ -34,7 +34,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function LeavesClient() {
   const { data: session } = useSession();
-  const { activeRole } = useActiveRole();\n  const { impersonating } = useImpersonate();\n  const impersonateId = impersonating?.id || "";
+  const { activeRole } = useActiveRole();
+  const { impersonating } = useImpersonate();
+  const impersonateId = impersonating?.id || "";
   const [applyOpen, setApplyOpen] = useState(false);
   const [reviewLeave, setReviewLeave] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState("all");
