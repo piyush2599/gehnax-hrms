@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const sessionEmployeeId = (session.user as any).employeeId;
   const activeRole    = searchParams.get("activeRole") ?? "";
   const effectiveRole = roles.includes(activeRole) ? activeRole : (roles[0] ?? "employee");
-  const isEmployeeView = effectiveRole === "employee" || !roles.some(r => ["super_admin","finance_admin","hr_admin","manager"].includes(r));
+  const isEmployeeView = effectiveRole === "employee" || !roles.some(r => ["super_admin","finance_admin"].includes(r));
 
   const query: any = {};
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const roles: string[] = (session.user as any).roles || [];
-  if (!roles.some(r => ["super_admin", "hr_admin"].includes(r))) {
+  if (!roles.includes("super_admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

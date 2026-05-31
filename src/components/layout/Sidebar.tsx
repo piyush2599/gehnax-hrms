@@ -44,7 +44,7 @@ const navGroups = [
     color: { dot: "bg-emerald-500", label: "text-emerald-400/80" },
     items: [
       { href: "/timesheets",      icon: FileText,     label: "Timesheets",      roles: ["super_admin","hr_admin","manager","employee"] },
-      { href: "/payroll",         icon: DollarSign,   label: "Payroll",         roles: ["super_admin","hr_admin","employee"] },
+      { href: "/payroll",         icon: DollarSign,   label: "Payroll",         roles: ["super_admin","employee"] },
       { href: "/expenses",        icon: ReceiptText,  label: "Expenses",        roles: ["super_admin","hr_admin","manager","employee"] },
       { href: "/purchase-orders", icon: ShoppingCart,  label: "Purchase Orders", roles: ["super_admin","finance_admin","manager","hr_admin"] },
       { href: "/projects",        icon: FolderKanban, label: "Projects",         roles: ["super_admin","finance_admin","hr_admin","manager","employee"] },

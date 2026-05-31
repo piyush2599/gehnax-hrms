@@ -43,7 +43,7 @@ export default function PayrollClient() {
   const [processing, setProcessing] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
-  const isAdminOrHR = ["super_admin", "hr_admin"].includes(activeRole);
+  const isAdminOrHR = activeRole === "super_admin";
   const isEmployee  = activeRole === "employee";
 
   // Admin: filter by month+year. Employee: restrict to own records via employeeId.
