@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Employee from "@/models/Employee";
-import { uploadToFTP } from "@/lib/ftp-upload";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -74,7 +74,7 @@ export async function POST(
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const { url } = await uploadToFTP(buffer, file.name, `employee-docs/${params.id}`);
+    const { url } = await uploadToCloudinary(buffer, file.name, `hrms/employee-docs/${params.id}`, file.type);
 
     emp.documents.push({ name: docName, type: docType, fileUrl: url, uploadedAt: new Date() });
     await emp.save();
