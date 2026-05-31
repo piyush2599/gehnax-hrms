@@ -66,12 +66,12 @@ export async function GET(req: NextRequest) {
     };
   }
 
-  // Sync credits for the current employee so balance is always up-to-date
+  // Sync credits for the current employee so balance is always up-to-date (fire-and-forget safe)
   if (sessionEmployeeId) {
-    const emp = await Employee.findById(sessionEmployeeId).select(
-      "leaveBalance joiningDate"
-    );
-    if (emp) await syncCredits(emp);
+    try {
+      const emp = await Employee.findById(sessionEmployeeId).select("leaveBalance joiningDate");
+      if (emp) await syncCredits(emp);
+    } catch {}
   }
 
   const leaves = await Leave.find(query)

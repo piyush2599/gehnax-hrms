@@ -181,10 +181,14 @@ export default function LeavesClient() {
 }
 
 function LeaveBalanceCard() {
-  const { data: employee } = useSWR("/api/employees/me", fetcher);
-  const balance = employee?.leaveBalance?.leaves ?? null;
+  const { data: employee, isLoading } = useSWR("/api/employees/me", fetcher);
 
-  if (balance === null) return null;
+  if (isLoading) return (
+    <div className="h-28 bg-white rounded-xl border border-slate-200 animate-pulse" />
+  );
+  if (!employee) return null;
+
+  const balance = employee?.leaveBalance?.leaves ?? 0;
 
   const maxDisplay   = Math.max(balance, 24); // scale bar to at least 24
   const pct          = Math.min(100, Math.round((balance / maxDisplay) * 100));
