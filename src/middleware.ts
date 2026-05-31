@@ -7,6 +7,9 @@ function isPublic(pathname: string): boolean {
   if (pathname === "/verify-offer" || pathname.startsWith("/verify-offer/")) return true;
   const parts = pathname.split("/").filter(Boolean);
   if (parts[0] === "onboarding" && parts.length === 2) return true;
+  // Candidate portal — handled by its own auth
+  if (pathname === "/candidate-login") return true;
+  if (pathname.startsWith("/candidate/")) return true;
   return false;
 }
 

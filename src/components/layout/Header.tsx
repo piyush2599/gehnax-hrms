@@ -31,6 +31,7 @@ const PAGE_NAMES: Record<string, string> = {
   "/hiring":        "Hiring",
   "/onboarding":    "Onboarding",
   "/roles":            "Roles & Permissions",
+  "/approvals":        "Offer Approvals",
   "/purchase-orders":  "Purchase Orders",
 };
 

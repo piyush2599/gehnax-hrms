@@ -19,3 +19,4 @@ import "@/models/PurchaseOrder";
 import "@/models/Project";
 import "@/models/Task";
 import "@/models/OfferLetter";
+import "@/models/CandidateAccount";

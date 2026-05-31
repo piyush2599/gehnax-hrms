@@ -32,6 +32,7 @@ export default function JobDetailPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]       = useState("");
+  const [candidateAccount, setCandidateAccount] = useState<any>(null);
 
   // Resume upload state
   const fileInputRef            = useRef<HTMLInputElement>(null);
@@ -48,10 +49,28 @@ export default function JobDetailPage() {
   });
 
   useEffect(() => {
-    fetch(`/api/public/jobs/${id}`)
-      .then((r) => r.json())
-      .then((d) => { if (d.job) setJob(d.job); else setNotFound(true); })
-      .catch(() => setNotFound(true))
+    Promise.all([
+      fetch(`/api/public/jobs/${id}`).then(r => r.json()),
+      fetch("/api/candidate/me").then(r => r.ok ? r.json() : null),
+    ]).then(([jobData, meData]) => {
+      if (jobData.job) setJob(jobData.job); else setNotFound(true);
+      if (meData?.account) {
+        const a = meData.account;
+        setCandidateAccount(a);
+        setForm({
+          firstName: a.firstName || "",
+          lastName:  a.lastName  || "",
+          email:     a.email     || "",
+          phone:     a.phone     || "",
+          currentCompany:      a.currentCompany      || "",
+          currentDesignation:  a.currentDesignation  || "",
+          totalExperience:     String(a.totalExperience ?? ""),
+          skills:              (a.skills || []).join(", "),
+          coverNote:           "",
+        });
+        if (a.resumeUrl) { setResumeUrl(a.resumeUrl); setAutofilled(true); }
+      }
+    }).catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -119,7 +138,12 @@ export default function JobDetailPage() {
       const res = await fetch("/api/public/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, jobPosting: id, resumeUrl }),
+        body: JSON.stringify({
+          ...form,
+          jobPosting: id,
+          resumeUrl,
+          candidateAccountId: candidateAccount?._id,
+        }),
       });
       const data = await res.json();
       if (!res.ok) setError(data.error || "Something went wrong. Please try again.");
@@ -245,7 +269,32 @@ export default function JobDetailPage() {
         <div className="lg:col-span-3">
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
             <h2 className="text-lg font-bold text-slate-900 mb-1">Apply for this position</h2>
-            <p className="text-sm text-slate-500 mb-6">Upload your resume to auto-fill the form, or fill in manually.</p>
+            {!candidateAccount ? (
+              <div className="py-10 text-center">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Briefcase className="w-8 h-8 text-blue-500" />
+                </div>
+                <p className="text-slate-700 font-semibold text-lg mb-2">Login to Apply</p>
+                <p className="text-slate-500 text-sm mb-6">Create a candidate account or sign in to apply and track your application status.</p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <a href={`/candidate-login?next=${encodeURIComponent(`/jobs/${id}`)}`}
+                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors text-sm">
+                    Sign In
+                  </a>
+                  <a href={`/candidate/register?next=${encodeURIComponent(`/jobs/${id}`)}`}
+                    className="inline-block border border-blue-200 hover:bg-blue-50 text-blue-700 font-semibold px-6 py-2.5 rounded-xl transition-colors text-sm">
+                    Create Account
+                  </a>
+                </div>
+              </div>
+            ) : (
+            <>
+            <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              Signed in as <strong>{candidateAccount.firstName} {candidateAccount.lastName}</strong>
+              {candidateAccount.resumeUrl && " · Resume on file"}
+            </div>
+            <p className="text-sm text-slate-500 mb-6">Your profile has been pre-filled. Review and submit.</p>
 
             {/* ── Resume upload zone ── */}
             <div className="mb-6">
@@ -379,6 +428,8 @@ export default function JobDetailPage() {
                 By submitting, you agree that your information may be used for recruitment purposes.
               </p>
             </form>
+            </>
+            )}
           </div>
         </div>
       </div>

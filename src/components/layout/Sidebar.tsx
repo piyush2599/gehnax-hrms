@@ -14,7 +14,7 @@ import {
   FileText, DollarSign, Megaphone, UserCircle,
   ChevronLeft, ChevronRight, LogOut,
   CalendarDays, UserPlus, ClipboardCheck, ShieldCheck, X, ReceiptText, ShoppingCart, FolderKanban,
-  ChevronsUpDown, Check,
+  ChevronsUpDown, Check, BadgeCheck,
 } from "lucide-react";
 
 const navGroups = [
@@ -34,6 +34,7 @@ const navGroups = [
       { href: "/onboarding",  icon: ClipboardCheck, label: "Onboarding",  roles: ["super_admin","hr_admin"] },
       { href: "/departments", icon: Building2,      label: "Departments", roles: ["super_admin","hr_admin"] },
       { href: "/roles",       icon: ShieldCheck,    label: "Roles",       roles: ["super_admin","hr_admin"] },
+      { href: "/approvals",   icon: BadgeCheck,     label: "Approvals",   roles: ["super_admin"] },
       { href: "/attendance",  icon: Clock,          label: "Attendance",  roles: ["super_admin","hr_admin","manager","employee"] },
       { href: "/leaves",      icon: Calendar,       label: "Leaves",      roles: ["super_admin","hr_admin","manager","employee"] },
     ],

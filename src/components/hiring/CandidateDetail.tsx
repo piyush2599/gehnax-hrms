@@ -16,6 +16,7 @@ import {
   Mail, Phone, Briefcase, Building2, User, Upload,
   CheckCircle2, Circle, Printer, Send, FileText, Download, X,
   Calendar, UserPlus, Sparkles, ChevronDown, ChevronUp, Copy, ChevronLeft,
+  BadgeCheck, Clock, AlertCircle,
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import { calculateCTC, type CTCBreakdown } from "@/lib/ctc-calculator";
@@ -556,6 +557,7 @@ function OfferLetterTab({
   const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving]         = useState(false);
   const [showCTC, setShowCTC]       = useState(false);
+  const [submittingApproval, setSubmittingApproval] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const autoOfferNum = `GTL/HR/${new Date().getFullYear()}/${candidate._id?.slice(-6).toUpperCase()}`;
@@ -574,6 +576,17 @@ function OfferLetterTab({
   const [breakdown, setBreakdown] = useState<CTCBreakdown | null>(null);
 
   const set = (k: string, v: string | boolean | number) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmitForApproval = async () => {
+    setSubmittingApproval(true);
+    try {
+      const res = await fetch(`/api/hiring/candidates/${candidate._id}/offer/submit`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Failed to submit offer"); return; }
+      toast.success("Offer submitted for Super Admin approval");
+      mutate(`/api/hiring/candidates/${candidate._id}`);
+    } finally { setSubmittingApproval(false); }
+  };
 
   const getBreakdown = (): CTCBreakdown | null => {
     const ctc = Number(form.ctcAnnual);
@@ -686,6 +699,47 @@ function OfferLetterTab({
                   </Button>
                 </>
               )}
+              {/* Submit for Approval */}
+              {canManage && displayOffer?.ctcAnnual && displayOffer?.joiningDate && displayOffer?.designation &&
+               (!displayOffer.approvalStatus || displayOffer.approvalStatus === "draft" || displayOffer.approvalStatus === "rejected") && (
+                <Button
+                  size="sm"
+                  className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5"
+                  onClick={handleSubmitForApproval}
+                  disabled={submittingApproval}
+                >
+                  <BadgeCheck className="w-3.5 h-3.5" />
+                  {submittingApproval ? "Submitting…" : "Submit for Approval"}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Approval Status Banner */}
+          {displayOffer?.approvalStatus && displayOffer.approvalStatus !== "draft" && (
+            <div className={cn(
+              "flex items-start gap-3 px-4 py-3 rounded-xl border text-sm",
+              displayOffer.approvalStatus === "pending_approval" && "bg-amber-50 border-amber-200 text-amber-800",
+              displayOffer.approvalStatus === "approved"         && "bg-emerald-50 border-emerald-200 text-emerald-800",
+              displayOffer.approvalStatus === "rejected"         && "bg-red-50 border-red-200 text-red-800",
+            )}>
+              {displayOffer.approvalStatus === "pending_approval" && <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+              {displayOffer.approvalStatus === "approved"         && <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+              {displayOffer.approvalStatus === "rejected"         && <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold capitalize">
+                  {displayOffer.approvalStatus === "pending_approval" ? "Pending Super Admin Approval" : displayOffer.approvalStatus}
+                </p>
+                {displayOffer.approvalComments && (
+                  <p className="text-xs mt-0.5 opacity-80">{displayOffer.approvalComments}</p>
+                )}
+                {displayOffer.approvalStatus === "approved" && displayOffer.offerPdfUrl && (
+                  <a href={displayOffer.offerPdfUrl} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold mt-1.5 underline">
+                    <Download className="w-3 h-3" /> Download Approved Offer
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </div>

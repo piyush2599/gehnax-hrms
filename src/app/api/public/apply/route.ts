@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
     firstName, lastName, email, phone,
     jobPosting, currentCompany, currentDesignation,
     totalExperience, skills, coverNote, resumeUrl,
+    candidateAccountId,
   } = body;
 
   if (!firstName || !lastName || !email || !jobPosting) {
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
     skills: skills ? skills.split(",").map((s: string) => s.trim()).filter(Boolean) : [],
     notes: coverNote?.trim(),
     resumeUrl: resumeUrl?.trim() || undefined,
+    candidateAccountId: candidateAccountId || undefined,
     source: "job_portal",
     stage: "applied",
   });

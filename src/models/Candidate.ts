@@ -48,7 +48,15 @@ export interface ICandidate extends Document {
     declinedAt?: Date;
     expiresAt?: Date;
     status: "draft" | "sent" | "accepted" | "declined" | "expired";
+    // approval workflow
+    approvalStatus?: "draft" | "pending_approval" | "approved" | "rejected";
+    approvalComments?: string;
+    approvedBy?: mongoose.Types.ObjectId;
+    approvedAt?: Date;
+    offerPdfUrl?: string;
+    offerRefNumber?: string;
   };
+  candidateAccountId?: mongoose.Types.ObjectId;
   rejectionReason?: string;
   convertedEmployeeId?: mongoose.Types.ObjectId;
   createdBy?: mongoose.Types.ObjectId;
@@ -115,7 +123,18 @@ const CandidateSchema = new Schema<ICandidate>(
         enum: ["draft", "sent", "accepted", "declined", "expired"],
         default: "draft",
       },
+      approvalStatus: {
+        type: String,
+        enum: ["draft", "pending_approval", "approved", "rejected"],
+        default: "draft",
+      },
+      approvalComments: { type: String },
+      approvedBy:       { type: Schema.Types.ObjectId, ref: "User" },
+      approvedAt:       { type: Date },
+      offerPdfUrl:      { type: String },
+      offerRefNumber:   { type: String },
     },
+    candidateAccountId:  { type: Schema.Types.ObjectId, ref: "CandidateAccount" },
     rejectionReason:     { type: String },
     convertedEmployeeId: { type: Schema.Types.ObjectId, ref: "Employee" },
     createdBy:           { type: Schema.Types.ObjectId, ref: "User" },
