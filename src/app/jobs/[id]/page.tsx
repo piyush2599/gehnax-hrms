@@ -298,15 +298,17 @@ export default function JobDetailPage() {
             {/* ── Resume upload zone ── */}
             <div className="mb-6">
               {!resumeFile ? (
-                candidateAccount && resumeUrl ? (
-                  // Logged-in candidate already has resume on file
+                candidateAccount ? (
+                  // Logged-in — always use profile resume (API falls back to account if URL missing)
                   <div className="flex items-center gap-3 p-4 border border-emerald-200 bg-emerald-50 rounded-2xl">
                     <div className="p-2 bg-emerald-100 rounded-xl flex-shrink-0">
                       <FileText className="w-5 h-5 text-emerald-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-emerald-800">Resume on file</p>
-                      <p className="text-xs text-slate-500 mt-0.5 truncate">{resumeUrl.split("/").pop()}</p>
+                      <p className="text-sm font-semibold text-emerald-800">Resume from your profile</p>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">
+                        {resumeUrl ? resumeUrl.split("/").pop() : "Saved resume will be used automatically"}
+                      </p>
                     </div>
                     <label className="text-xs text-blue-600 font-medium cursor-pointer hover:underline flex-shrink-0">
                       Replace
