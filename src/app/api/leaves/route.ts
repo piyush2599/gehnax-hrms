@@ -48,7 +48,9 @@ export async function GET(req: NextRequest) {
 
   const roles: string[]    = (session.user as any).roles || [];
   const sessionEmployeeId  = (session.user as any).employeeId;
-  const isEmployeeOnly     = !roles.some(r => ["super_admin","hr_admin","manager","finance_admin"].includes(r));
+  const activeRole     = searchParams.get("activeRole") ?? "";
+  const effectiveRole  = roles.includes(activeRole) ? activeRole : (roles[0] ?? "employee");
+  const isEmployeeOnly = effectiveRole === "employee" || !roles.some(r => ["super_admin","hr_admin","manager","finance_admin"].includes(r));
 
   const query: any = {};
   if (isEmployeeOnly) {

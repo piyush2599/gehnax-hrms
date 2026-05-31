@@ -39,10 +39,10 @@ export default function TimesheetsClient() {
   const weekDateStr = format(weekStart, "yyyy-MM-dd");
 
   const { data: timesheets, isLoading } = useSWR(
-    isAdminOrHR ? `/api/timesheets?status=submitted` : `/api/timesheets`,
+    isAdminOrHR ? `/api/timesheets?status=submitted&activeRole=${activeRole}` : `/api/timesheets?activeRole=${activeRole}`,
     fetcher
   );
-  const { data: currentWeekTs } = useSWR(`/api/timesheets?weekDate=${weekDateStr}`, fetcher);
+  const { data: currentWeekTs } = useSWR(`/api/timesheets?weekDate=${weekDateStr}&activeRole=${activeRole}`, fetcher);
 
   const tsList = Array.isArray(timesheets) ? timesheets : [];
   const currentTs = Array.isArray(currentWeekTs) ? currentWeekTs[0] : null;

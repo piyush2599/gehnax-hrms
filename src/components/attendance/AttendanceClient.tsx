@@ -49,12 +49,12 @@ export default function AttendanceClient() {
   const isAdminOrHR = ["super_admin", "hr_admin", "manager"].includes(activeRole);
 
   const { data: todayAttendance } = useSWR(
-    `/api/attendance?date=${todayStr}`,
+    `/api/attendance?date=${todayStr}&activeRole=${activeRole}`,
     fetcher,
     { refreshInterval: 30000 }
   );
   const { data: monthlyAttendance, isLoading } = useSWR(
-    `/api/attendance?month=${month}&year=${year}`,
+    `/api/attendance?month=${month}&year=${year}&activeRole=${activeRole}`,
     fetcher
   );
 

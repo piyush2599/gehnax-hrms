@@ -47,8 +47,8 @@ export default function PayrollClient() {
   const isEmployee  = activeRole === "employee";
 
   // Admin: filter by month+year. Employee: restrict to own records via employeeId.
-  const adminUrl    = `/api/payroll?month=${month}&year=${year}`;
-  const employeeUrl = `/api/payroll?year=${year}${sessionEmployeeId ? `&employeeId=${sessionEmployeeId}` : ""}`;
+  const adminUrl    = `/api/payroll?month=${month}&year=${year}&activeRole=${activeRole}`;
+  const employeeUrl = `/api/payroll?year=${year}&activeRole=${activeRole}${sessionEmployeeId ? `&employeeId=${sessionEmployeeId}` : ""}`;
 
   const { data: payrolls, isLoading } = useSWR(
     isEmployee ? employeeUrl : adminUrl,

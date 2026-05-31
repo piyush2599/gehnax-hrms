@@ -39,7 +39,9 @@ export default function LeavesClient() {
   const [filterStatus, setFilterStatus] = useState("all");
   const isAdminOrHR = ["super_admin","hr_admin","manager"].includes(activeRole);
 
-  const url = `/api/leaves${filterStatus !== "all" ? `?status=${filterStatus}` : ""}`;
+  const params = new URLSearchParams({ activeRole });
+  if (filterStatus !== "all") params.set("status", filterStatus);
+  const url = `/api/leaves?${params.toString()}`;
   const { data: leaves, isLoading } = useSWR(url, fetcher);
   const leaveList = Array.isArray(leaves) ? leaves : [];
   const pendingCount = leaveList.filter((l) => l.status === "pending").length;

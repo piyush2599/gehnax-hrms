@@ -24,12 +24,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const empId = (session.user as any).employeeId;
   if (!roles.some(r => VIEW_ROLES.includes(r))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const { searchParams } = new URL(req.url);
+  const activeRole    = searchParams.get("activeRole") ?? "";
+  const effectiveRole = roles.includes(activeRole) ? activeRole : (roles[0] ?? "employee");
+  const isEmployeeView = effectiveRole === "employee" || !roles.some(r => ["super_admin","finance_admin","hr_admin","manager"].includes(r));
+
   await connectDB();
   const project = await populated(params.id);
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Employee access guard
-  if (roles.every(r => r === "employee") && empId) {
+  if (isEmployeeView && empId) {
     const inTeam = project.team.some((m: any) => m._id.toString() === empId);
     const isManager = project.manager?._id?.toString() === empId;
     if (!inTeam && !isManager) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

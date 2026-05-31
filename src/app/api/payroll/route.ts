@@ -18,10 +18,13 @@ export async function GET(req: NextRequest) {
 
   const roles: string[] = (session.user as any).roles || [];
   const sessionEmployeeId = (session.user as any).employeeId;
+  const activeRole    = searchParams.get("activeRole") ?? "";
+  const effectiveRole = roles.includes(activeRole) ? activeRole : (roles[0] ?? "employee");
+  const isEmployeeView = effectiveRole === "employee" || !roles.some(r => ["super_admin","finance_admin","hr_admin","manager"].includes(r));
 
   const query: any = {};
 
-  if (roles.every(r => r === "employee")) {
+  if (isEmployeeView) {
     query.employeeId = sessionEmployeeId;
   } else if (employeeId) {
     query.employeeId = employeeId;
