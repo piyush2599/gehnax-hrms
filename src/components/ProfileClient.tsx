@@ -25,6 +25,10 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export default function ProfileClient() {
   const { data: session } = useSession();
   const { impersonating } = useImpersonate();
+  const roles: string[] = (session?.user as any)?.roles || [];
+  // hr_admin (without super_admin / finance_admin) cannot view salary info
+  const canViewSalary = roles.some(r => ["super_admin", "finance_admin"].includes(r)) ||
+    !roles.some(r => ["hr_admin"].includes(r));
   // When super admin is impersonating, show that employee's profile
   const employeeId = impersonating?.id || (session?.user as any)?.employeeId || "";
   const [editing, setEditing] = useState(false);
@@ -202,10 +206,10 @@ export default function ProfileClient() {
 
       {/* Tabs */}
       <Tabs defaultValue="personal">
-        <TabsList className="grid grid-cols-6 max-w-2xl bg-slate-100">
+        <TabsList className={`grid max-w-2xl bg-slate-100 ${canViewSalary ? "grid-cols-6" : "grid-cols-5"}`}>
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="work">Work</TabsTrigger>
-          <TabsTrigger value="salary">Salary</TabsTrigger>
+          {canViewSalary && <TabsTrigger value="salary">Salary</TabsTrigger>}
           <TabsTrigger value="docs" className="gap-1.5">
             <FolderOpen className="w-3.5 h-3.5" />
             Docs
@@ -316,25 +320,27 @@ export default function ProfileClient() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="salary" className="mt-4">
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3 border-b border-slate-100">
-              <CardTitle className="text-sm font-semibold text-slate-700">Salary Breakdown</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <div className="space-y-2.5 text-sm max-w-sm">
-                <SalaryRow label="Basic" value={formatCurrency(emp.salary?.basic)} />
-                <SalaryRow label="HRA" value={formatCurrency(emp.salary?.hra)} />
-                <SalaryRow label="Allowances" value={formatCurrency(emp.salary?.allowances)} />
-                <Separator className="my-3" />
-                <SalaryRow label="Gross Pay" value={formatCurrency(grossPay)} bold />
-                <SalaryRow label="Deductions" value={`- ${formatCurrency(emp.salary?.deductions)}`} className="text-red-500" />
-                <Separator className="my-3" />
-                <SalaryRow label="Net Pay" value={formatCurrency(grossPay - (emp.salary?.deductions || 0))} bold className="text-emerald-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {canViewSalary && (
+          <TabsContent value="salary" className="mt-4">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="pb-3 border-b border-slate-100">
+                <CardTitle className="text-sm font-semibold text-slate-700">Salary Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-5">
+                <div className="space-y-2.5 text-sm max-w-sm">
+                  <SalaryRow label="Basic" value={formatCurrency(emp.salary?.basic)} />
+                  <SalaryRow label="HRA" value={formatCurrency(emp.salary?.hra)} />
+                  <SalaryRow label="Allowances" value={formatCurrency(emp.salary?.allowances)} />
+                  <Separator className="my-3" />
+                  <SalaryRow label="Gross Pay" value={formatCurrency(grossPay)} bold />
+                  <SalaryRow label="Deductions" value={`- ${formatCurrency(emp.salary?.deductions)}`} className="text-red-500" />
+                  <Separator className="my-3" />
+                  <SalaryRow label="Net Pay" value={formatCurrency(grossPay - (emp.salary?.deductions || 0))} bold className="text-emerald-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="docs" className="mt-4 space-y-4">
           {/* Offer Letter highlight */}
@@ -389,45 +395,47 @@ export default function ProfileClient() {
             </Card>
           )}
 
-          {/* Salary Slips */}
-          <Card className="border-emerald-200 shadow-sm bg-emerald-50/40">
-            <CardHeader className="pb-3 border-b border-emerald-100">
-              <CardTitle className="text-sm font-semibold text-emerald-700 flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Salary Slips
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-2">
-              {payslips.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-4">No salary records found.</p>
-              ) : (
-                payslips.map((p: any) => {
-                  const MONTH_NAMES = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                  const label = `${MONTH_NAMES[p.month] || p.month} ${p.year}`;
-                  return (
-                    <div key={p._id} className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border border-emerald-100">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">{label}</p>
-                        <p className="text-xs text-slate-400">{p.presentDays}/{p.workingDays} days · Net ₹{(p.netPay || 0).toLocaleString("en-IN")}</p>
+          {/* Salary Slips — hidden for hr_admin */}
+          {canViewSalary && (
+            <Card className="border-emerald-200 shadow-sm bg-emerald-50/40">
+              <CardHeader className="pb-3 border-b border-emerald-100">
+                <CardTitle className="text-sm font-semibold text-emerald-700 flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Salary Slips
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-2">
+                {payslips.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-4">No salary records found.</p>
+                ) : (
+                  payslips.map((p: any) => {
+                    const MONTH_NAMES = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                    const label = `${MONTH_NAMES[p.month] || p.month} ${p.year}`;
+                    return (
+                      <div key={p._id} className="flex items-center justify-between py-2 px-3 bg-white rounded-lg border border-emerald-100">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{label}</p>
+                          <p className="text-xs text-slate-400">{p.presentDays}/{p.workingDays} days · Net ₹{(p.netPay || 0).toLocaleString("en-IN")}</p>
+                        </div>
+                        {p.payslipUrl ? (
+                          <a href={secureDocUrl(p.payslipUrl)} target="_blank" rel="noopener noreferrer">
+                            <button className="flex items-center gap-1.5 text-xs h-7 px-3 rounded-lg border border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                              <Download className="w-3.5 h-3.5" />
+                              PDF
+                            </button>
+                          </a>
+                        ) : (
+                          <span className="text-xs text-slate-400 px-3 py-1 rounded-lg border border-slate-200 bg-slate-50">
+                            PDF pending
+                          </span>
+                        )}
                       </div>
-                      {p.payslipUrl ? (
-                        <a href={secureDocUrl(p.payslipUrl)} target="_blank" rel="noopener noreferrer">
-                          <button className="flex items-center gap-1.5 text-xs h-7 px-3 rounded-lg border border-emerald-200 bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
-                            <Download className="w-3.5 h-3.5" />
-                            PDF
-                          </button>
-                        </a>
-                      ) : (
-                        <span className="text-xs text-slate-400 px-3 py-1 rounded-lg border border-slate-200 bg-slate-50">
-                          PDF pending
-                        </span>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3 border-b border-slate-100">

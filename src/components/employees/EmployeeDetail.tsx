@@ -49,6 +49,7 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
   const roles: string[] = (session?.user as any)?.roles || [];
   const myEmployeeId = (session?.user as any)?.employeeId?.toString();
   const canEdit = roles.some(r => ["super_admin", "hr_admin"].includes(r));
+  const canViewSalary = roles.some(r => ["super_admin", "finance_admin"].includes(r));
   const canManageDocs = canEdit || myEmployeeId === employeeId;
 
   const { data: emp, isLoading } = useSWR(`/api/employees/${employeeId}`, fetcher);
@@ -108,12 +109,16 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         ...form,
         reportingManager: form.reportingManager || undefined,
         dateOfBirth: form.dateOfBirth || undefined,
         gender: form.gender || undefined,
       };
+      if (!canViewSalary) {
+        delete payload.salary;
+        delete payload.bankDetails;
+      }
       const res = await fetch(`/api/employees/${employeeId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -335,7 +340,7 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
       {/* ── VIEW MODE: tabs ── */}
       {!editing && (
         <Tabs defaultValue="info">
-          <TabsList className="grid grid-cols-6 w-full bg-slate-100">
+          <TabsList className={`grid w-full bg-slate-100 ${canViewSalary ? "grid-cols-6" : "grid-cols-5"}`}>
             <TabsTrigger value="info" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
               <User className="w-3.5 h-3.5" />
               Personal
@@ -344,10 +349,12 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
               <Briefcase className="w-3.5 h-3.5" />
               Work
             </TabsTrigger>
-            <TabsTrigger value="salary" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
-              <CreditCard className="w-3.5 h-3.5" />
-              Salary
-            </TabsTrigger>
+            {canViewSalary && (
+              <TabsTrigger value="salary" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
+                <CreditCard className="w-3.5 h-3.5" />
+                Salary
+              </TabsTrigger>
+            )}
             <TabsTrigger value="docs" className="gap-1.5 data-active:bg-blue-600 data-active:text-white data-active:shadow-md">
               <FolderOpen className="w-3.5 h-3.5" />
               Docs
@@ -409,48 +416,50 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
             )}
           </TabsContent>
 
-          {/* Salary */}
-          <TabsContent value="salary" className="mt-4 space-y-3">
-            <Card className="border-slate-200 shadow-sm">
-              <CardContent className="p-5">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Monthly Breakdown</p>
-                <div className="space-y-2.5 text-sm">
-                  <SalaryRow label="Basic Salary" value={formatCurrency(emp.salary?.basic || 0)} />
-                  <SalaryRow label="HRA"           value={formatCurrency(emp.salary?.hra || 0)} />
-                  <SalaryRow label="Allowances"    value={formatCurrency(emp.salary?.allowances || 0)} />
-                  <Separator />
-                  <SalaryRow label="Gross Pay"     value={formatCurrency(grossPay)} bold />
-                  <SalaryRow label="Deductions"    value={`− ${formatCurrency(emp.salary?.deductions || 0)}`} className="text-red-500" />
-                  <Separator />
-                  <SalaryRow label="Net Pay"       value={formatCurrency(netPay)} bold className="text-emerald-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {emp.bankDetails?.bankName && (
+          {/* Salary — super_admin and finance_admin only */}
+          {canViewSalary && (
+            <TabsContent value="salary" className="mt-4 space-y-3">
               <Card className="border-slate-200 shadow-sm">
                 <CardContent className="p-5">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Bank Details</p>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Bank</span>
-                      <span className="font-medium text-slate-800">{emp.bankDetails.bankName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Account No.</span>
-                      <span className="font-medium text-slate-800 font-mono">
-                        ••••{emp.bankDetails.accountNumber?.slice(-4)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">IFSC</span>
-                      <span className="font-medium text-slate-800 font-mono">{emp.bankDetails.ifscCode}</span>
-                    </div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Monthly Breakdown</p>
+                  <div className="space-y-2.5 text-sm">
+                    <SalaryRow label="Basic Salary" value={formatCurrency(emp.salary?.basic || 0)} />
+                    <SalaryRow label="HRA"           value={formatCurrency(emp.salary?.hra || 0)} />
+                    <SalaryRow label="Allowances"    value={formatCurrency(emp.salary?.allowances || 0)} />
+                    <Separator />
+                    <SalaryRow label="Gross Pay"     value={formatCurrency(grossPay)} bold />
+                    <SalaryRow label="Deductions"    value={`− ${formatCurrency(emp.salary?.deductions || 0)}`} className="text-red-500" />
+                    <Separator />
+                    <SalaryRow label="Net Pay"       value={formatCurrency(netPay)} bold className="text-emerald-600" />
                   </div>
                 </CardContent>
               </Card>
-            )}
-          </TabsContent>
+
+              {emp.bankDetails?.bankName && (
+                <Card className="border-slate-200 shadow-sm">
+                  <CardContent className="p-5">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Bank Details</p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Bank</span>
+                        <span className="font-medium text-slate-800">{emp.bankDetails.bankName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Account No.</span>
+                        <span className="font-medium text-slate-800 font-mono">
+                          ••••{emp.bankDetails.accountNumber?.slice(-4)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">IFSC</span>
+                        <span className="font-medium text-slate-800 font-mono">{emp.bankDetails.ifscCode}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+          )}
 
           {/* Documents */}
           <TabsContent value="docs" className="mt-4">
@@ -585,101 +594,105 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
             </div>
           </EditSection>
 
-          {/* Section: Salary */}
-          <EditSection title="Salary (₹/month)" icon={<CreditCard className="w-4 h-4" />}>
-            {/* CTC Calculator toggle */}
-            <button
-              type="button"
-              onClick={() => setShowCTC((v) => !v)}
-              className={cn(
-                "w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors",
-                showCTC
-                  ? "border-blue-300 bg-blue-50 text-blue-700"
-                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+          {/* Section: Salary — super_admin and finance_admin only */}
+          {canViewSalary && (
+            <EditSection title="Salary (₹/month)" icon={<CreditCard className="w-4 h-4" />}>
+              {/* CTC Calculator toggle */}
+              <button
+                type="button"
+                onClick={() => setShowCTC((v) => !v)}
+                className={cn(
+                  "w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors",
+                  showCTC
+                    ? "border-blue-300 bg-blue-50 text-blue-700"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Auto-calculate from CTC
+                </span>
+                {showCTC ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {showCTC && (
+                <CTCCalculator
+                  initialCTC={
+                    (emp.salary?.basic + emp.salary?.hra + emp.salary?.allowances) > 0
+                      ? Math.round((emp.salary.basic + emp.salary.hra + emp.salary.allowances) * 12 * 1.06724)
+                      : 0
+                  }
+                  onApply={(s) => {
+                    setSalary("basic", s.basic);
+                    setSalary("hra", s.hra);
+                    setSalary("allowances", s.allowances);
+                    setSalary("deductions", s.deductions);
+                    setShowCTC(false);
+                  }}
+                />
               )}
-            >
-              <span className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                Auto-calculate from CTC
-              </span>
-              {showCTC ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
 
-            {showCTC && (
-              <CTCCalculator
-                initialCTC={
-                  (emp.salary?.basic + emp.salary?.hra + emp.salary?.allowances) > 0
-                    ? Math.round((emp.salary.basic + emp.salary.hra + emp.salary.allowances) * 12 * 1.06724)
-                    : 0
-                }
-                onApply={(s) => {
-                  setSalary("basic", s.basic);
-                  setSalary("hra", s.hra);
-                  setSalary("allowances", s.allowances);
-                  setSalary("deductions", s.deductions);
-                  setShowCTC(false);
-                }}
-              />
-            )}
+              <div className="grid grid-cols-2 gap-4">
+                {(["basic", "hra", "allowances", "deductions"] as const).map((field) => (
+                  <Field key={field} label={field === "hra" ? "HRA" : field.charAt(0).toUpperCase() + field.slice(1)}>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                      <Input
+                        type="number" min="0" className="pl-7"
+                        value={form.salary?.[field] || ""}
+                        onChange={(e) => setSalary(field, parseInt(e.target.value) || 0)}
+                      />
+                    </div>
+                  </Field>
+                ))}
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {(["basic", "hra", "allowances", "deductions"] as const).map((field) => (
-                <Field key={field} label={field === "hra" ? "HRA" : field.charAt(0).toUpperCase() + field.slice(1)}>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-                    <Input
-                      type="number" min="0" className="pl-7"
-                      value={form.salary[field] || ""}
-                      onChange={(e) => setSalary(field, parseInt(e.target.value) || 0)}
-                    />
+              {((form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0)) > 0 && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-1.5">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Gross Pay</span>
+                    <span className="font-semibold">
+                      ₹{((form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0)).toLocaleString()}
+                    </span>
                   </div>
-                </Field>
-              ))}
-            </div>
+                  <div className="flex justify-between text-red-500">
+                    <span>Deductions</span>
+                    <span>−₹{(form.salary?.deductions || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-emerald-700 pt-1 border-t border-slate-200">
+                    <span>Net Pay</span>
+                    <span>
+                      ₹{((form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0) - (form.salary?.deductions || 0)).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </EditSection>
+          )}
 
-            {(form.salary.basic + form.salary.hra + form.salary.allowances) > 0 && (
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-1.5">
-                <div className="flex justify-between text-slate-600">
-                  <span>Gross Pay</span>
-                  <span className="font-semibold">
-                    ₹{(form.salary.basic + form.salary.hra + form.salary.allowances).toLocaleString()}
-                  </span>
+          {/* Section: Bank Details — super_admin and finance_admin only */}
+          {canViewSalary && (
+            <EditSection title="Bank Details" icon={<CreditCard className="w-4 h-4" />}>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <Field label="Account Holder Name">
+                    <Input value={form.bankDetails?.accountHolderName || ""} onChange={(e) => setBank("accountHolderName", e.target.value)} />
+                  </Field>
                 </div>
-                <div className="flex justify-between text-red-500">
-                  <span>Deductions</span>
-                  <span>−₹{form.salary.deductions.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between font-bold text-emerald-700 pt-1 border-t border-slate-200">
-                  <span>Net Pay</span>
-                  <span>
-                    ₹{(form.salary.basic + form.salary.hra + form.salary.allowances - form.salary.deductions).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            )}
-          </EditSection>
-
-          {/* Section: Bank Details */}
-          <EditSection title="Bank Details" icon={<CreditCard className="w-4 h-4" />}>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <Field label="Account Holder Name">
-                  <Input value={form.bankDetails.accountHolderName} onChange={(e) => setBank("accountHolderName", e.target.value)} />
+                <Field label="Bank Name">
+                  <Input value={form.bankDetails?.bankName || ""} onChange={(e) => setBank("bankName", e.target.value)} placeholder="e.g. HDFC Bank" />
                 </Field>
-              </div>
-              <Field label="Bank Name">
-                <Input value={form.bankDetails.bankName} onChange={(e) => setBank("bankName", e.target.value)} placeholder="e.g. HDFC Bank" />
-              </Field>
-              <Field label="Account Number">
-                <Input value={form.bankDetails.accountNumber} onChange={(e) => setBank("accountNumber", e.target.value)} />
-              </Field>
-              <div className="col-span-2">
-                <Field label="IFSC Code">
-                  <Input value={form.bankDetails.ifscCode} onChange={(e) => setBank("ifscCode", e.target.value)} placeholder="e.g. HDFC0001234" />
+                <Field label="Account Number">
+                  <Input value={form.bankDetails?.accountNumber || ""} onChange={(e) => setBank("accountNumber", e.target.value)} />
                 </Field>
+                <div className="col-span-2">
+                  <Field label="IFSC Code">
+                    <Input value={form.bankDetails?.ifscCode || ""} onChange={(e) => setBank("ifscCode", e.target.value)} placeholder="e.g. HDFC0001234" />
+                  </Field>
+                </div>
               </div>
-            </div>
-          </EditSection>
+            </EditSection>
+          )}
 
           {/* Bottom action bar */}
           <div className="flex gap-3 pt-2 border-t border-slate-100">

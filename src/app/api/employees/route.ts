@@ -32,6 +32,9 @@ export async function GET(req: NextRequest) {
     ];
   }
 
+  const roles: string[] = (session.user as any).roles || [];
+  const canSeeSalary = roles.some(r => ["super_admin", "finance_admin"].includes(r));
+
   const [employees, total] = await Promise.all([
     Employee.find(query)
       .populate("department", "name code")
@@ -42,7 +45,16 @@ export async function GET(req: NextRequest) {
     Employee.countDocuments(query),
   ]);
 
-  return NextResponse.json({ employees, total, page, limit });
+  const result = canSeeSalary
+    ? employees
+    : employees.map((emp) => {
+        const e = emp.toObject();
+        delete e.salary;
+        delete e.bankDetails;
+        return e;
+      });
+
+  return NextResponse.json({ employees: result, total, page, limit });
 }
 
 export async function POST(req: NextRequest) {

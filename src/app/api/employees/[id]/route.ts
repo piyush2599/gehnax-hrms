@@ -10,11 +10,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   await connectDB();
 
+  const roles: string[] = (session.user as any).roles || [];
+  const canSeeSalary = roles.some(r => ["super_admin", "finance_admin"].includes(r));
+
   const employee = await Employee.findById(params.id)
     .populate("department", "name code")
     .populate("reportingManager", "firstName lastName employeeCode");
 
   if (!employee) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (!canSeeSalary) {
+    const emp = employee.toObject();
+    delete emp.salary;
+    delete emp.bankDetails;
+    return NextResponse.json(emp);
+  }
 
   return NextResponse.json(employee);
 }
@@ -40,6 +50,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const allowedFields = isOwnProfile && !roles.some(r => ["super_admin", "hr_admin"].includes(r))
     ? { phone: body.phone, address: body.address, avatar: body.avatar }
     : body;
+
+  // hr_admin cannot update salary or bank details
+  const canEditSalary = roles.some(r => ["super_admin", "finance_admin"].includes(r));
+  if (!canEditSalary) {
+    delete allowedFields.salary;
+    delete allowedFields.bankDetails;
+  }
 
   const employee = await Employee.findByIdAndUpdate(params.id, allowedFields, {
     new: true,

@@ -39,6 +39,7 @@ export default function EmployeesClient() {
   const { data: session } = useSession();
   const roles: string[] = (session?.user as any)?.roles || [];
   const canAdd = roles.some(r => ["super_admin", "hr_admin"].includes(r));
+  const canSetSalary = roles.some(r => ["super_admin", "finance_admin"].includes(r));
   const { activeRole } = useActiveRole();
   const { startImpersonation, stopImpersonation, impersonating } = useImpersonate();
   const isSuperAdmin = roles.includes("super_admin");
@@ -77,6 +78,7 @@ export default function EmployeesClient() {
             <AddEmployeeForm
               departments={departments || []}
               employees={employees}
+              canSetSalary={canSetSalary}
               onSuccess={() => {
                 setAddOpen(false);
                 mutate(apiUrl);
@@ -242,9 +244,9 @@ const INITIAL_FORM: FormState = {
 };
 
 function AddEmployeeForm({
-  departments, employees, onSuccess,
+  departments, employees, onSuccess, canSetSalary,
 }: {
-  departments: any[]; employees: any[]; onSuccess: () => void;
+  departments: any[]; employees: any[]; onSuccess: () => void; canSetSalary: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
@@ -389,47 +391,48 @@ function AddEmployeeForm({
         </div>
       </div>
 
-      {/* ── Salary ── */}
-      <div className="space-y-4">
-        {/* CTC auto-calculator */}
-        <CTCCalculator
-          onApply={(s) =>
-            setForm((f) => ({ ...f, salary: { basic: s.basic, hra: s.hra, allowances: s.allowances, deductions: s.deductions } }))
-          }
-        />
+      {/* ── Salary — super_admin and finance_admin only ── */}
+      {canSetSalary && (
+        <div className="space-y-4">
+          <CTCCalculator
+            onApply={(s) =>
+              setForm((f) => ({ ...f, salary: { basic: s.basic, hra: s.hra, allowances: s.allowances, deductions: s.deductions } }))
+            }
+          />
 
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-          Or enter manually (₹/month)
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          {(["basic", "hra", "allowances", "deductions"] as const).map((field) => (
-            <Field key={field} label={field === "hra" ? "HRA" : field.charAt(0).toUpperCase() + field.slice(1)}>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-                <Input type="number" min="0" className="pl-7" placeholder="0"
-                  value={(form.salary as any)[field] || ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, salary: { ...f.salary, [field]: parseInt(e.target.value) || 0 } }))
-                  } />
-              </div>
-            </Field>
-          ))}
-        </div>
-        {gross > 0 && (
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-1.5">
-            <div className="flex justify-between text-slate-600">
-              <span>Gross Pay</span>
-              <span className="font-semibold">₹{gross.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-red-500">
-              <span>Deductions</span><span>−₹{form.salary.deductions.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between font-bold text-emerald-700 pt-1 border-t border-slate-200">
-              <span>Net Pay</span><span>₹{(gross - form.salary.deductions).toLocaleString()}</span>
-            </div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            Or enter manually (₹/month)
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            {(["basic", "hra", "allowances", "deductions"] as const).map((field) => (
+              <Field key={field} label={field === "hra" ? "HRA" : field.charAt(0).toUpperCase() + field.slice(1)}>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                  <Input type="number" min="0" className="pl-7" placeholder="0"
+                    value={(form.salary as any)[field] || ""}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, salary: { ...f.salary, [field]: parseInt(e.target.value) || 0 } }))
+                    } />
+                </div>
+              </Field>
+            ))}
           </div>
-        )}
-      </div>
+          {gross > 0 && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-1.5">
+              <div className="flex justify-between text-slate-600">
+                <span>Gross Pay</span>
+                <span className="font-semibold">₹{gross.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-red-500">
+                <span>Deductions</span><span>−₹{form.salary.deductions.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between font-bold text-emerald-700 pt-1 border-t border-slate-200">
+                <span>Net Pay</span><span>₹{(gross - form.salary.deductions).toLocaleString()}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700">
         Default login password: <strong>Welcome@123</strong>
