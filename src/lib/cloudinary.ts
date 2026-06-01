@@ -30,6 +30,19 @@ export function isOurCloudinaryUrl(url: string): boolean {
   return url.startsWith(`https://res.cloudinary.com/${CLOUD_NAME}/`);
 }
 
+/**
+ * Converts a Cloudinary raw URL into a forced-download URL with the correct filename.
+ * Injects fl_attachment so the browser downloads with the right name and extension.
+ */
+export function cloudinaryAttachmentUrl(url: string, downloadName: string): string {
+  if (!url) return url;
+  const safeName = downloadName.replace(/[^a-zA-Z0-9._-]/g, "_");
+  // Insert fl_attachment transformation after /upload/
+  return url.replace(/\/upload\/(?:v\d+\/)?/, (match) =>
+    match.replace("/upload/", `/upload/fl_attachment:${safeName}/`)
+  );
+}
+
 export async function uploadToCloudinary(
   buffer: Buffer,
   fileName: string,
@@ -42,9 +55,10 @@ export async function uploadToCloudinary(
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
-        public_id: `${Date.now()}-${fileName.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+        public_id: `${Date.now()}-${fileName.replace(/[^a-zA-Z0-9_.-]/g, "_")}`,
         resource_type: resourceType,
         access_mode: "public",
+        use_filename: false,
       },
       (error, result) => {
         if (error || !result) return reject(error ?? new Error("Upload failed"));

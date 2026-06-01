@@ -38,12 +38,25 @@ export async function GET(req: NextRequest) {
 
   const contentType = fileRes.headers.get("content-type") || "application/octet-stream";
   const buffer = await fileRes.arrayBuffer();
-  const fileName = decodeURIComponent(url.split("/").pop()?.split("?")[0] ?? "document");
+
+  let fileName = decodeURIComponent(url.split("/").pop()?.split("?")[0] ?? "document");
+
+  // Ensure correct extension when Cloudinary serves without one
+  const isPdf  = contentType.includes("pdf")  || fileName.endsWith(".pdf");
+  const isJpeg = contentType.includes("jpeg") || contentType.includes("jpg");
+  const isPng  = contentType.includes("png");
+  if (isPdf  && !fileName.endsWith(".pdf"))  fileName += ".pdf";
+  if (isJpeg && !fileName.match(/\.jpe?g$/i)) fileName += ".jpg";
+  if (isPng  && !fileName.endsWith(".png"))  fileName += ".png";
+
+  // Force content-type to PDF when extension says so (Cloudinary raw may return octet-stream)
+  const servedContentType = fileName.endsWith(".pdf") ? "application/pdf" : contentType;
+  const disposition = fileName.endsWith(".pdf") ? "attachment" : "inline";
 
   return new NextResponse(buffer, {
     headers: {
-      "Content-Type": contentType,
-      "Content-Disposition": `inline; filename="${fileName}"`,
+      "Content-Type": servedContentType,
+      "Content-Disposition": `${disposition}; filename="${fileName}"`,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
     },

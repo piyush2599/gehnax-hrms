@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Candidate from "@/models/Candidate";
 import { sendMail } from "@/lib/email";
+import { cloudinaryAttachmentUrl } from "@/lib/cloudinary";
 
 export async function POST(
   req: NextRequest,
@@ -62,7 +63,7 @@ export async function POST(
               <p style="color:#475569">We are pleased to extend you an offer for the position of <strong>${offer.designation}</strong> at Gehnax Technologies LLP.</p>
               <p style="color:#475569">Your joining date is <strong>${offer.joiningDate ? fmt(new Date(offer.joiningDate)) : "—"}</strong>.</p>
               <div style="margin:28px 0">
-                <a href="${offer.offerPdfUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Download Offer Letter</a>
+                <a href="${cloudinaryAttachmentUrl(offer.offerPdfUrl, `Offer-Letter-${candidate.firstName}-${candidate.lastName}.pdf`)}" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Download Offer Letter</a>
               </div>
               <p style="color:#475569;font-size:14px">Please review your offer letter and confirm your acceptance. If you have any questions, contact us at <a href="mailto:hr@gehnax.com" style="color:#2563eb">hr@gehnax.com</a>.</p>
             </div>
