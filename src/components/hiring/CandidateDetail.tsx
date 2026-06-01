@@ -820,35 +820,53 @@ function OfferLetterTab({
           {/* PF config */}
           <div className="space-y-2">
             <Label className="text-xs">Provident Fund (PF)</Label>
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
-                {(["percent", "fixed", "none"] as const).map(t => (
-                  <button key={t} type="button" onClick={() => set("pfType", t)}
-                    className={cn("px-3 py-2 font-semibold transition-colors capitalize",
-                      form.pfType === t ? "bg-slate-700 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
-                    {t === "percent" ? "%" : t === "fixed" ? "Fixed ₹" : "None"}
-                  </button>
-                ))}
-              </div>
-              {form.pfType === "percent" && (
-                <div className="flex items-center gap-1.5">
-                  <Input type="number" min={0} max={100} step={0.5}
-                    value={form.pfValue} onChange={e => set("pfValue", parseFloat(e.target.value) || 0)}
-                    className="w-20 h-8 text-xs" />
-                  <span className="text-xs text-slate-500">% of Basic</span>
-                </div>
-              )}
-              {form.pfType === "fixed" && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-slate-500">₹</span>
-                  <Input type="number" min={0} step={100}
-                    value={form.pfValue} onChange={e => set("pfValue", parseInt(e.target.value) || 0)}
-                    className="w-24 h-8 text-xs" />
-                  <span className="text-xs text-slate-500">/month</span>
-                </div>
-              )}
-              {form.pfType === "none" && <span className="text-xs text-slate-400">No PF deducted</span>}
+            {/* Yes / No */}
+            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs w-fit">
+              <button type="button" onClick={() => set("pfType", "percent")}
+                className={cn("px-4 py-2 font-semibold transition-colors",
+                  form.pfType !== "none" ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
+                Yes
+              </button>
+              <button type="button" onClick={() => set("pfType", "none")}
+                className={cn("px-4 py-2 font-semibold transition-colors",
+                  form.pfType === "none" ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
+                No
+              </button>
             </div>
+
+            {/* Fixed / Percent sub-options — shown only when PF = Yes */}
+            {form.pfType !== "none" && (
+              <div className="flex items-center gap-3 flex-wrap pl-1">
+                <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+                  <button type="button" onClick={() => set("pfType", "fixed")}
+                    className={cn("px-3 py-2 font-semibold transition-colors",
+                      form.pfType === "fixed" ? "bg-slate-700 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
+                    Fixed ₹
+                  </button>
+                  <button type="button" onClick={() => set("pfType", "percent")}
+                    className={cn("px-3 py-2 font-semibold transition-colors",
+                      form.pfType === "percent" ? "bg-slate-700 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
+                    Percent %
+                  </button>
+                </div>
+                {form.pfType === "fixed" ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-500">₹</span>
+                    <Input type="number" min={0} step={100}
+                      value={form.pfValue} onChange={e => set("pfValue", parseInt(e.target.value) || 0)}
+                      className="w-24 h-8 text-xs" placeholder="e.g. 1800" />
+                    <span className="text-xs text-slate-400">/month</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <Input type="number" min={0} max={100} step={0.5}
+                      value={form.pfValue} onChange={e => set("pfValue", parseFloat(e.target.value) || 0)}
+                      className="w-20 h-8 text-xs" placeholder="e.g. 12" />
+                    <span className="text-xs text-slate-400">% of Basic</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <button type="button" onClick={() => setShowCTC(v => !v)} className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
