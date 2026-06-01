@@ -39,7 +39,16 @@ export async function POST(
   }
 
   // Compute salary breakdown from CTC
-  const breakdown = calculateCRM(offer.ctcAnnual, offer.isMetro ?? true, { type: "fixed", fixedMonthly: 1800 }, true);
+  const pfType  = offer.pfType  ?? "percent";
+  const pfValue = offer.pfValue ?? 12;
+  const pfConfig = pfType === "fixed"
+    ? { type: "fixed" as const,   fixedMonthly: pfValue }
+    : pfType === "percent"
+    ? { type: "percent" as const, pct: pfValue }
+    : { type: "none" as const };
+  const includeGratuity = offer.includeGratuity ?? true;
+
+  const breakdown = calculateCRM(offer.ctcAnnual, offer.isMetro ?? true, pfConfig, includeGratuity);
   if (!breakdown) return NextResponse.json({ error: "Invalid CTC amount" }, { status: 400 });
 
   const ref = offer.offerRefNumber || refNumber();

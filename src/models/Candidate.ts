@@ -55,6 +55,9 @@ export interface ICandidate extends Document {
     approvedAt?: Date;
     offerPdfUrl?: string;
     offerRefNumber?: string;
+    pfType?: "fixed" | "percent" | "none";
+    pfValue?: number;
+    includeGratuity?: boolean;
   };
   candidateAccountId?: mongoose.Types.ObjectId;
   rejectionReason?: string;
@@ -133,6 +136,9 @@ const CandidateSchema = new Schema<ICandidate>(
       approvedAt:       { type: Date },
       offerPdfUrl:      { type: String },
       offerRefNumber:   { type: String },
+      pfType:           { type: String, enum: ["fixed", "percent", "none"], default: "percent" },
+      pfValue:          { type: Number, default: 12 },
+      includeGratuity:  { type: Boolean, default: true },
     },
     candidateAccountId:  { type: Schema.Types.ObjectId, ref: "CandidateAccount" },
     rejectionReason:     { type: String },

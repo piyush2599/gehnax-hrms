@@ -573,6 +573,9 @@ function OfferLetterTab({
     reportingManager: existingOffer?.reportingManager || "",
     offerNumber:      existingOffer?.offerNumber || autoOfferNum,
     isMetro:          existingOffer?.isMetro ?? true,
+    pfType:           (existingOffer?.pfType as "fixed" | "percent" | "none") ?? "percent",
+    pfValue:          existingOffer?.pfValue ?? 12,
+    includeGratuity:  existingOffer?.includeGratuity ?? true,
   });
   const set = (k: string, v: string | boolean | number) => setForm(f => ({ ...f, [k]: v }));
 
@@ -599,6 +602,7 @@ function OfferLetterTab({
       location: form.location || undefined, department: form.department || undefined,
       reportingManager: form.reportingManager || undefined, offerNumber: form.offerNumber || autoOfferNum,
       isMetro: form.isMetro, status: "draft", generatedAt: new Date().toISOString(),
+      pfType: form.pfType, pfValue: Number(form.pfValue), includeGratuity: form.includeGratuity,
     };
     const ok = await onSaveOffer(offer);
     setSaving(false);
@@ -781,17 +785,69 @@ function OfferLetterTab({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>City Type (for HRA calculation)</Label>
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-sm w-fit">
-              <button type="button" onClick={() => set("isMetro", true)}
-                className={cn("px-4 py-2 font-semibold transition-colors", form.isMetro ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
-                Metro
-              </button>
-              <button type="button" onClick={() => set("isMetro", false)}
-                className={cn("px-4 py-2 font-semibold transition-colors", !form.isMetro ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
-                Non-Metro
-              </button>
+          <div className="grid grid-cols-2 gap-4">
+            {/* City type */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">City Type (HRA)</Label>
+              <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs w-fit">
+                <button type="button" onClick={() => set("isMetro", true)}
+                  className={cn("px-3 py-2 font-semibold transition-colors", form.isMetro ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
+                  Metro
+                </button>
+                <button type="button" onClick={() => set("isMetro", false)}
+                  className={cn("px-3 py-2 font-semibold transition-colors", !form.isMetro ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
+                  Non-Metro
+                </button>
+              </div>
+            </div>
+
+            {/* Gratuity */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Gratuity</Label>
+              <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs w-fit">
+                <button type="button" onClick={() => set("includeGratuity", true)}
+                  className={cn("px-3 py-2 font-semibold transition-colors", form.includeGratuity ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
+                  Yes
+                </button>
+                <button type="button" onClick={() => set("includeGratuity", false)}
+                  className={cn("px-3 py-2 font-semibold transition-colors", !form.includeGratuity ? "bg-blue-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* PF config */}
+          <div className="space-y-2">
+            <Label className="text-xs">Provident Fund (PF)</Label>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs">
+                {(["percent", "fixed", "none"] as const).map(t => (
+                  <button key={t} type="button" onClick={() => set("pfType", t)}
+                    className={cn("px-3 py-2 font-semibold transition-colors capitalize",
+                      form.pfType === t ? "bg-slate-700 text-white" : "bg-white text-slate-500 hover:bg-slate-50")}>
+                    {t === "percent" ? "%" : t === "fixed" ? "Fixed ₹" : "None"}
+                  </button>
+                ))}
+              </div>
+              {form.pfType === "percent" && (
+                <div className="flex items-center gap-1.5">
+                  <Input type="number" min={0} max={100} step={0.5}
+                    value={form.pfValue} onChange={e => set("pfValue", parseFloat(e.target.value) || 0)}
+                    className="w-20 h-8 text-xs" />
+                  <span className="text-xs text-slate-500">% of Basic</span>
+                </div>
+              )}
+              {form.pfType === "fixed" && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-500">₹</span>
+                  <Input type="number" min={0} step={100}
+                    value={form.pfValue} onChange={e => set("pfValue", parseInt(e.target.value) || 0)}
+                    className="w-24 h-8 text-xs" />
+                  <span className="text-xs text-slate-500">/month</span>
+                </div>
+              )}
+              {form.pfType === "none" && <span className="text-xs text-slate-400">No PF deducted</span>}
             </div>
           </div>
 
