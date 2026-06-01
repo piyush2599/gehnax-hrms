@@ -102,7 +102,7 @@ export default function CandidateDetail({ candidate: initialCandidate, jobs, can
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "Failed to save"); return false; }
-      setCandidate((prev: any) => ({ ...prev, ...payload, ...data }));
+      setCandidate((prev: any) => ({ ...prev, ...payload, ...(data.candidate || {}) }));
       mutate("/api/hiring/candidates");
       onUpdate();
       return true;
@@ -117,7 +117,7 @@ export default function CandidateDetail({ candidate: initialCandidate, jobs, can
 
   const refreshCandidate = async () => {
     const res = await fetch(`/api/hiring/candidates/${candidate._id}`);
-    if (res.ok) { const data = await res.json(); setCandidate(data); }
+    if (res.ok) { const data = await res.json(); setCandidate(data.candidate ?? data); }
     mutate("/api/hiring/candidates");
     onUpdate();
   };
@@ -554,11 +554,9 @@ function OfferLetterTab({
 }) {
   const existingOffer = candidate.offer;
   const [showForm, setShowForm]     = useState(!existingOffer);
-  const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving]         = useState(false);
   const [showCTC, setShowCTC]       = useState(false);
   const [submittingApproval, setSubmittingApproval] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
 
   const autoOfferNum = `GTL/HR/${new Date().getFullYear()}/${candidate._id?.slice(-6).toUpperCase()}`;
 
@@ -573,8 +571,6 @@ function OfferLetterTab({
     offerNumber:      existingOffer?.offerNumber || autoOfferNum,
     isMetro:          existingOffer?.isMetro ?? true,
   });
-  const [breakdown, setBreakdown] = useState<CTCBreakdown | null>(null);
-
   const set = (k: string, v: string | boolean | number) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmitForApproval = async () => {
@@ -588,19 +584,12 @@ function OfferLetterTab({
     } finally { setSubmittingApproval(false); }
   };
 
-  const getBreakdown = (): CTCBreakdown | null => {
-    const ctc = Number(form.ctcAnnual);
-    return ctc ? calculateCTC(ctc, form.isMetro) : null;
-  };
-
   const handleGenerate = async () => {
     if (!form.designation || !form.joiningDate || !form.ctcAnnual) {
       toast.error("Designation, Joining Date, and CTC are required");
       return;
     }
     setSaving(true);
-    const bd = getBreakdown();
-    setBreakdown(bd);
     const offer = {
       designation: form.designation, joiningDate: form.joiningDate,
       ctcAnnual: Number(form.ctcAnnual), expiryDate: form.expiryDate || undefined,
@@ -610,7 +599,7 @@ function OfferLetterTab({
     };
     const ok = await onSaveOffer(offer);
     setSaving(false);
-    if (ok) setShowPreview(true);
+    if (ok) window.open(`/api/hiring/candidates/${candidate._id}/offer/preview`, "_blank");
   };
 
   const handleMarkSent = async () => {
@@ -635,7 +624,7 @@ function OfferLetterTab({
   };
 
   const displayOffer = existingOffer || null;
-  const bd = breakdown || (displayOffer?.ctcAnnual ? calculateCTC(Number(displayOffer.ctcAnnual), displayOffer?.isMetro ?? true) : null);
+  const bd = displayOffer?.ctcAnnual ? calculateCTC(Number(displayOffer.ctcAnnual), displayOffer?.isMetro ?? true) : null;
 
   const offerStatusStyle: Record<string, string> = {
     draft:    "bg-slate-50 text-slate-600 border-slate-200",
@@ -675,8 +664,8 @@ function OfferLetterTab({
           {canManage && (
             <div className="flex flex-wrap gap-2 pt-1">
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5"
-                onClick={() => { setShowPreview(true); setBreakdown(bd); }}>
-                <Printer className="w-3.5 h-3.5" /> View / Print
+                onClick={() => window.open(`/api/hiring/candidates/${candidate._id}/offer/preview`, "_blank")}>
+                <Printer className="w-3.5 h-3.5" /> View / Print PDF
               </Button>
               <Button size="sm" variant="outline" className="border-slate-200" onClick={() => setShowForm(true)}>
                 Edit Offer
@@ -829,32 +818,16 @@ function OfferLetterTab({
         </div>
       )}
 
-      {/* Offer Letter Preview */}
-      {showPreview && bd && (
-        <OfferLetterPreview
-          candidate={candidate}
-          offer={displayOffer || { designation: form.designation, joiningDate: form.joiningDate, expiryDate: form.expiryDate, location: form.location, department: form.department, reportingManager: form.reportingManager, offerNumber: form.offerNumber }}
-          jobTitle={jobTitle}
-          breakdown={bd}
-          printRef={printRef}
-          onPrint={() => window.print()}
-          onMarkSent={handleMarkSent}
-          onClose={() => setShowPreview(false)}
-          saving={saving}
-          alreadySent={displayOffer?.status !== "draft" && displayOffer?.status !== undefined}
-        />
-      )}
     </div>
   );
 }
 
-/* ── Offer Letter Preview ── */
+/* ── Offer Letter Preview (unused — kept for reference) ── */
 function OfferLetterPreview({
-  candidate, offer, jobTitle, breakdown, printRef,
-  onPrint, onMarkSent, onClose, saving, alreadySent,
+  candidate, offer, jobTitle, breakdown,
+  onMarkSent, onClose, saving, alreadySent,
 }: {
   candidate: any; offer: any; jobTitle?: string; breakdown: CTCBreakdown;
-  printRef: React.RefObject<HTMLDivElement>; onPrint: () => void;
   onMarkSent: () => void; onClose: () => void; saving: boolean; alreadySent: boolean;
 }) {
   const today = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
@@ -864,7 +837,7 @@ function OfferLetterPreview({
     <div className="space-y-4">
       <div className="flex items-center gap-2 justify-end print:hidden">
         <Button size="sm" variant="outline" onClick={onClose} className="border-slate-200">Back to Form</Button>
-        <Button size="sm" variant="outline" onClick={onPrint} className="border-slate-200 gap-1.5">
+        <Button size="sm" variant="outline" onClick={() => window.print()} className="border-slate-200 gap-1.5">
           <Printer className="w-3.5 h-3.5" /> Print
         </Button>
         {!alreadySent && (
@@ -874,7 +847,7 @@ function OfferLetterPreview({
         )}
       </div>
 
-      <div ref={printRef} className="border border-slate-200 rounded-xl p-6 bg-white space-y-4 text-sm print:border-0" id="offer-letter-print">
+      <div className="border border-slate-200 rounded-xl p-6 bg-white space-y-4 text-sm print:border-0" id="offer-letter-print">
         {/* Letterhead */}
         <div className="text-center border-b border-slate-200 pb-4">
           <div className="flex justify-center mb-2">

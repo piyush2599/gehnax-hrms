@@ -12,10 +12,11 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
   const roles: string[] = (session?.user as any)?.roles || [];
   const canManage = roles.some(r => ["super_admin", "hr_admin"].includes(r));
 
-  const { data: candidate, isLoading } = useSWR(
+  const { data, isLoading } = useSWR(
     `/api/hiring/candidates/${params.id}`,
     fetcher
   );
+  const candidate = data?.candidate;
   const { data: jobsData } = useSWR("/api/hiring/jobs", fetcher);
   const jobs: any[] = jobsData?.jobs || [];
 
@@ -36,7 +37,7 @@ export default function CandidateDetailPage({ params }: { params: { id: string }
     );
   }
 
-  if (!candidate || candidate.error) {
+  if (!candidate) {
     return (
       <div className="text-center py-20 text-slate-500">
         Candidate not found.

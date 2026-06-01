@@ -39,17 +39,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   await connectDB();
 
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  const candidate = await Candidate.findByIdAndUpdate(
-    params.id,
-    body,
-    { new: true, runValidators: true }
-  ).populate("jobPosting", "title");
+    const candidate = await Candidate.findByIdAndUpdate(
+      params.id,
+      { $set: body },
+      { new: true }
+    ).populate("jobPosting", "title");
 
-  if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!candidate) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  return NextResponse.json({ candidate });
+    return NextResponse.json({ candidate });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || "Failed to update candidate" }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
