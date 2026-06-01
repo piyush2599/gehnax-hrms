@@ -249,7 +249,7 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
         <View style={s.termRow}>
           <Text style={s.termNum}>3)</Text>
           <View style={{ flex: 1 }}>
-            <Text style={[s.termBody, { fontFamily: "Helvetica-Bold", color: DARK }]}>
+            <Text style={[s.termBody, { fontFamily: "Helvetica-Bold", color: DARK, marginBottom: 4 }]}>
               Compensation &amp; Benefits:
             </Text>
             <View style={s.subRow}>
