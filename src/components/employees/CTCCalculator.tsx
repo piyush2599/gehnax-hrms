@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export interface CTCApplyResult {
   basic: number; hra: number; allowances: number; deductions: number;
+  ctcAnnual: number;
   pfType: "fixed" | "percent" | "none";
   pfValue: number;
   isMetro: boolean;
@@ -50,6 +51,7 @@ export default function CTCCalculator({ onApply, initialCTC = 0 }: Props) {
       hra:             result.hraMonthly,
       allowances:      result.otherAllowancesMonthly,
       deductions:      result.totalDeductionsMonthly,
+      ctcAnnual:       result.crmAnnual,
       pfType:          pfEnabled ? pfType : "none",
       pfValue:         pfType === "fixed" ? (parseInt(pfFixed) || 0) : (parseFloat(pfPct) || 12),
       isMetro,

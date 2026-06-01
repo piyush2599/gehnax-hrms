@@ -877,11 +877,9 @@ function OfferLetterTab({
             <CTCCalculator
               initialCTC={Number(form.ctcAnnual) || 0}
               onApply={(s) => {
-                // Reverse-derive the annual CTC from the gross
-                const annual = Math.round((s.basic + s.hra + s.allowances) * 12 / (1 - 0.0672));
                 setForm(f => ({
                   ...f,
-                  ctcAnnual:       String(annual),
+                  ctcAnnual:       String(s.ctcAnnual),
                   isMetro:         s.isMetro,
                   pfType:          s.pfType,
                   pfValue:         s.pfValue,
