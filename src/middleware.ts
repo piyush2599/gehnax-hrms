@@ -10,6 +10,8 @@ function isPublic(pathname: string): boolean {
   // Candidate portal — handled by its own auth
   if (pathname === "/candidate-login") return true;
   if (pathname.startsWith("/candidate/")) return true;
+  // Public offer letter download for candidates (email link)
+  if (pathname.startsWith("/api/public/hiring/offer/")) return true;
   return false;
 }
 
