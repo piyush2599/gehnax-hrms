@@ -8,8 +8,16 @@ import { calculateCRM, fmt, type CRMBreakdown, type PFConfig } from "@/lib/ctc-c
 import { Sparkles, MapPin, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export interface CTCApplyResult {
+  basic: number; hra: number; allowances: number; deductions: number;
+  pfType: "fixed" | "percent" | "none";
+  pfValue: number;
+  isMetro: boolean;
+  includeGratuity: boolean;
+}
+
 interface Props {
-  onApply: (salary: { basic: number; hra: number; allowances: number; deductions: number }) => void;
+  onApply: (salary: CTCApplyResult) => void;
   initialCTC?: number;
 }
 
@@ -38,10 +46,14 @@ export default function CTCCalculator({ onApply, initialCTC = 0 }: Props) {
   const handleApply = () => {
     if (!result) return;
     onApply({
-      basic:      result.basicMonthly,
-      hra:        result.hraMonthly,
-      allowances: result.otherAllowancesMonthly,
-      deductions: result.totalDeductionsMonthly,
+      basic:           result.basicMonthly,
+      hra:             result.hraMonthly,
+      allowances:      result.otherAllowancesMonthly,
+      deductions:      result.totalDeductionsMonthly,
+      pfType:          pfEnabled ? pfType : "none",
+      pfValue:         pfType === "fixed" ? (parseInt(pfFixed) || 0) : (parseFloat(pfPct) || 12),
+      isMetro,
+      includeGratuity,
     });
     setApplied(true);
   };
