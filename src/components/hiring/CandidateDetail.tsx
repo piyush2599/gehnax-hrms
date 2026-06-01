@@ -93,14 +93,17 @@ export default function CandidateDetail({ candidate: initialCandidate, jobs, can
   };
 
   const patchCandidate = async (payload: Record<string, unknown>) => {
+    const id = candidate?._id;
+    if (!id) { toast.error("Candidate ID missing — please refresh the page"); return false; }
     setSaving(true);
     try {
-      const res = await fetch(`/api/hiring/candidates/${candidate._id}`, {
+      const res = await fetch(`/api/hiring/candidates/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      let data: any = {};
+      try { data = await res.json(); } catch { data = {}; }
       if (!res.ok) { toast.error(data.error || "Failed to save"); return false; }
       setCandidate((prev: any) => ({ ...prev, ...payload, ...(data.candidate || {}) }));
       mutate("/api/hiring/candidates");

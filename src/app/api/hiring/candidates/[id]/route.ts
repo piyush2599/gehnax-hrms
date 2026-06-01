@@ -37,9 +37,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  await connectDB();
-
   try {
+    await connectDB();
+
     const body = await req.json();
 
     const candidate = await Candidate.findByIdAndUpdate(
