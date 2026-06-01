@@ -12,7 +12,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { FileText, Check, X, Eye, Clock, RefreshCw, Calendar } from "lucide-react";
-import { formatDate, secureDocUrl } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { format } from "date-fns";
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
@@ -97,11 +97,9 @@ function OfferApprovals() {
             <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 flex-shrink-0">Pending Approval</Badge>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {c.offer?.offerPdfUrl && (
-              <a href={secureDocUrl(c.offer.offerPdfUrl)} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" variant="outline" className="gap-1.5 border-slate-200"><Eye className="w-3.5 h-3.5" />Preview</Button>
-              </a>
-            )}
+            <a href={`/api/hiring/candidates/${c._id}/offer/preview`} target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="outline" className="gap-1.5 border-slate-200"><Eye className="w-3.5 h-3.5" />Preview PDF</Button>
+            </a>
             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5" onClick={() => { setReviewing({ candidate: c, action: "approve" }); setComments(""); }}>
               <Check className="w-3.5 h-3.5" />Approve
             </Button>

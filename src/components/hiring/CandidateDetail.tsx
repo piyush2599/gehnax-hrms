@@ -729,10 +729,10 @@ function OfferLetterTab({
                 {displayOffer.approvalComments && (
                   <p className="text-xs mt-0.5 opacity-80">{displayOffer.approvalComments}</p>
                 )}
-                {displayOffer.approvalStatus === "approved" && displayOffer.offerPdfUrl && (
-                  <a href={secureDocUrl(displayOffer.offerPdfUrl)} target="_blank" rel="noopener noreferrer"
+                {displayOffer.approvalStatus === "approved" && (
+                  <a href={`/api/hiring/candidates/${candidate._id}/offer/preview`} target="_blank" rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-xs font-semibold mt-1.5 underline">
-                    <Download className="w-3 h-3" /> Download Approved Offer
+                    <Download className="w-3 h-3" /> Download Approved Offer PDF
                   </a>
                 )}
               </div>
