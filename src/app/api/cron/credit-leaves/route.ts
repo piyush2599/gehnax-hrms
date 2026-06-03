@@ -12,9 +12,9 @@ export async function GET(req: NextRequest) {
 
   await connectDB();
 
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear  = now.getFullYear();
+  const { istMonth, istYear } = await import("@/lib/ist");
+  const currentMonth = istMonth();
+  const currentYear  = istYear();
   const isJanuary    = currentMonth === 1;
 
   const employees = await Employee.find({ isActive: true }).select(

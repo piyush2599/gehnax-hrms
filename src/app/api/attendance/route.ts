@@ -1,8 +1,12 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Attendance from "@/models/Attendance";
 import Employee from "@/models/Employee";
+import {
+  todayStartIST, tomorrowStartIST, monthStartIST, nextMonthStartIST,
+  istDayBounds, currentTimeIST, istHour, toISTDateString, nowIST,
+} from "@/lib/ist";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -21,7 +25,6 @@ export async function GET(req: NextRequest) {
   const activeRole  = searchParams.get("activeRole") ?? "";
   const impersonateId = searchParams.get("impersonateId") ?? "";
 
-  // Super admin impersonation — treat as that employee
   const isImpersonating = !!impersonateId && roles.includes("super_admin");
   if (isImpersonating) sessionEmployeeId = impersonateId;
 
@@ -37,15 +40,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (date) {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    const nextDay = new Date(d);
-    nextDay.setDate(nextDay.getDate() + 1);
-    query.date = { $gte: d, $lt: nextDay };
+    const [start, end] = istDayBounds(date);
+    query.date = { $gte: start, $lt: end };
   } else if (month && year) {
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = new Date(parseInt(year), parseInt(month), 1);
-    query.date = { $gte: startDate, $lt: endDate };
+    const m = parseInt(month), y = parseInt(year);
+    query.date = { $gte: monthStartIST(y, m), $lt: nextMonthStartIST(y, m) };
   }
 
   const attendance = await Attendance.find(query)
@@ -54,17 +53,21 @@ export async function GET(req: NextRequest) {
 
   // For employee monthly view: compute absent days (weekdays with no record, before today)
   if (isEmployeeView && month && year) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate   = new Date(parseInt(year), parseInt(month), 1);
-    const recordedDates = new Set(attendance.map((a: any) => new Date(a.date).toDateString()));
+    const m = parseInt(month), y = parseInt(year);
+    const todayStart = todayStartIST();
+    const monthStart = monthStartIST(y, m);
+    const monthEnd   = nextMonthStartIST(y, m);
+
+    // Build set of recorded IST date strings
+    const recordedDates = new Set(attendance.map((a: any) => toISTDateString(new Date(a.date))));
     const absentRecords: any[] = [];
 
-    const cur = new Date(startDate);
-    while (cur < endDate && cur < today) {
-      const dow = cur.getDay();
-      if (dow !== 0 && dow !== 6 && !recordedDates.has(cur.toDateString())) {
+    const cur = new Date(monthStart);
+    while (cur < monthEnd && cur < todayStart) {
+      const istStr = toISTDateString(cur);
+      // day-of-week in IST
+      const istDay = new Date(cur.getTime() + 5.5 * 60 * 60 * 1000).getUTCDay();
+      if (istDay !== 0 && istDay !== 6 && !recordedDates.has(istStr)) {
         absentRecords.push({
           _id: `absent-${cur.toISOString()}`,
           employeeId: sessionEmployeeId,
@@ -76,7 +79,7 @@ export async function GET(req: NextRequest) {
           isComputed: true,
         });
       }
-      cur.setDate(cur.getDate() + 1);
+      cur.setTime(cur.getTime() + 86_400_000);
     }
 
     return NextResponse.json([...attendance, ...absentRecords]);
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
   await connectDB();
 
   const body = await req.json();
-  const { action } = body; // "checkin" | "checkout" | "manual"
+  const { action } = body;
 
   const sessionEmployeeId = (session.user as any).employeeId;
   const roles: string[] = (session.user as any).roles || [];
@@ -101,9 +104,8 @@ export async function POST(req: NextRequest) {
     const employee = await Employee.findById(sessionEmployeeId);
     if (!employee) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const now = `${String(new Date().getHours()).padStart(2, "0")}:${String(new Date().getMinutes()).padStart(2, "0")}`;
+    const today = todayStartIST();
+    const now   = currentTimeIST(); // IST HH:MM
 
     let attendance = await Attendance.findOne({
       employeeId: sessionEmployeeId,
@@ -115,8 +117,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Already checked in today" }, { status: 400 });
       }
 
-      const checkInHour = new Date().getHours();
-      const isLate = checkInHour >= 10; // Late if after 10 AM
+      const checkInHour = istHour(); // IST hour
+      const isLate = checkInHour >= 10;
 
       attendance = await Attendance.create({
         employeeId: sessionEmployeeId,
@@ -130,9 +132,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Not checked in yet" }, { status: 400 });
       }
 
-      const checkInTime = new Date(`1970-01-01T${attendance.checkIn}`);
+      const checkInTime  = new Date(`1970-01-01T${attendance.checkIn}`);
       const checkOutTime = new Date(`1970-01-01T${now}`);
-      const workingHours = (checkOutTime.getTime() - checkInTime.getTime()) / 3600000;
+      const workingHours = (checkOutTime.getTime() - checkInTime.getTime()) / 3_600_000;
 
       attendance = await Attendance.findByIdAndUpdate(
         attendance._id,
@@ -156,18 +158,17 @@ export async function POST(req: NextRequest) {
 
     const { employeeId, date, checkIn, checkOut, status, notes } = body;
 
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
+    const [dayStart] = istDayBounds(date);
 
     let workingHours = 0;
     if (checkIn && checkOut) {
       const start = new Date(`1970-01-01T${checkIn}`);
-      const end = new Date(`1970-01-01T${checkOut}`);
-      workingHours = (end.getTime() - start.getTime()) / 3600000;
+      const end   = new Date(`1970-01-01T${checkOut}`);
+      workingHours = (end.getTime() - start.getTime()) / 3_600_000;
     }
 
     const attendance = await Attendance.findOneAndUpdate(
-      { employeeId, date: d },
+      { employeeId, date: dayStart },
       { checkIn, checkOut, status, notes, workingHours },
       { upsert: true, new: true }
     );

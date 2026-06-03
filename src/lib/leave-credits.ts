@@ -14,9 +14,11 @@ export interface CreditResult {
 }
 
 export function calcLeaveCredits(employee: any): CreditResult {
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1; // 1-12
-  const currentYear  = now.getFullYear();
+  // Use IST for month/year boundaries
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(Date.now() + istOffset);
+  const currentMonth = istNow.getUTCMonth() + 1;
+  const currentYear  = istNow.getUTCFullYear();
 
   let leaves             = employee.leaveBalance?.leaves ?? 0;
   let leaveCreditedMonth = employee.leaveBalance?.leaveCreditedMonth ?? 0;
@@ -24,9 +26,11 @@ export function calcLeaveCredits(employee: any): CreditResult {
 
   // First time — initialise from joining date
   if (leaveCreditedYear === 0) {
-    const joining = employee.joiningDate ? new Date(employee.joiningDate) : now;
-    leaveCreditedMonth = joining.getMonth() + 1;
-    leaveCreditedYear  = joining.getFullYear();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const joining = employee.joiningDate ? new Date(employee.joiningDate) : new Date();
+    const joiningIST = new Date(joining.getTime() + istOffset);
+    leaveCreditedMonth = joiningIST.getUTCMonth() + 1;
+    leaveCreditedYear  = joiningIST.getUTCFullYear();
     leaves = 0;
   }
 

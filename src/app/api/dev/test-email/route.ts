@@ -1,7 +1,19 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { auth } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not available in production" }, { status: 403 });
+  }
+
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const roles: string[] = (session.user as any).roles || [];
+  if (!roles.includes("super_admin")) {
+    return NextResponse.json({ error: "Super Admin only" }, { status: 403 });
+  }
+
   const to = new URL(req.url).searchParams.get("to") || "piyush.agarwal@gehnax.com";
 
   const transporter = nodemailer.createTransport({

@@ -23,10 +23,10 @@ export async function GET() {
 
   await connectDB();
 
-  const now = new Date();
-  const today = new Date(now); today.setHours(0, 0, 0, 0);
-  const month = now.getMonth() + 1;
-  const year  = now.getFullYear();
+  const { todayStartIST, istMonth, istYear, toISTDateString } = await import("@/lib/ist");
+  const today = todayStartIST();
+  const month = istMonth();
+  const year  = istYear();
 
   const [
     totalEmployees, activeEmployees, todayAttendance, pendingLeaves, departments,
@@ -94,15 +94,15 @@ export async function GET() {
   const totalTasks    = Object.values(taskByStatus).reduce((s, v) => s + v, 0);
 
   // Attendance trend (last 7 days)
-  const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); sevenDaysAgo.setHours(0,0,0,0);
+  const sevenDaysAgo = new Date(today.getTime() - 6 * 86_400_000);
   const attendanceCounts = await Attendance.aggregate([
     { $match: { date: { $gte: sevenDaysAgo }, status: "present" } },
-    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } }, present: { $sum: 1 } } },
+    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: { $add: ["$date", 19800000] } } }, present: { $sum: 1 } } },
   ]);
-  const attendanceMap = new Map(attendanceCounts.map((a) => [a._id, a.present]));
+  const attendanceMap = new Map(attendanceCounts.map((a: any) => [a._id, a.present]));
   const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i)); d.setHours(0,0,0,0);
-    const ds = d.toISOString().split("T")[0];
+    const d = new Date(today.getTime() + i * 86_400_000 - 6 * 86_400_000);
+    const ds = toISTDateString(d);
     return { date: ds, present: attendanceMap.get(ds) ?? 0 };
   });
 

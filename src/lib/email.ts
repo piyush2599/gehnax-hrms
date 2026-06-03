@@ -141,7 +141,7 @@ export function sendLeaveConfirmationEmail(
   totalDays: number,
   reason: string,
 ) {
-  const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
   return sendMail({
     to,
     subject: `Leave Application Submitted — ${fmt(startDate)} to ${fmt(endDate)}`,
@@ -181,7 +181,7 @@ export function sendLeaveStatusEmail(
   totalDays: number,
   comments?: string,
 ) {
-  const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
   const isApproved = status === "approved";
   return sendMail({
     to,
@@ -224,7 +224,7 @@ export function sendLeaveApplicationEmail(
   totalDays: number,
   reason: string,
 ) {
-  const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const fmt = (d: string) => new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
   return sendMail({
     to: to.join(", "),
     subject: `Leave Application — ${employeeName} (${fmt(startDate)} to ${fmt(endDate)})`,
@@ -274,7 +274,7 @@ export function sendInterviewScheduledEmail(
   const typeLabel = typeLabels[interviewType] ?? interviewType;
   const dateStr = new Date(scheduledAt).toLocaleString("en-IN", {
     weekday: "long", day: "2-digit", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+    hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata", timeZoneName: "short",
   });
 
   return sendMail({
