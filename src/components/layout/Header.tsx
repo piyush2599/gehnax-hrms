@@ -34,6 +34,7 @@ const PAGE_NAMES: Record<string, string> = {
   "/roles":            "Roles & Permissions",
   "/approvals":        "Offer Approvals",
   "/purchase-orders":  "Purchase Orders",
+  "/crm":              "CRM — Sales Pipeline",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -42,6 +43,7 @@ const ROLE_LABELS: Record<string, string> = {
   hr_admin:      "HR Admin",
   manager:       "Manager",
   employee:      "Employee",
+  sales:         "Sales",
 };
 
 const ROLE_STYLES: Record<string, string> = {
@@ -50,6 +52,7 @@ const ROLE_STYLES: Record<string, string> = {
   hr_admin:      "bg-violet-50 text-violet-700 border-violet-200",
   manager:       "bg-blue-50 text-blue-700 border-blue-200",
   employee:      "bg-emerald-50 text-emerald-700 border-emerald-200",
+  sales:         "bg-rose-50 text-rose-700 border-rose-200",
 };
 
 export default function Header() {

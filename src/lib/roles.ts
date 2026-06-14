@@ -1,4 +1,4 @@
-export const VALID_ROLES = ["super_admin", "finance_admin", "hr_admin", "manager", "employee"] as const;
+export const VALID_ROLES = ["super_admin", "finance_admin", "hr_admin", "manager", "employee", "sales"] as const;
 
 /** Returns true if the user has ANY of the specified roles. */
 export function hasRole(userRoles: string[], ...allowed: string[]): boolean {

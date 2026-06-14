@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   ]);
 
   const roleCounts: Record<string, number> = {
-    super_admin: 0, finance_admin: 0, hr_admin: 0, manager: 0, employee: 0,
+    super_admin: 0, finance_admin: 0, hr_admin: 0, manager: 0, employee: 0, sales: 0,
   };
   counts.forEach(({ _id, count }) => { roleCounts[_id] = count; });
 

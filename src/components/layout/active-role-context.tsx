@@ -15,7 +15,7 @@ const ActiveRoleContext = createContext<ActiveRoleCtx>({
   userRoles: ["employee"],
 });
 
-const ALL_ROLES = ["super_admin", "hr_admin", "manager", "finance_admin", "employee"] as const;
+const ALL_ROLES = ["super_admin", "hr_admin", "manager", "finance_admin", "employee", "sales"] as const;
 
 function expandRoles(dbRoles: string[]): string[] {
   if (!dbRoles.length) return ["employee"];

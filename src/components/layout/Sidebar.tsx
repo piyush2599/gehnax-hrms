@@ -14,7 +14,7 @@ import {
   FileText, DollarSign, Megaphone, UserCircle,
   ChevronLeft, ChevronRight, LogOut,
   CalendarDays, UserPlus, ClipboardCheck, ShieldCheck, X, ReceiptText, ShoppingCart, FolderKanban,
-  ChevronsUpDown, Check, BadgeCheck,
+  ChevronsUpDown, Check, BadgeCheck, Target,
 } from "lucide-react";
 
 const navGroups = [
@@ -51,6 +51,13 @@ const navGroups = [
     ],
   },
   {
+    label: "Sales",
+    color: { dot: "bg-rose-500", label: "text-rose-400/80" },
+    items: [
+      { href: "/crm", icon: Target, label: "CRM", roles: ["super_admin","finance_admin","manager","employee","sales"] },
+    ],
+  },
+  {
     label: "General",
     color: { dot: "bg-amber-500", label: "text-amber-400/80" },
     items: [
@@ -67,6 +74,7 @@ const roleLabels: Record<string, string> = {
   hr_admin:      "HR Admin",
   manager:       "Manager",
   employee:      "Employee",
+  sales:         "Sales",
 };
 
 const ROLE_BADGE: Record<string, string> = {
@@ -75,6 +83,7 @@ const ROLE_BADGE: Record<string, string> = {
   hr_admin:      "bg-violet-500/20 text-violet-300 border-violet-500/20",
   manager:       "bg-blue-500/20 text-blue-300 border-blue-500/20",
   employee:      "bg-emerald-500/20 text-emerald-300 border-emerald-500/20",
+  sales:         "bg-rose-500/20 text-rose-300 border-rose-500/20",
 };
 
 function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => void }) {

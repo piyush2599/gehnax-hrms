@@ -4,7 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
-const VALID_ROLES = ["super_admin", "finance_admin", "hr_admin", "manager", "employee"];
+const VALID_ROLES = ["super_admin", "finance_admin", "hr_admin", "manager", "employee", "sales"];
 
 export async function PATCH(
   req: NextRequest,
