@@ -10,13 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Calendar, Check, X, Clock } from "lucide-react";
+import { Plus, Calendar, Clock } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
 import { useImpersonate } from "@/components/layout/impersonate-context";
@@ -38,7 +34,6 @@ export default function LeavesClient() {
   const { impersonating } = useImpersonate();
   const impersonateId = impersonating?.id || "";
   const [applyOpen, setApplyOpen] = useState(false);
-  const [reviewLeave, setReviewLeave] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const isAdminOrHR = ["super_admin","hr_admin","manager"].includes(activeRole);
 
@@ -118,7 +113,6 @@ export default function LeavesClient() {
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">To</TableHead>
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Days</TableHead>
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</TableHead>
-                  {isAdminOrHR && <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Action</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -142,28 +136,6 @@ export default function LeavesClient() {
                         {leave.status}
                       </Badge>
                     </TableCell>
-                    {isAdminOrHR && (
-                      <TableCell>
-                        {leave.status === "pending" ? (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => setReviewLeave({ ...leave, action: "approved" })}
-                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors"
-                              title="Approve"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setReviewLeave({ ...leave, action: "rejected" })}
-                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors"
-                              title="Reject"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : <span className="text-slate-300 text-xs">—</span>}
-                      </TableCell>
-                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -172,13 +144,6 @@ export default function LeavesClient() {
         </CardContent>
       </Card>
 
-      {reviewLeave && (
-        <ReviewLeaveDialog
-          leave={reviewLeave}
-          onClose={() => setReviewLeave(null)}
-          onDone={() => { setReviewLeave(null); mutate(url); }}
-        />
-      )}
     </div>
   );
 }
@@ -302,55 +267,3 @@ function ApplyLeaveForm({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function ReviewLeaveDialog({ leave, onClose, onDone }: { leave: any; onClose: () => void; onDone: () => void }) {
-  const [comments, setComments] = useState("");
-  const [loading, setLoading] = useState(false);
-  const isApproving = leave.action === "approved";
-
-  const handleReview = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/leaves/${leave._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: leave.action, reviewComments: comments }),
-      });
-      const data = await res.json();
-      if (!res.ok) toast.error(data.error);
-      else { toast.success(`Leave ${isApproving ? "approved" : "rejected"}`); onDone(); }
-    } finally { setLoading(false); }
-  };
-
-  return (
-    <AlertDialog open onOpenChange={onClose}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{isApproving ? "Approve" : "Reject"} Leave Request</AlertDialogTitle>
-          <AlertDialogDescription className="space-y-1.5">
-            <span className="block font-medium text-slate-700">
-              {leave.employeeId?.firstName} {leave.employeeId?.lastName} — {leave.leaveType} Leave
-            </span>
-            <span className="block text-slate-500">
-              {formatDate(leave.startDate)} → {formatDate(leave.endDate)} ({leave.totalDays} days)
-            </span>
-            <span className="block italic text-slate-500">&ldquo;{leave.reason}&rdquo;</span>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="px-6 -mt-2">
-          <Label className="text-sm">Comments (optional)</Label>
-          <Textarea value={comments} onChange={(e) => setComments(e.target.value)} placeholder="Review comments…" rows={2} className="mt-1.5" />
-        </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleReview}
-            disabled={loading}
-            className={isApproving ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}
-          >
-            {loading ? "Processing…" : isApproving ? "Approve" : "Reject"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}

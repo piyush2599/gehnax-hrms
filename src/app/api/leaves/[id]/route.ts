@@ -34,9 +34,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json(leave);
   }
 
-  // Approve/Reject (HR Admin, Manager)
-  if (!roles.some(r => ["super_admin", "hr_admin", "manager"].includes(r))) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  // Approve/Reject (Super Admin only)
+  if (!roles.includes("super_admin")) {
+    return NextResponse.json({ error: "Only Super Admin can review leave requests" }, { status: 403 });
   }
 
   if (!["approved", "rejected"].includes(status)) {

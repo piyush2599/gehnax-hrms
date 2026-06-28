@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { startDate, endDate, reason } = body;
   const sessionEmployeeId = (session.user as any).employeeId;
+  if (!sessionEmployeeId) return NextResponse.json({ error: "No employee profile linked" }, { status: 400 });
 
   const employee = await Employee.findById(sessionEmployeeId).populate(
     "reportingManager",

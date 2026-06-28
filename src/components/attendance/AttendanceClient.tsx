@@ -387,7 +387,7 @@ function ManualAttendanceForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function RegularizeForm({ date, onSuccess, onCancel }: { date: string; onSuccess: () => void; onCancel: () => void }) {
-  const [form, setForm] = useState({ checkIn: "09:00", checkOut: "18:00", reason: "" });
+  const [form, setForm] = useState({ requestedCheckIn: "09:00", requestedCheckOut: "18:00", reason: "" });
   const [loading, setLoading] = useState(false);
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -414,11 +414,11 @@ function RegularizeForm({ date, onSuccess, onCancel }: { date: string; onSuccess
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Check-in Time *</Label>
-          <Input type="time" value={form.checkIn} onChange={e => set("checkIn", e.target.value)} required />
+          <Input type="time" value={form.requestedCheckIn} onChange={e => set("requestedCheckIn", e.target.value)} required />
         </div>
         <div className="space-y-1.5">
           <Label>Check-out Time *</Label>
-          <Input type="time" value={form.checkOut} onChange={e => set("checkOut", e.target.value)} required />
+          <Input type="time" value={form.requestedCheckOut} onChange={e => set("requestedCheckOut", e.target.value)} required />
         </div>
       </div>
       <div className="space-y-1.5">
