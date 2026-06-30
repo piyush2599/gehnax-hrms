@@ -21,7 +21,11 @@ export async function GET(
 
   await connectDB();
 
-  const candidate = await Candidate.findById(params.id).populate("jobPosting", "title department");
+  const candidate = await Candidate.findById(params.id).populate({
+    path: "jobPosting",
+    select: "title department",
+    populate: { path: "department", select: "name" },
+  });
   if (!candidate) return NextResponse.json({ error: "Candidate not found" }, { status: 404 });
 
   const offer = candidate.offer;
@@ -59,7 +63,7 @@ export async function GET(
       employeeName:      `${candidate.firstName} ${candidate.lastName}`,
       employeeCode:      ref,
       designation:       offer.designation,
-      department:        offer.department || (candidate.jobPosting as any)?.department || "—",
+      department:        offer.department || (candidate.jobPosting as any)?.department?.name || "—",
       joiningDate:       joiningDateStr,
       salary: {
         basic:           breakdown.basicMonthly,
