@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
@@ -7,15 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { DollarSign, FileText, Download, Play, Loader2, ExternalLink, TrendingUp, TrendingDown, Clock, Calendar } from "lucide-react";
+import { DollarSign, FileText, Download, Play, Loader2, ExternalLink, TrendingUp, TrendingDown, Clock, Calendar, Pencil, Trash2, CheckCircle2, BadgeCheck, Search } from "lucide-react";
 import { formatCurrency, getMonthName, secureDocUrl } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
 import { useImpersonate } from "@/components/layout/impersonate-context";
+import PayrollAdminTools from "@/components/payroll/PayrollAdminTools";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -33,6 +37,9 @@ const STATUS_DOT: Record<string, string> = {
   paid:      "bg-emerald-500",
 };
 
+// Compact INR integer for dense breakdown tables (blank when zero)
+const fmtInt = (v: number) => (v ? Math.round(v).toLocaleString("en-IN") : "—");
+
 export default function PayrollClient() {
   const { data: session } = useSession();
   const { activeRole } = useActiveRole();
@@ -43,8 +50,15 @@ export default function PayrollClient() {
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [year, setYear] = useState(today.getFullYear());
   const [viewSlip, setViewSlip] = useState<any>(null);
+  const [editRow, setEditRow] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const isAdminOrHR = activeRole === "super_admin";
   const isEmployee  = activeRole === "employee";
@@ -59,9 +73,25 @@ export default function PayrollClient() {
   );
   const list = Array.isArray(payrolls) ? payrolls : [];
 
-  const totalNetPay = list.reduce((s: number, p: any) => s + (p.netPay || 0), 0);
-  const totalGross  = list.reduce((s: number, p: any) => s + (p.grossPay || 0), 0);
+  // Client-side filters over the month's records
+  const filtered = list.filter((p: any) => {
+    if (statusFilter !== "all" && p.status !== statusFilter) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const name = `${p.employeeId?.firstName ?? ""} ${p.employeeId?.lastName ?? ""} ${p.employeeId?.employeeCode ?? ""} ${p.employeeId?.designation ?? ""}`.toLowerCase();
+      if (!name.includes(q)) return false;
+    }
+    return true;
+  });
 
+  const totalNetPay = filtered.reduce((s: number, p: any) => s + (p.netPay || 0), 0);
+  const totalGross  = filtered.reduce((s: number, p: any) => s + (p.grossPay || 0), 0);
+  const sumL = (fn: (p: any) => number) => filtered.reduce((s: number, p: any) => s + (fn(p) || 0), 0);
+  const statusCounts = list.reduce((acc: Record<string, number>, p: any) => {
+    acc[p.status] = (acc[p.status] || 0) + 1; return acc;
+  }, {});
+
+  // Commit the run (called from the preview dialog after review)
   const handleRunPayroll = async () => {
     setProcessing(true);
     try {
@@ -73,10 +103,99 @@ export default function PayrollClient() {
       const data = await res.json();
       if (!res.ok) toast.error(data.error || "Failed");
       else {
-        toast.success(`Payroll processed for ${data.created} employees`);
+        toast.success(`Payroll drafts created for ${data.created} employees`);
+        setShowPreview(false);
         mutate(adminUrl);
       }
     } finally { setProcessing(false); }
+  };
+
+  const refresh = () => mutate(isEmployee ? employeeUrl : adminUrl);
+
+  const handleSaveEdit = async (id: string, payload: any) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/payroll/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Update failed"); return false; }
+      toast.success("Payroll recalculated");
+      refresh();
+      return true;
+    } finally { setBusyId(null); }
+  };
+
+  const handleApprove = async (id: string) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/payroll/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve" }),
+      });
+      const data = await res.json();
+      if (!res.ok) toast.error(data.error || "Failed");
+      else { toast.success("Payroll approved"); refresh(); }
+    } finally { setBusyId(null); }
+  };
+
+  const handleMarkPaid = async (id: string) => {
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/payroll/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "paid" }),
+      });
+      const data = await res.json();
+      if (!res.ok) toast.error(data.error || "Failed");
+      else { toast.success("Marked as paid"); refresh(); }
+    } finally { setBusyId(null); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this payroll record? You can re-run payroll for this period afterwards.")) return;
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/payroll/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) toast.error(data.error || "Delete failed");
+      else { toast.success("Payroll deleted"); refresh(); }
+    } finally { setBusyId(null); }
+  };
+
+  const toggleSelect = (id: string) =>
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  const bulkAction = async (
+    label: string,
+    filterFn: (p: any) => boolean,
+    request: (id: string) => Promise<Response>,
+  ) => {
+    const ids = list.filter((p: any) => selected.includes(p._id) && filterFn(p)).map((p: any) => p._id);
+    if (ids.length === 0) { toast.error(`No selected rows eligible to ${label.toLowerCase()}`); return; }
+    setBulkBusy(true);
+    try {
+      const results = await Promise.all(ids.map((id: string) => request(id).then((r) => r.ok)));
+      const ok = results.filter(Boolean).length;
+      toast.success(`${label}: ${ok}/${ids.length} done`);
+      setSelected([]);
+      refresh();
+    } finally { setBulkBusy(false); }
+  };
+
+  const bulkApprove = () => bulkAction("Approved", (p) => p.status === "draft", (id) =>
+    fetch(`/api/payroll/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve" }) }));
+
+  const bulkMarkPaid = () => bulkAction("Marked paid", (p) => p.status === "processed", (id) =>
+    fetch(`/api/payroll/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "paid" }) }));
+
+  const bulkDelete = () => {
+    if (!confirm(`Delete ${selected.length} selected payroll record(s)?`)) return;
+    return bulkAction("Deleted", (p) => p.status !== "paid", (id) => fetch(`/api/payroll/${id}`, { method: "DELETE" }));
   };
 
   const handleGeneratePdf = async (payrollId: string) => {
@@ -210,10 +329,13 @@ export default function PayrollClient() {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-slate-500">{getMonthName(month)} {year}</p>
-        <Button onClick={handleRunPayroll} disabled={processing} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
-          <Play className="w-4 h-4 mr-1.5" />
-          {processing ? "Processing…" : "Run Payroll"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {isAdminOrHR && <PayrollAdminTools month={month} year={year} />}
+          <Button onClick={() => setShowPreview(true)} disabled={processing} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+            <Play className="w-4 h-4 mr-1.5" />
+            Run Payroll
+          </Button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -235,23 +357,75 @@ export default function PayrollClient() {
         </div>
       )}
 
-      {/* Month/year filter */}
-      <div className="flex gap-3">
-        <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v ?? "1"))}>
-          <SelectTrigger className="w-40 bg-white border-slate-200"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {months.map((m) => <SelectItem key={m} value={String(m)}>{getMonthName(m)}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v ?? "2026"))}>
-          <SelectTrigger className="w-28 bg-white border-slate-200"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {[today.getFullYear() - 1, today.getFullYear()].map((y) => (
-              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <NativeSelect
+          value={String(month)}
+          onChange={(e) => setMonth(parseInt(e.target.value))}
+          className="h-9 w-36 bg-white"
+        >
+          {months.map((m) => <option key={m} value={m}>{getMonthName(m)}</option>)}
+        </NativeSelect>
+
+        <NativeSelect
+          value={String(year)}
+          onChange={(e) => setYear(parseInt(e.target.value))}
+          className="h-9 w-24 bg-white"
+        >
+          {[today.getFullYear() - 1, today.getFullYear()].map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </NativeSelect>
+
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, code, designation…"
+            className="h-9 pl-9 bg-white border-slate-200"
+          />
+        </div>
+
+        <NativeSelect
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-9 w-48 bg-white"
+        >
+          <option value="all">All statuses ({list.length})</option>
+          <option value="draft">Draft ({statusCounts.draft || 0})</option>
+          <option value="processed">Approved ({statusCounts.processed || 0})</option>
+          <option value="paid">Paid ({statusCounts.paid || 0})</option>
+        </NativeSelect>
+
+        {(search || statusFilter !== "all") && (
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setStatusFilter("all"); }} className="text-slate-500 h-9">
+            Clear
+          </Button>
+        )}
       </div>
+
+      {/* Bulk action bar */}
+      {isAdminOrHR && selected.length > 0 && (
+        <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5">
+          <span className="text-sm font-semibold text-blue-800">{selected.length} selected</span>
+          <div className="flex-1" />
+          <Button size="sm" variant="outline" onClick={bulkApprove} disabled={bulkBusy}
+            className="border-blue-200 text-blue-700 hover:bg-blue-100">
+            <BadgeCheck className="w-4 h-4 mr-1.5" /> Approve
+          </Button>
+          <Button size="sm" variant="outline" onClick={bulkMarkPaid} disabled={bulkBusy}
+            className="border-emerald-200 text-emerald-700 hover:bg-emerald-100">
+            <CheckCircle2 className="w-4 h-4 mr-1.5" /> Mark Paid
+          </Button>
+          <Button size="sm" variant="outline" onClick={bulkDelete} disabled={bulkBusy}
+            className="border-red-200 text-red-600 hover:bg-red-100">
+            <Trash2 className="w-4 h-4 mr-1.5" /> Delete
+          </Button>
+          <button onClick={() => setSelected([])} className="text-xs text-slate-500 hover:text-slate-700 px-2">Clear</button>
+          {bulkBusy && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+        </div>
+      )}
 
       {/* Table */}
       <Card className="border-slate-200 shadow-sm overflow-hidden">
@@ -266,7 +440,7 @@ export default function PayrollClient() {
                 <DollarSign className="w-7 h-7 text-slate-400" />
               </div>
               <p className="text-sm font-medium text-slate-600">No payroll records for this period</p>
-              <Button onClick={handleRunPayroll} disabled={processing} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white" size="sm">
+              <Button onClick={() => setShowPreview(true)} disabled={processing} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white" size="sm">
                 Run Payroll
               </Button>
             </div>
@@ -274,26 +448,58 @@ export default function PayrollClient() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  {isAdminOrHR && (
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-blue-600 cursor-pointer"
+                        checked={filtered.length > 0 && selected.length === filtered.length}
+                        ref={(el) => { if (el) el.indeterminate = selected.length > 0 && selected.length < filtered.length; }}
+                        onChange={(e) => setSelected(e.target.checked ? filtered.map((p: any) => p._id) : [])}
+                        title="Select all"
+                      />
+                    </TableHead>
+                  )}
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Employee</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Attendance</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Gross</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Deductions</TableHead>
-                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Net Pay</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Days</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">Gross</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">Deductions</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">Net Pay</TableHead>
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</TableHead>
-                  <TableHead className="w-20" />
+                  <TableHead className="w-40" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((p: any) => (
-                  <TableRow key={p._id} className="hover:bg-slate-50">
+                {filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={isAdminOrHR ? 8 : 7} className="text-center text-sm text-slate-400 py-8">
+                      No records match the current filters.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {filtered.map((p: any) => (
+                  <TableRow key={p._id} className={`hover:bg-slate-50 ${selected.includes(p._id) ? "bg-blue-50/40" : ""}`}>
+                    {isAdminOrHR && (
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-blue-600 cursor-pointer"
+                          checked={selected.includes(p._id)}
+                          onChange={() => toggleSelect(p._id)}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell>
                       <p className="text-sm font-semibold text-slate-800">{p.employeeId?.firstName} {p.employeeId?.lastName}</p>
                       <p className="text-xs text-slate-400">{p.employeeId?.designation}</p>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600">{p.presentDays}/{p.workingDays} days</TableCell>
-                    <TableCell className="text-sm font-medium text-slate-700">{formatCurrency(p.grossPay)}</TableCell>
-                    <TableCell className="text-sm text-red-500">-{formatCurrency(p.totalDeductions)}</TableCell>
-                    <TableCell className="text-sm font-bold text-emerald-600">{formatCurrency(p.netPay)}</TableCell>
+                    <TableCell className="text-sm text-slate-600 whitespace-nowrap">
+                      {p.payableDays ?? p.workingDays}/{p.workingDays}
+                      {p.lopDays > 0 && <span className="text-amber-600"> · {p.lopDays} LOP</span>}
+                    </TableCell>
+                    <TableCell className="text-sm text-right font-medium text-slate-700 tabular-nums">{formatCurrency(p.grossPay)}</TableCell>
+                    <TableCell className="text-sm text-right text-red-500 tabular-nums">-{formatCurrency(p.totalDeductions)}</TableCell>
+                    <TableCell className="text-sm text-right font-bold text-emerald-600 tabular-nums">{formatCurrency(p.netPay)}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`text-xs ${STATUS_COLORS[p.status]}`}>{p.status}</Badge>
                     </TableCell>
@@ -328,10 +534,63 @@ export default function PayrollClient() {
                               : <Download className="w-4 h-4" />}
                           </button>
                         )}
+                        {isAdminOrHR && p.status !== "paid" && (
+                          <>
+                            <button
+                              onClick={() => setEditRow(p)}
+                              disabled={busyId === p._id}
+                              className="p-1.5 rounded-lg text-violet-500 hover:bg-violet-50 transition-colors disabled:opacity-50"
+                              title="Edit / recalculate"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            {p.status === "draft" && (
+                              <button
+                                onClick={() => handleApprove(p._id)}
+                                disabled={busyId === p._id}
+                                className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                                title="Approve"
+                              >
+                                <BadgeCheck className="w-4 h-4" />
+                              </button>
+                            )}
+                            {p.status === "processed" && (
+                              <button
+                                onClick={() => handleMarkPaid(p._id)}
+                                disabled={busyId === p._id}
+                                className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                                title="Mark as paid"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDelete(p._id)}
+                              disabled={busyId === p._id}
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                              title="Delete (allows re-run)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
+                {/* Totals */}
+                {filtered.length > 0 && (
+                <TableRow className="bg-slate-100 hover:bg-slate-100 font-semibold border-t-2 border-slate-300">
+                  {isAdminOrHR && <TableCell />}
+                  <TableCell className="text-xs uppercase text-slate-600 whitespace-nowrap">Total ({filtered.length})</TableCell>
+                  <TableCell />
+                  <TableCell className="text-sm text-right tabular-nums text-slate-700">{formatCurrency(totalGross)}</TableCell>
+                  <TableCell className="text-sm text-right tabular-nums text-red-600">-{formatCurrency(sumL((p) => p.totalDeductions))}</TableCell>
+                  <TableCell className="text-sm text-right tabular-nums text-emerald-700">{formatCurrency(totalNetPay)}</TableCell>
+                  <TableCell />
+                  <TableCell />
+                </TableRow>
+                )}
               </TableBody>
             </Table>
           )}
@@ -353,7 +612,260 @@ export default function PayrollClient() {
           </DialogContent>
         </Dialog>
       )}
+
+      {editRow && (
+        <EditPayrollDialog
+          payroll={editRow}
+          saving={busyId === editRow._id}
+          onClose={() => setEditRow(null)}
+          onSave={async (payload) => {
+            const ok = await handleSaveEdit(editRow._id, payload);
+            if (ok) setEditRow(null);
+          }}
+        />
+      )}
+
+      {showPreview && (
+        <PayrollPreviewDialog
+          month={month}
+          year={year}
+          processing={processing}
+          onClose={() => setShowPreview(false)}
+          onConfirm={handleRunPayroll}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Dry-run preview (before committing the run) ───────────────────────────────
+function PayrollPreviewDialog({ month, year, processing, onClose, onConfirm }: {
+  month: number;
+  year: number;
+  processing: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const { data, isLoading } = useSWR(`/api/payroll/preview?month=${month}&year=${year}`, fetcher);
+  const rows = data?.rows || [];
+  const skipped = data?.skipped || [];
+  const totals = data?.totals || { gross: 0, deductions: 0, net: 0 };
+
+  // Compact INR integer (blank when zero, to reduce clutter)
+  const n = (v: number) => (v ? Math.round(v).toLocaleString("en-IN") : "—");
+  const sum = (fn: (r: any) => number) => rows.reduce((s: number, r: any) => s + (fn(r) || 0), 0);
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="w-[96vw] max-w-[1400px] sm:max-w-[1400px]">
+        <DialogHeader>
+          <DialogTitle>Payroll Preview — {getMonthName(month)} {year}</DialogTitle>
+        </DialogHeader>
+
+        <p className="text-xs text-slate-500">
+          Draft preview — nothing is saved yet. Review the figures, then confirm to create draft payslips.
+        </p>
+
+        {isLoading ? (
+          <div className="space-y-2 py-6">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-9 rounded-lg" />)}
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="py-8 text-center text-sm text-slate-500">
+            No eligible employees to process for this period.
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-4 gap-3">
+              <StatBox label="Employees" value={String(rows.length)} tone="slate" />
+              <StatBox label="Gross" value={formatCurrency(totals.gross)} tone="blue" />
+              <StatBox label="Deductions" value={formatCurrency(totals.deductions)} tone="red" />
+              <StatBox label="Net Pay" value={formatCurrency(totals.net)} tone="emerald" />
+            </div>
+
+            <div className="max-h-[60vh] overflow-auto rounded-lg border border-slate-200">
+              <Table className="min-w-[1250px]">
+                <TableHeader className="sticky top-0 z-10">
+                  <TableRow className="bg-slate-100 hover:bg-slate-100">
+                    <TableHead className="text-[11px] sticky left-0 bg-slate-100 z-20">Employee</TableHead>
+                    <TableHead className="text-[11px] whitespace-nowrap">Days</TableHead>
+                    <TableHead className="text-[11px] text-right">Basic</TableHead>
+                    <TableHead className="text-[11px] text-right">HRA</TableHead>
+                    <TableHead className="text-[11px] text-right">Allow.</TableHead>
+                    <TableHead className="text-[11px] text-right">OT</TableHead>
+                    <TableHead className="text-[11px] text-right">Bonus</TableHead>
+                    <TableHead className="text-[11px] text-right">Arrears</TableHead>
+                    <TableHead className="text-[11px] text-right bg-blue-50 text-blue-700">Gross</TableHead>
+                    <TableHead className="text-[11px] text-right">PF</TableHead>
+                    <TableHead className="text-[11px] text-right">ESI</TableHead>
+                    <TableHead className="text-[11px] text-right">TDS</TableHead>
+                    <TableHead className="text-[11px] text-right">Adv.</TableHead>
+                    <TableHead className="text-[11px] text-right">Other</TableHead>
+                    <TableHead className="text-[11px] text-right bg-red-50 text-red-600">Deduct.</TableHead>
+                    <TableHead className="text-[11px] text-right bg-emerald-50 text-emerald-700">Net Pay</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((r: any) => (
+                    <TableRow key={r.employeeId} className="hover:bg-slate-50">
+                      <TableCell className="text-xs sticky left-0 bg-white z-10 whitespace-nowrap">
+                        <span className="font-medium text-slate-800">{r.employeeName}</span>
+                        <span className="text-[10px] text-slate-400 ml-1">{r.employeeCode}</span>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-600 whitespace-nowrap">
+                        {r.payableDays}/{r.workingDays}
+                        {r.lopDays > 0 && <span className="text-amber-600"> · {r.lopDays}L</span>}
+                      </TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{n(r.earnings?.basic)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{n(r.earnings?.hra)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{n(r.earnings?.allowances)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{n(r.earnings?.overtime)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums">{n(r.earnings?.bonus)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums text-violet-600">{n(r.earnings?.arrears)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums font-semibold text-blue-700 bg-blue-50/40">{n(r.grossPay)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums text-red-500">{n(r.deductions?.pf)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums text-red-500">{n(r.deductions?.esi)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums text-red-500">{n(r.deductions?.tax)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums text-red-500">{n(r.deductions?.advance)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums text-red-500">{n(r.deductions?.other)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums font-medium text-red-600 bg-red-50/40">{n(r.totalDeductions)}</TableCell>
+                      <TableCell className="text-xs text-right tabular-nums font-bold text-emerald-600 bg-emerald-50/40">{n(r.netPay)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Totals */}
+                  <TableRow className="bg-slate-100 hover:bg-slate-100 font-semibold">
+                    <TableCell className="text-xs sticky left-0 bg-slate-100 z-10">TOTAL ({rows.length})</TableCell>
+                    <TableCell />
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.earnings?.basic))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.earnings?.hra))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.earnings?.allowances))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.earnings?.overtime))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.earnings?.bonus))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.earnings?.arrears))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums text-blue-700 bg-blue-50">{n(totals.gross)}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.deductions?.pf))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.deductions?.esi))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.deductions?.tax))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.deductions?.advance))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums">{n(sum((r: any) => r.deductions?.other))}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums text-red-600 bg-red-50">{n(totals.deductions)}</TableCell>
+                    <TableCell className="text-xs text-right tabular-nums text-emerald-700 bg-emerald-50">{n(totals.net)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+            <p className="text-[10px] text-slate-400">All figures in ₹. OT = overtime, L = loss-of-pay days. Scroll horizontally for all columns.</p>
+
+            {skipped.length > 0 && (
+              <div className="text-xs text-slate-500">
+                <span className="font-semibold text-slate-600">{skipped.length} skipped:</span>{" "}
+                {skipped.map((s: any) => `${s.employeeName} (${s.reason})`).join(", ")}
+              </div>
+            )}
+          </>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={processing}>Cancel</Button>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={onConfirm}
+            disabled={processing || isLoading || rows.length === 0}
+          >
+            {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+            {processing ? "Creating…" : `Confirm & Create ${rows.length} Draft${rows.length === 1 ? "" : "s"}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function StatBox({ label, value, tone }: { label: string; value: string; tone: string }) {
+  const tones: Record<string, string> = {
+    slate: "text-slate-700 bg-slate-50",
+    blue: "text-blue-700 bg-blue-50",
+    red: "text-red-600 bg-red-50",
+    emerald: "text-emerald-700 bg-emerald-50",
+  };
+  return (
+    <div className={`rounded-lg p-3 text-center ${tones[tone]}`}>
+      <p className="text-base font-bold">{value}</p>
+      <p className="text-[11px] text-slate-500 mt-0.5">{label}</p>
+    </div>
+  );
+}
+
+// ── Edit / recalculate dialog ─────────────────────────────────────────────────
+function EditPayrollDialog({ payroll, saving, onClose, onSave }: {
+  payroll: any;
+  saving?: boolean;
+  onClose: () => void;
+  onSave: (payload: any) => void;
+}) {
+  const [bonus, setBonus]       = useState(String(payroll.earnings?.bonus ?? 0));
+  const [advance, setAdvance]   = useState(String(payroll.deductions?.advance ?? 0));
+  const [other, setOther]       = useState(String(payroll.deductions?.other ?? 0));
+  const [lopDays, setLopDays]   = useState(String(payroll.lopDays ?? 0));
+  const [payableDays, setPayableDays] = useState(String(payroll.payableDays ?? payroll.workingDays ?? 0));
+
+  const num = (v: string) => (v === "" || isNaN(Number(v)) ? 0 : Number(v));
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit & Recalculate — {getMonthName(payroll.month)} {payroll.year}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-1">
+          <p className="text-xs text-slate-500">
+            Basic / HRA / PF / ESI / TDS recompute automatically from the salary structure and the
+            paid-days below. Edit adjustments here, then Save to recalculate.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Paid Days (of {payroll.workingDays})</Label>
+              <Input type="number" min={0} max={payroll.workingDays} value={payableDays}
+                onChange={(e) => setPayableDays(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Loss-of-Pay Days</Label>
+              <Input type="number" min={0} value={lopDays}
+                onChange={(e) => setLopDays(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Bonus (₹)</Label>
+              <Input type="number" min={0} value={bonus} onChange={(e) => setBonus(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Advance Recovery (₹)</Label>
+              <Input type="number" min={0} value={advance} onChange={(e) => setAdvance(e.target.value)} />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Other Deduction (₹)</Label>
+              <Input type="number" min={0} value={other} onChange={(e) => setOther(e.target.value)} />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={saving}
+            onClick={() => onSave({
+              bonus: num(bonus),
+              advanceDeduction: num(advance),
+              otherDeduction: num(other),
+              lopDays: num(lopDays),
+              payableDays: num(payableDays),
+            })}
+          >
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            {saving ? "Saving…" : "Save & Recalculate"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -457,7 +969,7 @@ function PaySlip({ payroll, isAdmin, generating, onGeneratePdf }: {
       <div className="flex justify-between items-start pb-4 border-b border-slate-100">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-8 w-auto mb-1" />
+          <img src="/gehnax-logo.png" alt="Gehnax" className="h-8 w-auto mb-1" />
           <p className="text-xs text-slate-500">Salary Slip — {getMonthName(payroll.month)} {payroll.year}</p>
         </div>
         <Badge variant="outline" className={STATUS_COLORS[payroll.status]}>
@@ -481,8 +993,11 @@ function PaySlip({ payroll, isAdmin, generating, onGeneratePdf }: {
             <p className="font-semibold text-slate-900">{emp.designation}</p>
           </div>
           <div>
-            <p className="text-xs text-slate-500 mb-0.5">Attendance</p>
-            <p className="font-semibold text-slate-900">{payroll.presentDays}/{payroll.workingDays} days</p>
+            <p className="text-xs text-slate-500 mb-0.5">Paid Days</p>
+            <p className="font-semibold text-slate-900">
+              {payroll.payableDays ?? payroll.workingDays}/{payroll.workingDays}
+              {payroll.lopDays > 0 && <span className="text-amber-600"> · {payroll.lopDays} LOP</span>}
+            </p>
           </div>
         </div>
       )}
@@ -499,6 +1014,7 @@ function PaySlip({ payroll, isAdmin, generating, onGeneratePdf }: {
               ["Allowances", payroll.earnings?.allowances],
               ["Overtime", payroll.earnings?.overtime],
               ["Bonus", payroll.earnings?.bonus],
+              ["Arrears", payroll.earnings?.arrears],
             ] as [string, number][]).map(([l, v]) =>
               v > 0 ? (
                 <div key={l} className="flex justify-between">

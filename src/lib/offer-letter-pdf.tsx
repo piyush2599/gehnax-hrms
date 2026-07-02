@@ -2,9 +2,9 @@ import React from "react";
 import {
   Document, Page, Text, View, Image, StyleSheet, renderToBuffer,
 } from "@react-pdf/renderer";
+import { GEHNAX_LOGO } from "./gehnax-logo-b64";
 
-const LOGO_URL =
-  "https://res.cloudinary.com/dji6svxdp/image/upload/v1779540701/hrms/assets/gehnax-logo.png";
+const LOGO_URL = GEHNAX_LOGO;
 
 export interface OfferLetterData {
   employeeName: string;
