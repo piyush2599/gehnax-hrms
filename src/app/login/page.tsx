@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import LoginForm from "@/components/auth/LoginForm";
 import type { Metadata } from "next";
@@ -29,7 +29,7 @@ export default async function LoginPage({
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center bg-white rounded-2xl px-6 py-3 mb-4 shadow-lg shadow-black/20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-10 w-auto" />
+            <img src="/gehnax-logo.png" alt="Gehnax" className="h-10 w-auto" />
           </div>
           <h1 className="text-3xl font-bold text-white">Gehnax HRMS</h1>
           <p className="text-blue-200 mt-1">Human Resource Management System</p>

@@ -14,7 +14,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, Users, ChevronRight, Eye } from "lucide-react";
+import { Plus, Search, Users, Eye, Download, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { getInitials, formatDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -43,6 +43,31 @@ export default function EmployeesClient() {
   const { activeRole } = useActiveRole();
   const { startImpersonation, stopImpersonation, impersonating } = useImpersonate();
   const isSuperAdmin = roles.includes("super_admin");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState<"monthly" | "ctc" | null>(null);
+
+  const handleExport = async (type: "monthly" | "ctc") => {
+    setExporting(type);
+    setExportOpen(false);
+    try {
+      const res = await fetch(`/api/employees/export-salary?type=${type}`);
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const today = new Date().toISOString().slice(0, 10);
+      a.download = type === "ctc"
+        ? `employee-ctc-${today}.xlsx`
+        : `employee-monthly-salary-${today}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to export salary sheet");
+    } finally {
+      setExporting(null);
+    }
+  };
 
   const apiUrl = `/api/employees?search=${search}&department=${deptFilter === "all" ? "" : deptFilter}`;
   const { data, isLoading } = useSWR(apiUrl, fetcher);
@@ -56,15 +81,40 @@ export default function EmployeesClient() {
         <p className="text-sm text-slate-500">
           {data?.total ?? 0} total employees
         </p>
-        {canAdd && (
-          <Button
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-            onClick={() => setAddOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-1.5" />
-            Add Employee
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isSuperAdmin && (
+            <div className="relative">
+              <div className="flex items-stretch rounded-lg border border-emerald-200 overflow-hidden shadow-sm">
+                <button
+                  onClick={() => handleExport("monthly")}
+                  disabled={!!exporting}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-700 bg-white hover:bg-emerald-50 transition-colors disabled:opacity-60"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  {exporting === "monthly" ? "Exporting…" : "Monthly Salary"}
+                </button>
+                <div className="w-px bg-emerald-200" />
+                <button
+                  onClick={() => handleExport("ctc")}
+                  disabled={!!exporting}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-emerald-700 bg-white hover:bg-emerald-50 transition-colors disabled:opacity-60"
+                >
+                  <Download className="w-4 h-4" />
+                  {exporting === "ctc" ? "Exporting…" : "Full CTC"}
+                </button>
+              </div>
+            </div>
+          )}
+          {canAdd && (
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Add Employee
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Add Employee Dialog */}
@@ -210,7 +260,6 @@ export default function EmployeesClient() {
                             <Eye className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        <ChevronRight className="w-4 h-4 text-slate-300" />
                       </div>
                     </TableCell>
                   </TableRow>

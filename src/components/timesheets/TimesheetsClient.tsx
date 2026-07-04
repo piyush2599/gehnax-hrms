@@ -42,7 +42,7 @@ export default function TimesheetsClient() {
   const weekDateStr = format(weekStart, "yyyy-MM-dd");
 
   const { data: timesheets, isLoading } = useSWR(
-    isAdminOrHR && !impersonateId ? `/api/timesheets?status=submitted&activeRole=${activeRole}` : `/api/timesheets?activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`,
+    isAdminOrHR && !impersonateId ? `/api/timesheets?activeRole=${activeRole}` : `/api/timesheets?activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`,
     fetcher
   );
   const { data: currentWeekTs } = useSWR(`/api/timesheets?weekDate=${weekDateStr}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`, fetcher);
@@ -218,7 +218,7 @@ export default function TimesheetsClient() {
         <TimesheetReviewDialog
           ts={reviewTs}
           onClose={() => setReviewTs(null)}
-          onDone={() => { setReviewTs(null); mutate(`/api/timesheets?status=submitted`); }}
+          onDone={() => { setReviewTs(null); mutate(`/api/timesheets?activeRole=${activeRole}`); }}
         />
       )}
     </div>

@@ -18,6 +18,7 @@ import {
   User, Briefcase, CreditCard, Pencil, X, Check,
   ChevronDown, ChevronUp, Sparkles, FolderOpen, ChevronLeft,
   LogOut, Target, AlertTriangle, IdCard, Camera, Loader2, ScrollText,
+  LocateFixed,
 } from "lucide-react";
 import { formatDate, formatCurrency, getInitials, cn } from "@/lib/utils";
 import { useSession } from "next-auth/react";
@@ -90,11 +91,16 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
       joiningDate:      emp.joiningDate ? emp.joiningDate.slice(0, 10) : "",
       reportingManager: emp.reportingManager?._id || "",
       isActive:         emp.isActive,
+      gpsRequired:      emp.gpsRequired ?? false,
       salary: {
         basic:       emp.salary?.basic || 0,
         hra:         emp.salary?.hra || 0,
         allowances:  emp.salary?.allowances || 0,
         deductions:  emp.salary?.deductions || 0,
+        pf:          emp.salary?.pf ?? 0,
+        tds:         emp.salary?.tds ?? 0,
+        pfType:      emp.salary?.pfType,
+        esiApplicable: emp.salary?.esiApplicable ?? false,
       },
       bankDetails: {
         accountNumber:     emp.bankDetails?.accountNumber || "",
@@ -189,7 +195,12 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
   }
 
   const grossPay = (emp.salary?.basic || 0) + (emp.salary?.hra || 0) + (emp.salary?.allowances || 0);
-  const netPay   = grossPay - (emp.salary?.deductions || 0);
+  // If pf/tds are stored separately (new records), use them; otherwise fall back to bundled deductions (legacy)
+  const hasSalaryBreakdown = emp.salary?.pf != null;
+  const salaryPF  = hasSalaryBreakdown ? (emp.salary?.pf  || 0) : (emp.salary?.deductions || 0);
+  const salaryTDS = hasSalaryBreakdown ? (emp.salary?.tds || 0) : 0;
+  const salaryESI = hasSalaryBreakdown && grossPay <= 21_000 ? Math.round(grossPay * 0.0175) : 0;
+  const netPay    = grossPay - salaryPF - salaryTDS - salaryESI;
 
   return (
     <div className="space-y-5">
@@ -428,7 +439,15 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
                     <SalaryRow label="Allowances"    value={formatCurrency(emp.salary?.allowances || 0)} />
                     <Separator />
                     <SalaryRow label="Gross Pay"     value={formatCurrency(grossPay)} bold />
-                    <SalaryRow label="Deductions"    value={`− ${formatCurrency(emp.salary?.deductions || 0)}`} className="text-red-500" />
+                    {hasSalaryBreakdown ? (
+                      <>
+                        <SalaryRow label="Employee PF"       value={`− ${formatCurrency(salaryPF)}`}  className="text-red-500" />
+                        {salaryTDS > 0 && <SalaryRow label="Income Tax (TDS)"  value={`− ${formatCurrency(salaryTDS)}`} className="text-red-500" />}
+                        {salaryESI > 0 && <SalaryRow label="ESI (1.75%)"       value={`− ${formatCurrency(salaryESI)}`} className="text-red-500" />}
+                      </>
+                    ) : (
+                      <SalaryRow label="Deductions" value={`− ${formatCurrency(emp.salary?.deductions || 0)}`} className="text-red-500" />
+                    )}
                     <Separator />
                     <SalaryRow label="Net Pay"       value={formatCurrency(netPay)} bold className="text-emerald-600" />
                   </div>
@@ -594,6 +613,40 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
             </div>
           </EditSection>
 
+          {/* Section: Attendance Settings — HR/Admin only */}
+          {canEdit && (
+            <EditSection title="Attendance Settings" icon={<LocateFixed className="w-4 h-4" />}>
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div>
+                  <p className="text-sm font-medium text-slate-800">Require GPS for Check-in / Check-out</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Employee cannot check in or out without valid GPS location. Mock/fake locations are blocked.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => set("gpsRequired", !(form as any).gpsRequired)}
+                  className={cn(
+                    "relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ml-4",
+                    (form as any).gpsRequired ? "bg-blue-600" : "bg-slate-300"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200",
+                      (form as any).gpsRequired ? "translate-x-5" : "translate-x-0.5"
+                    )}
+                  />
+                </button>
+              </div>
+              {(form as any).gpsRequired && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  GPS is enforced. This employee will not be able to check in/out without a valid device location.
+                </p>
+              )}
+            </EditSection>
+          )}
+
           {/* Section: Salary — super_admin and finance_admin only */}
           {canViewSalary && (
             <EditSection title="Salary (₹/month)" icon={<CreditCard className="w-4 h-4" />}>
@@ -623,17 +676,20 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
                       : 0
                   }
                   onApply={(s) => {
-                    setSalary("basic", s.basic);
-                    setSalary("hra", s.hra);
+                    setSalary("basic",   s.basic);
+                    setSalary("hra",     s.hra);
                     setSalary("allowances", s.allowances);
                     setSalary("deductions", s.deductions);
+                    setSalary("pf",  s.pf);
+                    setSalary("tds", s.tds);
+                    setForm((f: any) => ({ ...f, salary: { ...f.salary, pfType: s.pfType } }));
                     setShowCTC(false);
                   }}
                 />
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                {(["basic", "hra", "allowances", "deductions"] as const).map((field) => (
+                {(["basic", "hra", "allowances"] as const).map((field) => (
                   <Field key={field} label={field === "hra" ? "HRA" : field.charAt(0).toUpperCase() + field.slice(1)}>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
@@ -645,28 +701,69 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
                     </div>
                   </Field>
                 ))}
+                <Field label="Employee PF (Monthly)">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                    <Input
+                      type="number" min="0" className="pl-7"
+                      value={form.salary?.pf || ""}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setSalary("pf", val);
+                        setSalary("deductions", val + (form.salary?.tds || 0));
+                      }}
+                    />
+                  </div>
+                </Field>
+                <Field label="Income Tax / TDS (Monthly)">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                    <Input
+                      type="number" min="0" className="pl-7"
+                      value={form.salary?.tds || ""}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setSalary("tds", val);
+                        setSalary("deductions", (form.salary?.pf || 0) + val);
+                      }}
+                    />
+                  </div>
+                </Field>
+                <Field label="ESI">
+                  <label className="flex items-center gap-2 h-9 px-3 rounded-lg border border-slate-200 bg-white cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-blue-600"
+                      checked={!!form.salary?.esiApplicable}
+                      onChange={(e) => setForm((f: any) => ({ ...f, salary: { ...f.salary, esiApplicable: e.target.checked } }))}
+                    />
+                    <span className="text-sm text-slate-600">Deduct ESI (0.75%, gross ≤ ₹21k)</span>
+                  </label>
+                </Field>
               </div>
 
-              {((form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0)) > 0 && (
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-1.5">
-                  <div className="flex justify-between text-slate-600">
-                    <span>Gross Pay</span>
-                    <span className="font-semibold">
-                      ₹{((form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0)).toLocaleString()}
-                    </span>
+              {((form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0)) > 0 && (() => {
+                const fGross = (form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0);
+                const fPF    = form.salary?.pf  || 0;
+                const fTDS   = form.salary?.tds || 0;
+                const fESI   = form.salary?.esiApplicable && fGross <= 21_000 ? Math.round(fGross * 0.0075) : 0;
+                const fNet   = fGross - fPF - fTDS - fESI;
+                return (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-1.5">
+                    <div className="flex justify-between text-slate-600">
+                      <span>Gross Pay</span>
+                      <span className="font-semibold">₹{fGross.toLocaleString()}</span>
+                    </div>
+                    {fPF > 0  && <div className="flex justify-between text-red-500"><span>Employee PF</span><span>−₹{fPF.toLocaleString()}</span></div>}
+                    {fTDS > 0 && <div className="flex justify-between text-red-500"><span>Income Tax (TDS)</span><span>−₹{fTDS.toLocaleString()}</span></div>}
+                    {fESI > 0 && <div className="flex justify-between text-red-500"><span>ESI (0.75%)</span><span>−₹{fESI.toLocaleString()}</span></div>}
+                    <div className="flex justify-between font-bold text-emerald-700 pt-1 border-t border-slate-200">
+                      <span>Net Pay</span>
+                      <span>₹{fNet.toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-red-500">
-                    <span>Deductions</span>
-                    <span>−₹{(form.salary?.deductions || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between font-bold text-emerald-700 pt-1 border-t border-slate-200">
-                    <span>Net Pay</span>
-                    <span>
-                      ₹{((form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0) - (form.salary?.deductions || 0)).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </EditSection>
           )}
 

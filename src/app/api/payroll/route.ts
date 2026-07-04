@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Payroll from "@/models/Payroll";
 import Employee from "@/models/Employee";
-import Attendance from "@/models/Attendance";
+import SalaryAdvance from "@/models/SalaryAdvance";
+import { buildPayrollRows } from "@/lib/payroll-run";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -55,90 +56,62 @@ export async function POST(req: NextRequest) {
   await connectDB();
 
   const body = await req.json();
-  const { month, year, employeeIds } = body;
+  const month = parseInt(body.month);
+  const year = parseInt(body.year);
+  const employeeIds = body.employeeIds;
 
-  const payPeriod = `${year}-${String(month).padStart(2, "0")}`;
-
-  const employees = employeeIds
-    ? await Employee.find({ _id: { $in: employeeIds }, isActive: true })
-    : await Employee.find({ isActive: true });
-
-  // Count working days in the month
-  const daysInMonth = new Date(year, month, 0).getDate();
-  let workingDays = 0;
-  for (let i = 1; i <= daysInMonth; i++) {
-    const d = new Date(year, month - 1, i);
-    if (d.getDay() !== 0 && d.getDay() !== 6) workingDays++;
+  if (!month || !year || month < 1 || month > 12) {
+    return NextResponse.json({ error: "Invalid month/year" }, { status: 400 });
   }
 
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 1);
+  // Compute all rows (no save) — identical logic to the dry-run preview
+  const { rows, skipped, payPeriod } = await buildPayrollRows(month, year, employeeIds);
 
   const created = [];
 
-  for (const employee of employees) {
-    // Check if already processed
-    const existing = await Payroll.findOne({ employeeId: employee._id, payPeriod });
-    if (existing) continue;
-
-    // Get attendance data
-    const attendanceRecords = await Attendance.find({
-      employeeId: employee._id,
-      date: { $gte: startDate, $lt: endDate },
-    });
-
-    const presentDays = attendanceRecords.filter((a) =>
-      ["present", "late"].includes(a.status)
-    ).length;
-    const leaveDays = attendanceRecords.filter((a) => a.status === "on_leave").length;
-    const overtimeHours = attendanceRecords.reduce((sum, a) => sum + (a.overtime || 0), 0);
-
-    const { basic, hra, allowances } = employee.salary;
-    const overtimePay = (basic / (workingDays * 8)) * overtimeHours;
-
-    // Calculate deductions (Indian payroll)
-    // PF: use the amount configured on the employee record (set via CTC calculator).
-    // salary.deductions holds the employee's monthly PF contribution — 0 means no PF.
-    const pfAmount  = Math.round(employee.salary.deductions || 0);
-    const esiRate   = basic + hra + allowances <= 21_000 ? 0.0175 : 0;
-    const esiAmount = Math.round((basic + hra + allowances) * esiRate);
-
-    const grossPay       = basic + hra + allowances + overtimePay;
-    const totalDeductions = pfAmount + esiAmount;
-    const netPay          = grossPay - totalDeductions;
-
+  for (const row of rows) {
     const payroll = await Payroll.create({
-      employeeId: employee._id,
-      month: parseInt(month),
-      year: parseInt(year),
+      employeeId: row.employeeId,
+      month,
+      year,
       payPeriod,
-      earnings: {
-        basic,
-        hra,
-        allowances,
-        overtime: Math.round(overtimePay),
-        bonus: 0,
-      },
-      deductions: {
-        pf:      pfAmount,
-        esi:     esiAmount,
-        tax:     0,
-        advance: 0,
-        other:   0,
-      },
-      grossPay: Math.round(grossPay),
-      totalDeductions: Math.round(totalDeductions),
-      netPay: Math.round(netPay),
-      workingDays,
-      presentDays,
-      leaveDays,
-      status: "processed",
+      earnings: row.earnings,
+      deductions: row.deductions,
+      grossPay: row.grossPay,
+      totalDeductions: row.totalDeductions,
+      netPay: row.netPay,
+      workingDays: row.workingDays,
+      payableDays: row.payableDays,
+      lopDays: row.lopDays,
+      presentDays: row.presentDays,
+      leaveDays: row.leaveDays,
+      overtimeHours: row.overtimeHours,
+      status: "draft",
       processedBy: (session.user as any).employeeId,
       processedOn: new Date(),
     });
 
+    // Post-run side effects: record advance installment + clear arrears
+    if (row.advanceId && row.advanceDeduction > 0) {
+      const advance = await SalaryAdvance.findById(row.advanceId);
+      if (advance && advance.status === "active") {
+        advance.balance = Math.max(0, advance.balance - row.advanceDeduction);
+        advance.installments.push({
+          payrollId: payroll._id,
+          payPeriod,
+          amount: row.advanceDeduction,
+          date: new Date(),
+        });
+        if (advance.balance <= 0) advance.status = "closed";
+        await advance.save();
+      }
+    }
+    if (row.arrears > 0) {
+      await Employee.findByIdAndUpdate(row.employeeId, { pendingArrears: 0 });
+    }
+
     created.push(payroll);
   }
 
-  return NextResponse.json({ created: created.length, payrolls: created }, { status: 201 });
+  return NextResponse.json({ created: created.length, skipped, payrolls: created }, { status: 201 });
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -77,7 +77,7 @@ export default function CandidateDashboard() {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-8" />
+            <img src="/gehnax-logo.png" alt="Gehnax" className="h-8" />
             <span className="text-sm font-semibold text-slate-700">Candidate Portal</span>
           </div>
           <div className="flex items-center gap-3">

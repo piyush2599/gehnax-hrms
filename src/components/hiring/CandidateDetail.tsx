@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -935,7 +935,7 @@ function OfferLetterPreview({
         <div className="text-center border-b border-slate-200 pb-4">
           <div className="flex justify-center mb-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-10 w-auto" />
+            <img src="/gehnax-logo.png" alt="Gehnax" className="h-10 w-auto" />
           </div>
           <p className="text-slate-500 text-xs mt-1">Human Resources Department</p>
           {offer.location && <p className="text-slate-400 text-xs">{offer.location}</p>}

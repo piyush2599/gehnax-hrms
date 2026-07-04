@@ -26,11 +26,23 @@ const TAB_LABELS: Record<Tab, string> = {
   regularization: "Attendance Regularization",
 };
 
+const TAB_SUBTITLES: Record<Tab, string> = {
+  offers: "Review and approve offer letters before they are sent to candidates",
+  leaves: "Review and approve employee leave requests",
+  regularization: "Review and approve attendance regularization requests",
+};
+
 export default function ApprovalsClient() {
   const [activeTab, setActiveTab] = useState<Tab>("offers");
 
   return (
     <div className="space-y-5">
+      {/* Dynamic heading */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">{TAB_LABELS[activeTab]}</h1>
+        <p className="text-slate-500 text-sm mt-1">{TAB_SUBTITLES[activeTab]}</p>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
         {TABS.map(tab => (

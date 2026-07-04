@@ -28,7 +28,17 @@ export interface IEmployee extends Document {
     basic: number;
     hra: number;
     allowances: number;
-    deductions: number;
+    deductions: number;                    // legacy: bundled PF+TDS; use pf+tds for new records
+    pf: number;                            // employee PF contribution (monthly)
+    tds: number;                           // income tax TDS (monthly)
+    pfType?: "fixed" | "percent" | "none"; // fixed = never pro-rate; percent = scale with basic
+    esiApplicable?: boolean;               // ESI only deducted when true
+  };
+  pendingArrears?: number;                 // back-pay queued for the next payroll run
+  statutory?: {
+    pan?: string;
+    uan?: string;                          // PF Universal Account Number
+    esicNumber?: string;                   // ESIC IP number
   };
   bankDetails?: {
     accountNumber?: string;
@@ -79,6 +89,7 @@ export interface IEmployee extends Document {
     initiatedAt: Date;
     completedAt?: Date;
   };
+  gpsRequired?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -112,10 +123,20 @@ const EmployeeSchema = new Schema<IEmployee>(
     probationEndDate: { type: Date },
     reportingManager: { type: Schema.Types.ObjectId, ref: "Employee" },
     salary: {
-      basic: { type: Number, default: 0 },
-      hra: { type: Number, default: 0 },
+      basic:      { type: Number, default: 0 },
+      hra:        { type: Number, default: 0 },
       allowances: { type: Number, default: 0 },
       deductions: { type: Number, default: 0 },
+      pf:         { type: Number },
+      tds:        { type: Number },
+      pfType:     { type: String, enum: ["fixed", "percent", "none"] },
+      esiApplicable: { type: Boolean, default: false },
+    },
+    pendingArrears: { type: Number, default: 0 },
+    statutory: {
+      pan:        { type: String },
+      uan:        { type: String },
+      esicNumber: { type: String },
     },
     bankDetails: {
       accountNumber: String,
@@ -134,6 +155,7 @@ const EmployeeSchema = new Schema<IEmployee>(
     avatar: { type: String },
     avatarData: { type: String },
     isActive: { type: Boolean, default: true },
+    gpsRequired: { type: Boolean, default: false },
     terminationDate: { type: Date },
     terminationReason: { type: String },
     leaveBalance: {

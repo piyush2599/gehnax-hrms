@@ -22,7 +22,7 @@ export async function POST(
   await connectDB();
 
   const payroll = await Payroll.findById(params.id)
-    .populate("employeeId", "firstName lastName employeeCode designation department")
+    .populate("employeeId", "firstName lastName employeeCode designation department joiningDate bankDetails")
     .lean() as any;
 
   if (!payroll) return NextResponse.json({ error: "Payroll record not found" }, { status: 404 });
@@ -35,6 +35,10 @@ export async function POST(
     const dept = await Department.findById(emp.department).lean() as any;
     department = dept?.name || "—";
   }
+
+  const joiningDate = emp.joiningDate
+    ? new Date(emp.joiningDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : undefined;
 
   const now = new Date();
   const generatedDate = now.toLocaleDateString("en-IN", {
@@ -57,6 +61,8 @@ export async function POST(
     payPeriod:    payroll.payPeriod,
     presentDays:  payroll.presentDays,
     workingDays:  payroll.workingDays,
+    payableDays:  payroll.payableDays ?? payroll.workingDays,
+    lopDays:      payroll.lopDays ?? 0,
     leaveDays:    payroll.leaveDays,
     earnings:     payroll.earnings,
     deductions:   payroll.deductions,
@@ -65,6 +71,11 @@ export async function POST(
     netPay:       payroll.netPay,
     status:       payroll.status,
     generatedDate,
+    joiningDate,
+    bankName:    emp.bankDetails?.bankName,
+    bankAccount: emp.bankDetails?.accountNumber,
+    bankIFSC:    emp.bankDetails?.ifscCode,
+    paymentMode: "Bank Transfer",
   };
 
   let pdfBuffer: Buffer;

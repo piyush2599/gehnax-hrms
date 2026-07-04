@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import useSWR, { mutate } from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +16,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, LogIn, LogOut, Plus, CheckCircle, RefreshCw } from "lucide-react";
+import { Clock, LogIn, LogOut, Plus, CheckCircle, RefreshCw, MapPin, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useActiveRole } from "@/components/layout/active-role-context";
 import { useImpersonate } from "@/components/layout/impersonate-context";
+import { captureGPS, type GpsCoords } from "@/lib/gps";
+import GpsPermissionModal from "./GpsPermissionModal";
+
+// Leaflet map loaded client-side only (avoids SSR issues)
+const LocationMapModal = dynamic(() => import("./LocationMapModal"), { ssr: false });
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -47,11 +53,23 @@ export default function AttendanceClient() {
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [year, setYear] = useState(today.getFullYear());
   const [clockLoading, setClockLoading] = useState(false);
+  const [clockStatus, setClockStatus] = useState<string>("");
+  const [pendingAction, setPendingAction] = useState<"checkin" | "checkout" | null>(null);
+  const [gpsModal, setGpsModal] = useState<"permission" | "mock" | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [regularizeDate, setRegularizeDate] = useState<string | null>(null);
+  const [mapRecord, setMapRecord] = useState<any | null>(null);
 
   const todayStr = format(today, "yyyy-MM-dd");
   const isAdminOrHR = ["super_admin", "hr_admin", "manager"].includes(activeRole);
+
+  // Only fetch GPS requirement for employees (not admins doing manual entries)
+  const { data: selfEmployee } = useSWR(
+    activeRole === "employee" && !impersonateId ? "/api/employees/me" : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const gpsRequired: boolean = selfEmployee?.gpsRequired === true;
 
   const { data: todayAttendance } = useSWR(
     `/api/attendance?date=${todayStr}&activeRole=${activeRole}${impersonateId ? `&impersonateId=${impersonateId}` : ""}`,
@@ -71,13 +89,13 @@ export default function AttendanceClient() {
   const leaveDays   = records.filter((r: any) => r.status === "on_leave").length;
   const totalHours  = records.reduce((s: number, r: any) => s + (r.workingHours || 0), 0);
 
-  const handleClock = async (action: "checkin" | "checkout") => {
-    setClockLoading(true);
+  const submitClock = async (action: "checkin" | "checkout", gpsCoords?: GpsCoords) => {
+    setClockStatus("Submitting…");
     try {
       const res = await fetch("/api/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...(gpsCoords ? { location: gpsCoords } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) toast.error(data.error);
@@ -88,6 +106,47 @@ export default function AttendanceClient() {
       }
     } finally {
       setClockLoading(false);
+      setClockStatus("");
+      setPendingAction(null);
+    }
+  };
+
+  const handleClock = async (action: "checkin" | "checkout") => {
+    setClockLoading(true);
+    setPendingAction(action);
+
+    // Only capture GPS when this employee has it required
+    if (!gpsRequired) {
+      await submitClock(action, undefined);
+      return;
+    }
+
+    setClockStatus("Getting your location…");
+    try {
+      const result = await captureGPS();
+
+      if ("error" in result) {
+        setClockLoading(false);
+        setClockStatus("");
+        if (result.code === "permission_denied") {
+          setGpsModal("permission");
+          return;
+        }
+        if (result.code === "mock_detected") {
+          setGpsModal("mock");
+          return;
+        }
+        // Timeout / unavailable — let server decide
+        toast.warning(result.error, { duration: 5000 });
+        await submitClock(action, undefined);
+        return;
+      }
+
+      await submitClock(action, result.coords);
+    } catch {
+      setClockLoading(false);
+      setClockStatus("");
+      setPendingAction(null);
     }
   };
 
@@ -134,36 +193,50 @@ export default function AttendanceClient() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                {!todayRecord?.checkIn && (
-                  <Button
-                    onClick={() => handleClock("checkin")}
-                    disabled={clockLoading}
-                    className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
-                    size="sm"
-                  >
-                    <LogIn className="w-4 h-4 mr-1.5" />
-                    Check In
-                  </Button>
+              <div className="flex flex-col items-end gap-1.5">
+                {clockLoading && clockStatus && (
+                  <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    {clockStatus}
+                  </span>
                 )}
-                {todayRecord?.checkIn && !todayRecord?.checkOut && (
-                  <Button
-                    onClick={() => handleClock("checkout")}
-                    disabled={clockLoading}
-                    variant="outline"
-                    className="border-red-200 text-red-600 hover:bg-red-50"
-                    size="sm"
-                  >
-                    <LogOut className="w-4 h-4 mr-1.5" />
-                    Check Out
-                  </Button>
-                )}
-                {todayRecord?.checkIn && todayRecord?.checkOut && (
-                  <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold px-3">
-                    <CheckCircle className="w-4 h-4" />
-                    Complete
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  {!todayRecord?.checkIn && todayRecord?.status !== "on_leave" && (
+                    <Button
+                      onClick={() => handleClock("checkin")}
+                      disabled={clockLoading}
+                      className="bg-emerald-600 hover:bg-emerald-700 shadow-sm"
+                      size="sm"
+                    >
+                      {clockLoading ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <LogIn className="w-4 h-4 mr-1.5" />}
+                      Check In
+                    </Button>
+                  )}
+                  {todayRecord?.checkIn && !todayRecord?.checkOut && (
+                    <Button
+                      onClick={() => handleClock("checkout")}
+                      disabled={clockLoading}
+                      variant="outline"
+                      className="border-red-200 text-red-600 hover:bg-red-50"
+                      size="sm"
+                    >
+                      {clockLoading ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <LogOut className="w-4 h-4 mr-1.5" />}
+                      Check Out
+                    </Button>
+                  )}
+                  {todayRecord?.checkIn && todayRecord?.checkOut && (
+                    <div className="flex items-center gap-1.5 text-emerald-600 text-sm font-semibold px-3">
+                      <CheckCircle className="w-4 h-4" />
+                      Complete
+                    </div>
+                  )}
+                  {todayRecord?.status === "on_leave" && !todayRecord?.checkIn && (
+                    <div className="flex items-center gap-1.5 text-blue-600 text-sm font-semibold px-3">
+                      <CheckCircle className="w-4 h-4" />
+                      On Leave Today
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -235,6 +308,7 @@ export default function AttendanceClient() {
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Check Out</TableHead>
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Hours</TableHead>
                   <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</TableHead>
+                  <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Location</TableHead>
                   {!isAdminOrHR && <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Action</TableHead>}
                 </TableRow>
               </TableHeader>
@@ -259,9 +333,23 @@ export default function AttendanceClient() {
                         {record.status.replace("_", " ")}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {(record.checkInLocation || record.checkOutLocation) ? (
+                        <button
+                          onClick={() => setMapRecord(record)}
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+                          title="View location on map"
+                        >
+                          <MapPin className="w-4 h-4" />
+                          <span className="text-xs font-medium">Map</span>
+                        </button>
+                      ) : (
+                        <span className="text-slate-300 text-xs">—</span>
+                      )}
+                    </TableCell>
                     {!isAdminOrHR && (
                       <TableCell>
-                        {record.status === "absent" && (
+                        {record.status === "absent" && !record.regularizationPending && (
                           <button
                             onClick={() => setRegularizeDate(new Date(record.date).toISOString().split("T")[0])}
                             className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
@@ -269,6 +357,12 @@ export default function AttendanceClient() {
                             <RefreshCw className="w-3 h-3" />
                             Regularize
                           </button>
+                        )}
+                        {record.regularizationPending && (
+                          <span className="flex items-center gap-1 text-xs text-amber-600 font-medium">
+                            <Clock className="w-3 h-3" />
+                            Pending Approval
+                          </span>
                         )}
                       </TableCell>
                     )}
@@ -310,6 +404,40 @@ export default function AttendanceClient() {
             />
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Location Map Modal */}
+      {mapRecord && (
+        <LocationMapModal
+          open
+          onClose={() => setMapRecord(null)}
+          date={format(new Date(mapRecord.date), "EEE, MMM d yyyy")}
+          employeeName={
+            mapRecord.employeeId
+              ? `${mapRecord.employeeId.firstName} ${mapRecord.employeeId.lastName}`
+              : undefined
+          }
+          checkIn={mapRecord.checkIn}
+          checkOut={mapRecord.checkOut}
+          checkInLocation={mapRecord.checkInLocation}
+          checkOutLocation={mapRecord.checkOutLocation}
+        />
+      )}
+
+      {/* GPS Permission / Mock Modal */}
+      {gpsModal && pendingAction && (
+        <GpsPermissionModal
+          isMockBlocked={gpsModal === "mock"}
+          onGranted={(coords) => {
+            setGpsModal(null);
+            setClockLoading(true);
+            submitClock(pendingAction, coords);
+          }}
+          onCancel={() => {
+            setGpsModal(null);
+            setPendingAction(null);
+          }}
+        />
       )}
     </div>
   );

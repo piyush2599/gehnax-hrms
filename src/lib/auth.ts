@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -68,9 +69,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const mfaEnabled    = !!(user as any).mfaEnabled;
         const skipCount     = (user as any).mfaSkipCount ?? 0;
         const mfaForceSetup = !!(user as any).mfaForceSetup;
-        token.mfaPending          = mfaEnabled;
-        token.mfaSetupRequired    = !mfaEnabled;
-        token.mfaSetupMandatory   = !mfaEnabled && (skipCount >= 5 || mfaForceSetup);
+        // Local-only MFA bypass: emails in MFA_BYPASS_EMAILS skip both verify & setup.
+        // This env var lives only in .env.local, so production is never affected.
+        const bypassEmails = (process.env.MFA_BYPASS_EMAILS || "")
+          .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+        const mfaBypassed = bypassEmails.includes(String((user as any).email || "").toLowerCase());
+        token.mfaPending          = mfaBypassed ? false : mfaEnabled;
+        token.mfaSetupRequired    = mfaBypassed ? false : !mfaEnabled;
+        token.mfaSetupMandatory   = mfaBypassed ? false : (!mfaEnabled && (skipCount >= 5 || mfaForceSetup));
         token.mustChangePassword  = !!(user as any).mustChangePassword;
         // loginAt (ms) is used to determine whether MFA actions happened in this session
         token.loginAt = Date.now();

@@ -9,6 +9,7 @@ import Payroll from "@/models/Payroll";
 import Announcement from "@/models/Announcement";
 import Holiday from "@/models/Holiday";
 import bcrypt from "bcryptjs";
+import { computeSalary, daysInMonth } from "@/lib/payroll-calc";
 
 export async function POST() {
   if (process.env.NODE_ENV === "production") {
@@ -289,7 +290,7 @@ export async function POST() {
   const curMonth = now.getMonth() + 1;
   const curYear = now.getFullYear();
   const payPeriod = `${curYear}-${String(curMonth).padStart(2, "0")}`;
-  const workingDays = 22;
+  const totalDays = daysInMonth(curYear, curMonth);
 
   for (const emp of allEmployees) {
     if (!emp) continue;
@@ -297,30 +298,28 @@ export async function POST() {
     if (existing) continue;
 
     const presentDays = 18 + Math.floor(Math.random() * 4);
-    const leaveDays = workingDays - presentDays;
+    const leaveDays = Math.max(0, 22 - presentDays);
     const s = (emp as any).salary;
-    const ratio = presentDays / workingDays;
-    const basic = Math.round(s.basic * ratio);
-    const hra   = Math.round(s.hra * ratio);
-    const allow = Math.round(s.allowances * ratio);
-    const gross = basic + hra + allow;
 
-    const pf  = Math.round(basic * 0.12);
-    const esi = gross <= 21000 ? Math.round(gross * 0.0075) : 0;
-    const tax = gross > 50000 ? Math.round((gross - 50000) * 0.05) : 0;
-    const totalDed = pf + esi + tax;
+    // Route through the SINGLE payroll engine so seeded payslips honour each
+    // employee's actual PF / ESI config (default = none) and match the offer
+    // letter. Full month is paid — weekends/holidays are paid, absence does
+    // not auto-dock (only unpaid leave would, of which the seed has none).
+    const b = computeSalary(s, { totalDays, payableDays: totalDays });
 
     await Payroll.create({
       employeeId: emp._id,
       month: curMonth,
       year: curYear,
       payPeriod,
-      earnings: { basic, hra, allowances: allow, overtime: 0, bonus: 0 },
-      deductions: { pf, esi, tax, advance: 0, other: 0 },
-      grossPay: gross,
-      totalDeductions: totalDed,
-      netPay: gross - totalDed,
-      workingDays,
+      earnings: b.earnings,
+      deductions: b.deductions,
+      grossPay: b.grossPay,
+      totalDeductions: b.totalDeductions,
+      netPay: b.netPay,
+      workingDays: totalDays,
+      payableDays: totalDays,
+      lopDays: 0,
       presentDays,
       leaveDays,
       status: "processed",

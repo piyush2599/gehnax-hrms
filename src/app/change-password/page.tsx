@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
@@ -69,7 +69,7 @@ export default function ChangePasswordPage() {
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-1">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-9 w-auto" />
+            <img src="/gehnax-logo.png" alt="Gehnax" className="h-9 w-auto" />
           </div>
           <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
             <KeyRound className="w-6 h-6 text-white" />

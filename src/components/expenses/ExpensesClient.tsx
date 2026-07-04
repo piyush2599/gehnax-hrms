@@ -227,7 +227,7 @@ export default function ExpensesClient() {
             </div>
             <p className="text-sm font-medium text-slate-600">No expenses found</p>
             <p className="text-xs text-slate-400 mt-1">
-              {filter !== "all" ? `No ${filter} expenses` : "Submit your first expense to get started"}
+              {filter !== "all" ? `No ${filter} expenses` : isAdminOrManager ? "No expense claims have been submitted yet" : "Submit your first expense to get started"}
             </p>
           </div>
         ) : (

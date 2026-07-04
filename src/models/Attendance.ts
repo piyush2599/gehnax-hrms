@@ -1,5 +1,11 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface IGpsCoords {
+  lat: number;
+  lng: number;
+  accuracy: number;
+}
+
 export interface IAttendance extends Document {
   _id: mongoose.Types.ObjectId;
   employeeId: mongoose.Types.ObjectId;
@@ -10,7 +16,9 @@ export interface IAttendance extends Document {
   workingHours?: number;
   overtime?: number;
   notes?: string;
-  location?: string;
+  location?: string;          // legacy plain-text field kept for old records
+  checkInLocation?: IGpsCoords;
+  checkOutLocation?: IGpsCoords;
   ipAddress?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -31,6 +39,16 @@ const AttendanceSchema = new Schema<IAttendance>(
     overtime: { type: Number, default: 0 },
     notes: { type: String },
     location: { type: String },
+    checkInLocation: {
+      lat:      { type: Number },
+      lng:      { type: Number },
+      accuracy: { type: Number },
+    },
+    checkOutLocation: {
+      lat:      { type: Number },
+      lng:      { type: Number },
+      accuracy: { type: Number },
+    },
     ipAddress: { type: String },
   },
   { timestamps: true }

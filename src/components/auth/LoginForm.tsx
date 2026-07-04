@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 import { toast } from "sonner";
+import BiometricLogin from "@/components/auth/BiometricLogin";
 
 interface Props {
   callbackUrl?: string;
 }
+
 
 export default function LoginForm({ callbackUrl = "/dashboard" }: Props) {
   const [email, setEmail] = useState("");
@@ -46,6 +48,7 @@ export default function LoginForm({ callbackUrl = "/dashboard" }: Props) {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email" className="text-blue-100">
@@ -109,5 +112,7 @@ export default function LoginForm({ callbackUrl = "/dashboard" }: Props) {
         )}
       </Button>
     </form>
+    <BiometricLogin callbackUrl={callbackUrl} />
+    </>
   );
 }

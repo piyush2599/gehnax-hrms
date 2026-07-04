@@ -4,9 +4,11 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
+import { GEHNAX_LOGO } from "./gehnax-logo-b64";
 
 export interface SalarySlipData {
   employeeName: string;
@@ -17,7 +19,9 @@ export interface SalarySlipData {
   year: number;
   payPeriod: string;
   presentDays: number;
-  workingDays: number;
+  workingDays: number;   // total calendar days in the month (divisor)
+  payableDays: number;   // paid days = join/exit window − LOP days
+  lopDays: number;       // approved Unpaid-leave days (Loss of Pay)
   leaveDays: number;
   earnings: {
     basic: number;
@@ -25,6 +29,7 @@ export interface SalarySlipData {
     allowances: number;
     overtime: number;
     bonus: number;
+    arrears: number;
   };
   deductions: {
     pf: number;
@@ -38,6 +43,12 @@ export interface SalarySlipData {
   netPay: number;
   status: string;
   generatedDate: string;
+  // Employee profile extras
+  joiningDate?: string;
+  bankName?: string;
+  bankAccount?: string;
+  bankIFSC?: string;
+  paymentMode?: string;
 }
 
 const MONTH_NAMES = [
@@ -46,396 +57,385 @@ const MONTH_NAMES = [
 ];
 
 function fmt(n: number): string {
-  return new Intl.NumberFormat("en-IN").format(Math.round(n));
+  return new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Math.round(n));
 }
 
-const BLUE   = "#1d4ed8";
-const DARK   = "#1e293b";
-const GRAY   = "#64748b";
-const LIGHT  = "#f8fafc";
-const BORDER = "#e2e8f0";
-const GREEN  = "#16a34a";
-const RED    = "#dc2626";
-const LBLUE  = "#dbeafe";
-const LRED   = "#fee2e2";
-const LGREEN = "#dcfce7";
+function numberToWords(amount: number): string {
+  if (amount <= 0) return "Zero Rupees Only";
+  const ones = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+    "Seventeen", "Eighteen", "Nineteen",
+  ];
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+  function convert(n: number): string {
+    if (n === 0) return "";
+    if (n < 20) return ones[n] + " ";
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "") + " ";
+    return ones[Math.floor(n / 100)] + " Hundred " + convert(n % 100);
+  }
+  const n = Math.round(amount);
+  let r = "";
+  if (n >= 10_000_000) r += convert(Math.floor(n / 10_000_000)) + "Crore ";
+  if (n % 10_000_000 >= 100_000) r += convert(Math.floor((n % 10_000_000) / 100_000)) + "Lakh ";
+  if (n % 100_000 >= 1_000) r += convert(Math.floor((n % 100_000) / 1_000)) + "Thousand ";
+  r += convert(n % 1_000);
+  return r.trim() + " Rupees Only";
+}
+
+const DARK  = "#111827";
+const GRAY  = "#6b7280";
+const LINE  = "#d1d5db";
 
 const s = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 9.5,
+    fontSize: 9,
     color: DARK,
     backgroundColor: "#ffffff",
-    paddingHorizontal: 44,
-    paddingVertical: 34,
+    paddingHorizontal: 42,
+    paddingTop: 36,
     paddingBottom: 50,
   },
 
-  // Header
-  header: {
+  // ── Header ───────────────────────────────────────────────────
+  headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 14,
-    paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: BLUE,
+    marginBottom: 8,
+  },
+  titleBlock: { flexDirection: "column" },
+  titleLine: { flexDirection: "row", alignItems: "baseline" },
+  titlePayslip: { fontSize: 22, fontFamily: "Helvetica-Bold", color: DARK, letterSpacing: 0.5 },
+  titleMonth:   { fontSize: 22, fontFamily: "Helvetica",      color: DARK, letterSpacing: 0.5, marginLeft: 6 },
+  coName:    { fontSize: 9,  fontFamily: "Helvetica-Bold", color: DARK, marginTop: 4 },
+  coAddress: { fontSize: 7.5, color: GRAY, marginTop: 2, lineHeight: 1.4 },
+  coNameRight: { fontSize: 11, fontFamily: "Helvetica-Bold", color: DARK, textAlign: "right" },
+  logo: { width: 120, height: 40, objectFit: "contain" },
+
+  // ── Dividers ─────────────────────────────────────────────────
+  hr: {
+    borderTopWidth: 0.75,
+    borderTopColor: LINE,
+    borderTopStyle: "solid",
+    marginVertical: 8,
+  },
+  hrBold: {
+    borderTopWidth: 1.25,
+    borderTopColor: DARK,
+    borderTopStyle: "solid",
+    marginVertical: 8,
+  },
+
+  // ── Employee name ────────────────────────────────────────────
+  empName: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    color: DARK,
+    marginTop: 6,
+    marginBottom: 6,
+  },
+
+  // ── Employee detail grid ─────────────────────────────────────
+  detailRow: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  detailItem: { flex: 1 },
+  detailLabel: { fontSize: 7, color: GRAY, marginBottom: 2 },
+  detailValue: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK },
+
+  // ── Section heading ──────────────────────────────────────────
+  sectionHead: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    color: DARK,
+    letterSpacing: 0.3,
+    marginBottom: 6,
+  },
+
+  // ── Attendance row ───────────────────────────────────────────
+  attRow: { flexDirection: "row", marginVertical: 6 },
+  attItem: { flex: 1 },
+  attLabel: { fontSize: 7, color: GRAY, marginBottom: 2 },
+  attValue: { fontSize: 9, fontFamily: "Helvetica-Bold", color: DARK },
+
+  // ── Two-column salary ────────────────────────────────────────
+  twoCol:  { flexDirection: "row", gap: 18, marginTop: 10 },
+  leftCol: { flex: 1, flexDirection: "column" },
+  rightCol:{ flex: 1, flexDirection: "column" },
+
+  subHead: {
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: DARK,
+    marginBottom: 4,
+  },
+  subHeadSpaced: {
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: DARK,
+    marginBottom: 4,
+    marginTop: 10,
+  },
+
+  salRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 3.5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: LINE,
     borderBottomStyle: "solid",
   },
-  coName: { fontSize: 15, fontFamily: "Helvetica-Bold", color: BLUE },
-  coSub:  { fontSize: 7.5, color: GRAY, marginTop: 2 },
-  headerRight: { alignItems: "flex-end" },
-  headerRightText: { fontSize: 8, color: GRAY, marginTop: 1 },
+  salLabel: { fontSize: 8.5, color: DARK },
+  salAmt:   { fontSize: 8.5, color: DARK, textAlign: "right" },
 
-  // Title
-  titleRow: {
+  totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 12,
-    fontFamily: "Helvetica-Bold",
-    color: BLUE,
-    textTransform: "uppercase",
-    letterSpacing: 1.2,
-  },
-  statusBadge: {
-    fontSize: 7.5,
-    fontFamily: "Helvetica-Bold",
-    color: GREEN,
-    borderWidth: 1,
-    borderColor: GREEN,
-    borderStyle: "solid",
-    borderRadius: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    textTransform: "uppercase",
-  },
-
-  // Employee info grid
-  infoBox: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    backgroundColor: LIGHT,
-    borderRadius: 4,
-    borderLeftWidth: 3,
-    borderLeftColor: BLUE,
-    borderLeftStyle: "solid",
-    padding: 10,
-    marginBottom: 14,
-    gap: 0,
-  },
-  infoItem: { width: "33%", marginBottom: 8 },
-  infoLabel: { fontSize: 7.5, color: GRAY, marginBottom: 1.5 },
-  infoVal:   { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK },
-
-  // Attendance bar
-  attBox: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    backgroundColor: LBLUE,
-    borderRadius: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 14,
-  },
-  attItem: { alignItems: "center" },
-  attNum:  { fontSize: 16, fontFamily: "Helvetica-Bold", color: BLUE },
-  attLbl:  { fontSize: 7, color: GRAY, marginTop: 1 },
-
-  // Section header
-  secHeader: {
-    flexDirection: "row",
-    backgroundColor: BLUE,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-  },
-  secHeaderText: { color: "#fff", fontSize: 8.5, fontFamily: "Helvetica-Bold" },
-
-  // Table
-  table: {
-    borderWidth: 1,
-    borderColor: BORDER,
-    borderStyle: "solid",
-    borderRadius: 4,
-    marginBottom: 10,
-    overflow: "hidden",
-  },
-  tRow: {
-    flexDirection: "row",
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    borderBottomStyle: "solid",
-  },
-  tRowAlt:   { backgroundColor: LIGHT },
-  tRowTotal: { backgroundColor: LBLUE },
-  tCell:     { fontSize: 8.5, color: DARK },
-  tCellBold: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK },
-  tCellRed:  { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: RED },
-  col1: { flex: 3 },
-  col2: { flex: 2, textAlign: "right" },
-
-  // Two column layout
-  twoCol: { flexDirection: "row", gap: 10, marginBottom: 10 },
-  colHalf: { flex: 1 },
-
-  // Net pay box
-  netBox: {
-    backgroundColor: LGREEN,
-    borderWidth: 1,
-    borderColor: "#86efac",
-    borderStyle: "solid",
-    borderRadius: 4,
-    padding: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  netLabel: { fontSize: 9, fontFamily: "Helvetica-Bold", color: GREEN },
-  netAmt:   { fontSize: 18, fontFamily: "Helvetica-Bold", color: GREEN },
-  netSub:   { fontSize: 7.5, color: GRAY, marginTop: 2 },
-
-  // Sig row
-  sigRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 16,
-  },
-  sigLine: {
+    paddingVertical: 4,
     borderTopWidth: 1,
     borderTopColor: DARK,
     borderTopStyle: "solid",
-    width: 130,
-    marginTop: 20,
-    marginBottom: 3,
+    marginTop: 4,
   },
-  sigLabel: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK },
-  sigSub:   { fontSize: 8, color: GRAY },
+  totalLabel: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK },
+  totalAmt:   { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK, textAlign: "right" },
 
-  // Note
-  noteBox: {
-    marginTop: 8,
-    padding: 7,
-    backgroundColor: "#fefce8",
-    borderRadius: 3,
-    borderLeftWidth: 3,
-    borderLeftColor: "#f59e0b",
-    borderLeftStyle: "solid",
-  },
-  noteText: { fontSize: 7.5, color: "#92400e", lineHeight: 1.5 },
+  spacer: { flexGrow: 1 },
 
-  // Footer
-  footer: {
-    position: "absolute",
-    bottom: 20,
-    left: 44,
-    right: 44,
-    borderTopWidth: 1,
-    borderTopColor: BORDER,
-    borderTopStyle: "solid",
-    paddingTop: 5,
+  // ── Net pay ──────────────────────────────────────────────────
+  netRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 5,
   },
-  footerText: { fontSize: 7, color: GRAY },
+  netLabel: { fontSize: 9, fontFamily: "Helvetica-Bold", color: DARK },
+  netAmt:   { fontSize: 9, fontFamily: "Helvetica-Bold", color: DARK },
+
+  wordsRow: {
+    flexDirection: "row",
+    marginBottom: 6,
+    paddingVertical: 2,
+  },
+  wordsLabel: { fontSize: 8.5, color: DARK, marginRight: 6 },
+  wordsValue: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: DARK, flex: 1 },
+
+  noteText: { fontSize: 7.5, color: DARK, marginTop: 4 },
+
+  // ── Footer ───────────────────────────────────────────────────
+  footerNote: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Oblique",
+    color: DARK,
+    marginTop: 10,
+  },
+  confidential: {
+    fontSize: 8,
+    fontFamily: "Helvetica-BoldOblique",
+    color: DARK,
+    marginTop: 3,
+  },
 });
 
-function EarningRow({ label, value, alt }: { label: string; value: number; alt?: boolean }) {
+function DetailItem({ label, value }: { label: string; value: string }) {
   return (
-    <View style={alt ? [s.tRow, s.tRowAlt] : s.tRow}>
-      <Text style={[s.tCell, s.col1]}>{label}</Text>
-      <Text style={[s.tCell, s.col2]}>{fmt(value)}</Text>
+    <View style={s.detailItem}>
+      <Text style={s.detailLabel}>{label}</Text>
+      <Text style={s.detailValue}>{value || "—"}</Text>
     </View>
   );
 }
 
-function DeductionRow({ label, value, alt }: { label: string; value: number; alt?: boolean }) {
+function SalRow({ label, value }: { label: string; value: number }) {
   return (
-    <View style={alt ? [s.tRow, s.tRowAlt] : s.tRow}>
-      <Text style={[s.tCell, s.col1]}>{label}</Text>
-      <Text style={[s.tCellRed, s.col2]}>- {fmt(value)}</Text>
+    <View style={s.salRow}>
+      <Text style={s.salLabel}>{label}</Text>
+      <Text style={s.salAmt}>{fmt(value)}</Text>
+    </View>
+  );
+}
+
+function TotalRow({ label, value }: { label: string; value: number }) {
+  return (
+    <View style={s.totalRow}>
+      <Text style={s.totalLabel}>{label}</Text>
+      <Text style={s.totalAmt}>{fmt(value)}</Text>
     </View>
   );
 }
 
 function SalarySlipPDF({ data }: { data: SalarySlipData }) {
-  const monthName = MONTH_NAMES[data.month] || "";
-  const earnRows = [
-    { label: "Basic Salary",      value: data.earnings.basic },
+  const monthName   = MONTH_NAMES[data.month] || "";
+  // LOP is the approved Unpaid-leave days computed at payroll run — the SAME figure
+  // that reduced pay. Weekends/holidays are paid and never counted as LOP.
+  const lopDays     = data.lopDays ?? 0;
+  const daysPayable = data.payableDays;
+
+  // Earnings breakdown
+  const earnRows: { label: string; value: number }[] = [
+    { label: "Basic",              value: data.earnings.basic },
     { label: "House Rent Allowance (HRA)", value: data.earnings.hra },
-    { label: "Special Allowance", value: data.earnings.allowances },
+    { label: "Allowances",        value: data.earnings.allowances },
     { label: "Overtime Pay",      value: data.earnings.overtime },
     { label: "Bonus",             value: data.earnings.bonus },
-  ].filter((r) => r.value > 0);
+    { label: "Arrears",           value: data.earnings.arrears },
+  ].filter(r => r.value > 0);
 
-  const dedRows = [
-    { label: "Provident Fund (Employee 12%)", value: data.deductions.pf },
-    { label: "ESI",                            value: data.deductions.esi },
-    { label: "Income Tax (TDS)",               value: data.deductions.tax },
-    { label: "Advance",                        value: data.deductions.advance },
-    { label: "Other Deductions",               value: data.deductions.other },
-  ].filter((r) => r.value > 0);
+  // Contributions: employee PF only
+  const pfAmount = data.deductions.pf;
+
+  // Taxes & Deductions: ESI + TDS + Advance + Other
+  const taxRows: { label: string; value: number }[] = [
+    { label: "ESI",                  value: data.deductions.esi },
+    { label: "Total Income Tax",     value: data.deductions.tax },
+    { label: "Advance",              value: data.deductions.advance },
+    { label: "Other Deductions",     value: data.deductions.other },
+  ].filter(r => r.value > 0);
+
+  const totalTaxDeductions = taxRows.reduce((s, r) => s + r.value, 0);
 
   return (
-    <Document title={`Salary Slip — ${data.employeeName} — ${monthName} ${data.year}`} author="Gehnax Technologies LLP">
+    <Document
+      title={`Payslip — ${data.employeeName} — ${monthName} ${data.year}`}
+      author="Gehnax Technologies LLP"
+    >
       <Page size="A4" style={s.page}>
 
-        {/* Company header */}
-        <View style={s.header}>
-          <View>
-            <Text style={s.coName}>Gehnax Technologies LLP</Text>
-            <Text style={s.coSub}>Technology Solutions  |  IT Services</Text>
+        {/* ── Header ─────────────────────────────────────────── */}
+        <View style={s.headerRow}>
+          <View style={s.titleBlock}>
+            <View style={s.titleLine}>
+              <Text style={s.titlePayslip}>PAYSLIP</Text>
+              <Text style={s.titleMonth}>{monthName.toUpperCase()} {data.year}</Text>
+            </View>
+            <Text style={s.coName}>GEHNAX TECHNOLOGIES LLP</Text>
+            <Text style={s.coAddress}>Technology Solutions  |  IT Services</Text>
           </View>
-          <View style={s.headerRight}>
-            <Text style={s.headerRightText}>Salary Slip</Text>
-            <Text style={s.headerRightText}>Generated: {data.generatedDate}</Text>
+          <Image src={GEHNAX_LOGO} style={s.logo} />
+        </View>
+
+        <View style={s.hrBold} />
+
+        {/* ── Employee name ───────────────────────────────────── */}
+        <Text style={s.empName}>{data.employeeName.toUpperCase()}</Text>
+
+        <View style={s.hr} />
+
+        {/* ── Employee detail grid — row 1 ────────────────────── */}
+        <View style={s.detailRow}>
+          <DetailItem label="Employee Number" value={data.employeeCode} />
+          <DetailItem label="Date Joined"     value={data.joiningDate || "—"} />
+          <DetailItem label="Department"      value={data.department} />
+          <DetailItem label="Designation"     value={data.designation} />
+        </View>
+
+        {/* ── Employee detail grid — row 2 ────────────────────── */}
+        <View style={s.detailRow}>
+          <DetailItem label="Payment Mode" value={data.paymentMode || "Bank Transfer"} />
+          <DetailItem label="Bank"         value={data.bankName    || "—"} />
+          <DetailItem label="Bank IFSC"    value={data.bankIFSC    || "—"} />
+          <DetailItem label="Bank Account" value={data.bankAccount || "—"} />
+        </View>
+
+        <View style={s.hr} />
+
+        {/* ── Salary Details heading ──────────────────────────── */}
+        <Text style={s.sectionHead}>SALARY DETAILS</Text>
+        <View style={s.hr} />
+
+        {/* ── Attendance row ──────────────────────────────────── */}
+        <View style={s.attRow}>
+          <View style={s.attItem}>
+            <Text style={s.attLabel}>Actual Payable Days</Text>
+            <Text style={s.attValue}>{data.payableDays.toFixed(1)}</Text>
+          </View>
+          <View style={s.attItem}>
+            <Text style={s.attLabel}>Total Days In Month</Text>
+            <Text style={s.attValue}>{data.workingDays.toFixed(1)}</Text>
+          </View>
+          <View style={s.attItem}>
+            <Text style={s.attLabel}>Loss Of Pay Days</Text>
+            <Text style={s.attValue}>{lopDays.toFixed(2)}</Text>
+          </View>
+          <View style={s.attItem}>
+            <Text style={s.attLabel}>Days Payable</Text>
+            <Text style={s.attValue}>{daysPayable}</Text>
           </View>
         </View>
 
-        {/* Title */}
-        <View style={s.titleRow}>
-          <Text style={s.title}>Salary Slip — {monthName} {data.year}</Text>
-          <Text style={s.statusBadge}>{data.status}</Text>
-        </View>
+        <View style={s.hr} />
 
-        {/* Employee info */}
-        <View style={s.infoBox}>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Employee Name</Text>
-            <Text style={s.infoVal}>{data.employeeName}</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Employee Code</Text>
-            <Text style={s.infoVal}>{data.employeeCode}</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Pay Period</Text>
-            <Text style={s.infoVal}>{monthName} {data.year}</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Designation</Text>
-            <Text style={s.infoVal}>{data.designation}</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Department</Text>
-            <Text style={s.infoVal}>{data.department}</Text>
-          </View>
-          <View style={s.infoItem}>
-            <Text style={s.infoLabel}>Payment Status</Text>
-            <Text style={s.infoVal}>{data.status.toUpperCase()}</Text>
-          </View>
-        </View>
-
-        {/* Attendance */}
-        <View style={s.attBox}>
-          <View style={s.attItem}>
-            <Text style={s.attNum}>{data.workingDays}</Text>
-            <Text style={s.attLbl}>Working Days</Text>
-          </View>
-          <View style={s.attItem}>
-            <Text style={s.attNum}>{data.presentDays}</Text>
-            <Text style={s.attLbl}>Days Present</Text>
-          </View>
-          <View style={s.attItem}>
-            <Text style={s.attNum}>{data.leaveDays}</Text>
-            <Text style={s.attLbl}>Leave Days</Text>
-          </View>
-          <View style={s.attItem}>
-            <Text style={s.attNum}>{data.workingDays - data.presentDays - data.leaveDays}</Text>
-            <Text style={s.attLbl}>Absent / LOP</Text>
-          </View>
-        </View>
-
-        {/* Earnings & Deductions side by side */}
+        {/* ── Two-column: Earnings | Contributions + Taxes ────── */}
         <View style={s.twoCol}>
-          {/* Earnings */}
-          <View style={s.colHalf}>
-            <View style={s.table}>
-              <View style={s.secHeader}>
-                <Text style={[s.secHeaderText, s.col1]}>Earnings</Text>
-                <Text style={[s.secHeaderText, s.col2]}>Amount (₹)</Text>
+
+          {/* LEFT: Earnings */}
+          <View style={s.leftCol}>
+            <Text style={s.subHead}>EARNINGS</Text>
+            {earnRows.map((r) => (
+              <SalRow key={r.label} label={r.label} value={r.value} />
+            ))}
+            <View style={s.spacer} />
+            <TotalRow label="Total Earnings (A)" value={data.grossPay} />
+          </View>
+
+          {/* RIGHT: Contributions + Taxes & Deductions */}
+          <View style={s.rightCol}>
+
+            <Text style={s.subHead}>CONTRIBUTIONS</Text>
+            {pfAmount > 0 ? (
+              <SalRow label="PF Employee" value={pfAmount} />
+            ) : (
+              <View style={s.salRow}>
+                <Text style={s.salLabel}>PF Employee</Text>
+                <Text style={s.salAmt}>—</Text>
               </View>
-              {earnRows.map((r, i) => (
-                <EarningRow key={r.label} label={r.label} value={r.value} alt={i % 2 === 1} />
-              ))}
-              <View style={[s.tRow, s.tRowTotal]}>
-                <Text style={[s.tCellBold, s.col1]}>Gross Pay</Text>
-                <Text style={[s.tCellBold, s.col2]}>{fmt(data.grossPay)}</Text>
+            )}
+            <TotalRow label="Total Contributions (B)" value={pfAmount} />
+
+            <Text style={s.subHeadSpaced}>TAXES &amp; DEDUCTIONS</Text>
+            {taxRows.length > 0 ? (
+              taxRows.map((r) => <SalRow key={r.label} label={r.label} value={r.value} />)
+            ) : (
+              <View style={s.salRow}>
+                <Text style={s.salLabel}>No deductions</Text>
+                <Text style={s.salAmt}>—</Text>
               </View>
-            </View>
-          </View>
-
-          {/* Deductions */}
-          <View style={s.colHalf}>
-            <View style={s.table}>
-              <View style={[s.secHeader, { backgroundColor: RED }]}>
-                <Text style={[s.secHeaderText, s.col1]}>Deductions</Text>
-                <Text style={[s.secHeaderText, s.col2]}>Amount (₹)</Text>
-              </View>
-              {dedRows.length === 0 ? (
-                <View style={s.tRow}>
-                  <Text style={[s.tCell, s.col1]}>No deductions</Text>
-                  <Text style={[s.tCell, s.col2]}>—</Text>
-                </View>
-              ) : (
-                dedRows.map((r, i) => (
-                  <DeductionRow key={r.label} label={r.label} value={r.value} alt={i % 2 === 1} />
-                ))
-              )}
-              <View style={[s.tRow, s.tRowTotal]}>
-                <Text style={[s.tCellBold, s.col1]}>Total Deductions</Text>
-                <Text style={[s.tCellRed, s.col2]}>- {fmt(data.totalDeductions)}</Text>
-              </View>
-            </View>
+            )}
+            <TotalRow label="Total Taxes &amp; Deductions (C)" value={totalTaxDeductions} />
           </View>
         </View>
 
-        {/* Net Pay */}
-        <View style={s.netBox}>
-          <View>
-            <Text style={s.netLabel}>NET TAKE HOME SALARY</Text>
-            <Text style={s.netSub}>{monthName} {data.year}  ·  {data.presentDays}/{data.workingDays} days</Text>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={s.netAmt}>₹ {fmt(data.netPay)}</Text>
-          </View>
+        {/* ── Net salary ──────────────────────────────────────── */}
+        <View style={s.hr} />
+        <View style={s.netRow}>
+          <Text style={s.netLabel}>Net Salary Payable ( A - B - C )</Text>
+          <Text style={s.netAmt}>{fmt(data.netPay)}</Text>
         </View>
 
-        {/* Signatures */}
-        <View style={s.sigRow}>
-          <View>
-            <Text style={s.sigSub}>Employee Acknowledgement</Text>
-            <View style={s.sigLine} />
-            <Text style={s.sigLabel}>{data.employeeName}</Text>
-            <Text style={s.sigSub}>Date: ___________________</Text>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            <Text style={s.sigSub}>For Gehnax Technologies LLP</Text>
-            <View style={[s.sigLine, { marginLeft: "auto" }]} />
-            <Text style={s.sigLabel}>Authorized Signatory</Text>
-            <Text style={s.sigSub}>Human Resources Department</Text>
-          </View>
+        <View style={s.wordsRow}>
+          <Text style={s.wordsLabel}>Net Salary in words</Text>
+          <Text style={s.wordsValue}>{numberToWords(data.netPay)}</Text>
         </View>
 
-        {/* Note */}
-        <View style={s.noteBox}>
-          <Text style={s.noteText}>
-            This is a system-generated salary slip and does not require a physical signature. This document is
-            confidential and intended solely for the named employee. For any discrepancies, contact HR within
-            7 working days of receipt.
-          </Text>
-        </View>
+        <Text style={s.noteText}>
+          <Text style={{ fontFamily: "Helvetica-Bold" }}>**Note : </Text>
+          <Text style={{ fontFamily: "Helvetica-Oblique" }}>All amounts displayed in this payslip are in INR</Text>
+        </Text>
 
-        {/* Footer */}
-        <View style={s.footer}>
-          <Text style={s.footerText}>Gehnax Technologies LLP  |  Salary Slip — {monthName} {data.year}  |  Confidential</Text>
-          <Text style={s.footerText}>{data.employeeCode}  |  {data.generatedDate}</Text>
-        </View>
+        <View style={s.hr} />
+
+        {/* ── Footer ──────────────────────────────────────────── */}
+        <Text style={s.footerNote}>
+          * This is a computer generated statement, does not require signature.
+        </Text>
+        <Text style={s.confidential}>Confidential</Text>
+
       </Page>
     </Document>
   );

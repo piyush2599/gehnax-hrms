@@ -5,9 +5,11 @@ import useSWR, { mutate } from "swr";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, LogIn, LogOut, CheckCircle } from "lucide-react";
+import { Clock, LogIn, LogOut, CheckCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { captureGPS, type GpsCoords } from "@/lib/gps";
+import GpsPermissionModal from "@/components/attendance/GpsPermissionModal";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -21,18 +23,23 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AttendanceWidget() {
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
+  const [pendingAction, setPendingAction] = useState<"checkin" | "checkout" | null>(null);
+  const [gpsModal, setGpsModal] = useState<"permission" | "mock" | null>(null);
   const today = format(new Date(), "yyyy-MM-dd");
 
   const { data: attendance } = useSWR(`/api/attendance?date=${today}`, fetcher, { refreshInterval: 30000 });
+  const { data: selfEmployee } = useSWR("/api/employees/me", fetcher, { revalidateOnFocus: false });
+  const gpsRequired: boolean = selfEmployee?.gpsRequired === true;
   const record = attendance?.[0];
 
-  const handleAction = async (action: "checkin" | "checkout") => {
-    setLoading(true);
+  const submitAction = async (action: "checkin" | "checkout", gpsCoords?: GpsCoords) => {
+    setStatus("Submitting…");
     try {
       const res = await fetch("/api/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...(gpsCoords ? { location: gpsCoords } : {}) }),
       });
       const data = await res.json();
       if (!res.ok) toast.error(data.error || "Action failed");
@@ -44,10 +51,51 @@ export default function AttendanceWidget() {
       toast.error("Something went wrong");
     } finally {
       setLoading(false);
+      setStatus("");
+      setPendingAction(null);
+    }
+  };
+
+  const handleAction = async (action: "checkin" | "checkout") => {
+    setLoading(true);
+    setPendingAction(action);
+
+    // Skip GPS entirely if not required for this employee
+    if (!gpsRequired) {
+      await submitAction(action, undefined);
+      return;
+    }
+
+    setStatus("Getting location…");
+    try {
+      const result = await captureGPS();
+
+      if ("error" in result) {
+        setLoading(false);
+        setStatus("");
+        if (result.code === "permission_denied") {
+          setGpsModal("permission");
+          return;
+        }
+        if (result.code === "mock_detected") {
+          setGpsModal("mock");
+          return;
+        }
+        toast.warning(result.error, { duration: 5000 });
+        await submitAction(action, undefined);
+        return;
+      }
+
+      await submitAction(action, result.coords);
+    } catch {
+      setLoading(false);
+      setStatus("");
+      setPendingAction(null);
     }
   };
 
   return (
+    <>
     <Card className="overflow-hidden border-0 shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
       <CardContent className="px-5 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -86,38 +134,62 @@ export default function AttendanceWidget() {
             </div>
           </div>
 
-          <div className="flex gap-2 flex-shrink-0">
-            {!record?.checkIn && (
-              <Button
-                onClick={() => handleAction("checkin")}
-                loading={loading}
-                className="bg-white text-emerald-700 hover:bg-blue-50 font-bold shadow-sm"
-                size="sm"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                Check In
-              </Button>
+          <div className="flex flex-col items-end gap-1">
+            {loading && status && (
+              <span className="flex items-center gap-1 text-xs text-blue-200">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                {status}
+              </span>
             )}
-            {record?.checkIn && !record?.checkOut && (
-              <Button
-                onClick={() => handleAction("checkout")}
-                loading={loading}
-                className="bg-white/15 text-white border border-white/30 hover:bg-white/25 font-semibold"
-                size="sm"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                Check Out
-              </Button>
-            )}
-            {record?.checkIn && record?.checkOut && (
-              <div className="flex items-center gap-1.5 text-white text-sm font-semibold bg-white/15 px-3 py-1.5 rounded-xl">
-                <CheckCircle className="w-4 h-4 text-emerald-300" />
-                Day Complete
-              </div>
-            )}
+            <div className="flex gap-2">
+              {!record?.checkIn && (
+                <Button
+                  onClick={() => handleAction("checkin")}
+                  disabled={loading}
+                  className="bg-white text-emerald-700 hover:bg-blue-50 font-bold shadow-sm"
+                  size="sm"
+                >
+                  {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />}
+                  Check In
+                </Button>
+              )}
+              {record?.checkIn && !record?.checkOut && (
+                <Button
+                  onClick={() => handleAction("checkout")}
+                  disabled={loading}
+                  className="bg-white/15 text-white border border-white/30 hover:bg-white/25 font-semibold"
+                  size="sm"
+                >
+                  {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+                  Check Out
+                </Button>
+              )}
+              {record?.checkIn && record?.checkOut && (
+                <div className="flex items-center gap-1.5 text-white text-sm font-semibold bg-white/15 px-3 py-1.5 rounded-xl">
+                  <CheckCircle className="w-4 h-4 text-emerald-300" />
+                  Day Complete
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
     </Card>
+
+    {gpsModal && pendingAction && (
+      <GpsPermissionModal
+        isMockBlocked={gpsModal === "mock"}
+        onGranted={(coords) => {
+          setGpsModal(null);
+          setLoading(true);
+          submitAction(pendingAction, coords);
+        }}
+        onCancel={() => {
+          setGpsModal(null);
+          setPendingAction(null);
+        }}
+      />
+    )}
+    </>
   );
 }

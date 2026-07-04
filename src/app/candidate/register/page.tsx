@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -43,7 +43,7 @@ function CandidateRegisterForm() {
       <div className="w-full max-w-2xl">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-10 mx-auto mb-3" />
+            <img src="/gehnax-logo.png" alt="Gehnax" className="h-10 mx-auto mb-3" />
             <h1 className="text-2xl font-bold text-slate-900">Create Your Profile</h1>
             <p className="text-slate-500 text-sm mt-1">Register to apply and track your applications</p>
           </div>

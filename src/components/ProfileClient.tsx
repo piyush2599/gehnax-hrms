@@ -23,7 +23,7 @@ import EmployeeIDCard from "@/components/employees/EmployeeIDCard";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function ProfileClient() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const { impersonating } = useImpersonate();
   const roles: string[] = (session?.user as any)?.roles || [];
   // hr_admin (without super_admin / finance_admin) cannot view salary info
@@ -119,7 +119,7 @@ export default function ProfileClient() {
     } finally { setPwLoading(false); }
   };
 
-  if (isLoading) {
+  if (sessionStatus === "loading" || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -187,7 +187,7 @@ export default function ProfileClient() {
                     <LogOut className="w-3.5 h-3.5 mr-1.5" />
                     {emp.resignation.status === "accepted" ? "Resignation Accepted" : "View Resignation"}
                   </Button>
-                ) : emp.resignation?.status !== "withdrawn" && (
+                ) : emp.resignation?.status !== "withdrawn" && !roles.includes("super_admin") && (
                   <Button
                     size="sm"
                     variant="outline"

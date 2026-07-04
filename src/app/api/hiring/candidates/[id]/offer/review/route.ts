@@ -54,7 +54,7 @@ export async function POST(
         html: `
           <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
             <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
-              <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px"/>
+              <img src="https://myapp.gehnax.com/gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px"/>
               <p style="color:#bfdbfe;margin:4px 0 0;font-size:14px">Offer Letter</p>
             </div>
             <div style="padding:32px">

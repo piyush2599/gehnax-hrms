@@ -32,7 +32,9 @@ const PAGE_NAMES: Record<string, string> = {
   "/hiring":        "Hiring",
   "/onboarding":    "Onboarding",
   "/roles":            "Roles & Permissions",
-  "/approvals":        "Offer Approvals",
+  "/approvals":        "Approvals",
+  "/expenses":         "Expenses",
+  "/projects":         "Projects",
   "/purchase-orders":  "Purchase Orders",
   "/crm":              "CRM — Sales Pipeline",
 };

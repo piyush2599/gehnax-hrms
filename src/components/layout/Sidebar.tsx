@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -114,7 +114,7 @@ function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => vo
           )}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="https://www.gehnax.com/Gehnax-logo.png"
+              src="/gehnax-logo.png"
               alt="Gehnax"
               className={collapsed ? "w-full h-full object-contain" : "h-full w-auto"}
             />
@@ -175,7 +175,7 @@ function NavContent({ collapsed, onNav }: { collapsed: boolean; onNav?: () => vo
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2.5 space-y-0.5 scrollbar-thin">
+      <nav className="flex-1 min-h-0 overflow-y-auto py-2 px-2.5 space-y-0.5 scrollbar-thin">
         {navGroups.map((group) => {
           const visible = group.items.filter((i) => i.roles.includes(activeRole));
           if (!visible.length) return null;
@@ -267,24 +267,24 @@ export default function Sidebar() {
     <>
       {/* Desktop */}
       <aside className={cn(
-        "hidden md:flex flex-col bg-[#0d1117] border-r border-white/6 transition-all duration-300 ease-in-out flex-shrink-0 h-full",
+        "hidden md:flex flex-col bg-[#0d1117] border-r border-white/6 transition-all duration-300 ease-in-out flex-shrink-0 h-full overflow-hidden",
         collapsed ? "w-[60px]" : "w-[220px]"
       )}>
-        <div className="flex flex-col h-full">
+        <div className="flex-1 min-h-0 flex flex-col">
           <NavContent collapsed={collapsed} />
-          {/* Collapse toggle */}
-          <div className="border-t border-white/6 p-2 flex-shrink-0">
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              className="w-full flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all"
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {collapsed
-                ? <ChevronRight className="w-4 h-4" />
-                : <ChevronLeft className="w-4 h-4" />
-              }
-            </button>
-          </div>
+        </div>
+        {/* Collapse toggle — always pinned at bottom */}
+        <div className="border-t border-white/6 p-2 flex-shrink-0">
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            className="w-full flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed
+              ? <ChevronRight className="w-4 h-4" />
+              : <ChevronLeft className="w-4 h-4" />
+            }
+          </button>
         </div>
       </aside>
 

@@ -69,6 +69,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (rest.probability == null) lead.probability = prob;
     if (newStage === "won" || newStage === "lost") {
       lead.actualCloseDate = new Date();
+    } else {
+      lead.actualCloseDate = undefined;
     }
   }
 

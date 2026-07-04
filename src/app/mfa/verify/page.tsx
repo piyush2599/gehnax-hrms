@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
@@ -137,7 +137,7 @@ export default function MfaVerifyPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center bg-white rounded-2xl px-6 py-3 mb-4 shadow-lg shadow-black/20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-10 w-auto" />
+            <img src="/gehnax-logo.png" alt="Gehnax" className="h-10 w-auto" />
           </div>
           <h1 className="text-3xl font-bold text-white">Two-Factor Auth</h1>
           <p className="text-blue-200 mt-2 text-sm max-w-xs mx-auto">

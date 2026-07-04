@@ -5,6 +5,7 @@ import Employee from "@/models/Employee";
 import OfferLetter from "@/models/OfferLetter";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 import { generateOfferLetterBuffer } from "@/lib/offer-letter-pdf";
+import { computeOfferSalary } from "@/lib/payroll-calc";
 import crypto from "crypto";
 
 export async function GET(
@@ -54,26 +55,17 @@ export async function POST(
 
   if (!emp) return NextResponse.json({ error: "Employee not found" }, { status: 404 });
 
-  // ── Salary breakdown (no Gratuity, no Professional Tax; both PF deducted) ──
-  const basic       = emp.salary?.basic || 0;
-  const hra         = emp.salary?.hra || 0;
-  const allowances  = emp.salary?.allowances || 0;
-  const storedDeductions = emp.salary?.deductions || 0;
-
-  const grossMonthly = basic + hra + allowances;
-  const grossAnnual  = grossMonthly * 12;
-  const employeePF   = Math.round(Math.min(basic, 15_000) * 0.12);
-  const employerPF   = Math.round(Math.min(basic, 15_000) * 0.12);
-  const esi          = grossMonthly <= 21_000 ? Math.round(grossMonthly * 0.0075) : 0;
-  // Gratuity provision per Payment of Gratuity Act, 1972 (Basic × 15/26 ÷ 12 ≈ 4.81%)
-  const gratuity     = Math.round(basic * 15 / 26 / 12);
-  // PF base (no professional tax)
-  const computedBase = employeePF + employerPF + esi;
-  const tds          = Math.max(0, storedDeductions - computedBase);
-  const totalDeductions = storedDeductions > 0 ? storedDeductions : computedBase;
-  const netMonthly   = grossMonthly - totalDeductions;
-  // CTC = Gross Annual + Employer PF × 12 + Gratuity × 12
-  const annualCTC    = Math.round(grossAnnual + employerPF * 12 + gratuity * 12);
+  // ── Salary breakdown — SINGLE engine shared with the payslip ──────────────
+  // Guarantees the offer-letter annexure equals a full-month payslip.
+  // Professional Tax = 0 (Delhi has no PT).
+  const sv = computeOfferSalary(emp.salary || { basic: 0, hra: 0, allowances: 0 }, 0);
+  const {
+    basic, hra, allowances,
+    grossMonthly, grossAnnual,
+    employeePF, employerPF, esi,
+    professionalTax, tds,
+    totalDeductions, netMonthly, gratuity, annualCTC,
+  } = sv;
 
   // ── Token & URL ─────────────────────────────────────────────
   const verificationToken = crypto.randomBytes(20).toString("hex");
@@ -105,7 +97,7 @@ export async function POST(
     salary: {
       basic, hra, allowances,
       grossMonthly, employeePF, employerPF, esi,
-      professionalTax: 0, tds,
+      professionalTax, tds,
       totalDeductions, netMonthly, grossAnnual,
       gratuity, annualCTC,
     },
@@ -177,7 +169,7 @@ export async function PATCH(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const sessionUser = session.user as any;
-  if (!["super_admin", "hr_admin"].includes(sessionUser.role)) {
+  if (!(sessionUser.roles || []).some((r: string) => ["super_admin", "hr_admin"].includes(r))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

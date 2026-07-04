@@ -1,4 +1,4 @@
-import { Toaster } from "@/components/ui/sonner";
+﻿import { Toaster } from "@/components/ui/sonner";
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -6,7 +6,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-8 w-auto flex-shrink-0" />
+          <img src="/gehnax-logo.png" alt="Gehnax" className="h-8 w-auto flex-shrink-0" />
           <div>
             <p className="font-bold text-slate-900 leading-tight text-sm">Gehnax Technologies LLP</p>
             <p className="text-xs text-slate-500">Employee Onboarding</p>

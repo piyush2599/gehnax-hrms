@@ -8,6 +8,8 @@ import { SidebarProvider } from "@/components/layout/sidebar-context";
 import { ActiveRoleProvider } from "@/components/layout/active-role-context";
 import { ImpersonateProvider } from "@/components/layout/impersonate-context";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import BiometricSetup from "@/components/auth/BiometricSetup";
+import BiometricLock from "@/components/auth/BiometricLock";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -29,6 +31,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </div>
       <div className="print:hidden"><PWAInstallPrompt /></div>
+      <div className="print:hidden"><BiometricSetup /></div>
+      <BiometricLock />
     </SidebarProvider>
     </ImpersonateProvider>
     </ActiveRoleProvider>

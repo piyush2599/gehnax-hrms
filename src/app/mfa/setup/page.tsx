@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
@@ -198,7 +198,7 @@ export default function MfaSetupPage() {
         <div className="text-center">
           <div className="inline-flex items-center justify-center bg-white rounded-2xl px-5 py-2.5 mb-3 shadow-lg shadow-black/20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" className="h-8 w-auto" />
+            <img src="/gehnax-logo.png" alt="Gehnax" className="h-8 w-auto" />
           </div>
           <h1 className="text-2xl font-bold text-white">Set Up Two-Factor Auth</h1>
           <p className="text-blue-300 mt-1 text-sm">Scan the QR code, then enter the code to verify</p>

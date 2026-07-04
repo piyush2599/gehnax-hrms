@@ -22,3 +22,7 @@ import "@/models/OfferLetter";
 import "@/models/CandidateAccount";
 import "@/models/AttendanceRegularization";
 import "@/models/CRMLead";
+import "@/models/WebAuthnCredential";
+import "@/models/SalaryRevision";
+import "@/models/SalaryAdvance";
+import "@/models/FinalSettlement";

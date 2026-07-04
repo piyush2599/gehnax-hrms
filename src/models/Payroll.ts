@@ -12,6 +12,7 @@ export interface IPayroll extends Document {
     allowances: number;
     overtime: number;
     bonus: number;
+    arrears: number;
   };
   deductions: {
     pf: number;
@@ -23,12 +24,17 @@ export interface IPayroll extends Document {
   grossPay: number;
   totalDeductions: number;
   netPay: number;
-  workingDays: number;
+  workingDays: number;   // total calendar days in the month (divisor)
+  payableDays: number;   // paid days = join/exit window − unpaid-leave (LOP) days
+  lopDays: number;       // approved Unpaid-leave days (Loss of Pay)
   presentDays: number;
-  leaveDays: number;
+  leaveDays: number;     // paid leave days (informational)
+  overtimeHours: number; // stored so edits can recalculate
   status: "draft" | "processed" | "paid";
   processedBy?: mongoose.Types.ObjectId;
   processedOn?: Date;
+  approvedBy?: mongoose.Types.ObjectId;
+  approvedOn?: Date;
   paidOn?: Date;
   payslipUrl?: string;
   notes?: string;
@@ -48,6 +54,7 @@ const PayrollSchema = new Schema<IPayroll>(
       allowances: { type: Number, default: 0 },
       overtime: { type: Number, default: 0 },
       bonus: { type: Number, default: 0 },
+      arrears: { type: Number, default: 0 },
     },
     deductions: {
       pf: { type: Number, default: 0 },
@@ -60,8 +67,11 @@ const PayrollSchema = new Schema<IPayroll>(
     totalDeductions: { type: Number, default: 0 },
     netPay: { type: Number, default: 0 },
     workingDays: { type: Number, default: 0 },
-    presentDays: { type: Number, default: 0 },
-    leaveDays: { type: Number, default: 0 },
+    payableDays: { type: Number, default: 0 },
+    lopDays:      { type: Number, default: 0 },
+    presentDays:  { type: Number, default: 0 },
+    leaveDays:    { type: Number, default: 0 },
+    overtimeHours:{ type: Number, default: 0 },
     status: {
       type: String,
       enum: ["draft", "processed", "paid"],
@@ -69,6 +79,8 @@ const PayrollSchema = new Schema<IPayroll>(
     },
     processedBy: { type: Schema.Types.ObjectId, ref: "Employee" },
     processedOn: { type: Date },
+    approvedBy: { type: Schema.Types.ObjectId, ref: "Employee" },
+    approvedOn: { type: Date },
     paidOn: { type: Date },
     payslipUrl: { type: String },
     notes: { type: String },

@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+﻿import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -70,7 +70,7 @@ export function sendOnboardingInviteEmail(to: string, name: string, inviteLink: 
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
         <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
-          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px" />
+          <img src="https://myapp.gehnax.com/gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px" />
           <p style="color:#bfdbfe;margin:4px 0 0;font-size:14px">Human Resource Management System</p>
         </div>
         <div style="padding:32px">
@@ -148,7 +148,7 @@ export function sendLeaveConfirmationEmail(
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
         <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
-          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px"/>
+          <img src="https://myapp.gehnax.com/gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px"/>
           <p style="color:#bfdbfe;margin:4px 0 0;font-size:14px">Leave Management</p>
         </div>
         <div style="padding:32px">
@@ -189,7 +189,7 @@ export function sendLeaveStatusEmail(
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
         <div style="background:${isApproved ? "linear-gradient(135deg,#065f46,#059669)" : "linear-gradient(135deg,#991b1b,#dc2626)"};padding:32px;text-align:center">
-          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px"/>
+          <img src="https://myapp.gehnax.com/gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px"/>
           <p style="color:${isApproved ? "#a7f3d0" : "#fecaca"};margin:4px 0 0;font-size:14px">Leave ${isApproved ? "Approved ✓" : "Rejected ✗"}</p>
         </div>
         <div style="padding:32px">
@@ -231,7 +231,7 @@ export function sendLeaveApplicationEmail(
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
         <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
-          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px" />
+          <img src="https://myapp.gehnax.com/gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px" />
           <p style="color:#bfdbfe;margin:4px 0 0;font-size:14px">Leave Application</p>
         </div>
         <div style="padding:32px">
@@ -283,7 +283,7 @@ export function sendInterviewScheduledEmail(
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:auto;background:#f8fafc;border-radius:12px;overflow:hidden">
         <div style="background:linear-gradient(135deg,#1e40af,#4f46e5);padding:32px;text-align:center">
-          <img src="https://www.gehnax.com/Gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px" />
+          <img src="https://myapp.gehnax.com/gehnax-logo.png" alt="Gehnax" style="height:36px;margin-bottom:12px" />
           <p style="color:#bfdbfe;margin:4px 0 0;font-size:14px">Interview Invitation</p>
         </div>
         <div style="padding:32px">
