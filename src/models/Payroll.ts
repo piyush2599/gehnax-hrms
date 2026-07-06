@@ -21,6 +21,11 @@ export interface IPayroll extends Document {
     advance: number;
     other: number;
   };
+  // Employer-borne CTC components (Part B) — NOT deducted from net pay.
+  employerContributions: {
+    pf: number;        // employer PF (mirrors employee PF)
+    gratuity: number;  // monthly gratuity provision
+  };
   grossPay: number;
   totalDeductions: number;
   netPay: number;
@@ -62,6 +67,10 @@ const PayrollSchema = new Schema<IPayroll>(
       tax: { type: Number, default: 0 },
       advance: { type: Number, default: 0 },
       other: { type: Number, default: 0 },
+    },
+    employerContributions: {
+      pf:       { type: Number, default: 0 },
+      gratuity: { type: Number, default: 0 },
     },
     grossPay: { type: Number, default: 0 },
     totalDeductions: { type: Number, default: 0 },

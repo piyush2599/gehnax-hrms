@@ -38,6 +38,11 @@ export interface SalarySlipData {
     advance: number;
     other: number;
   };
+  // Employer-borne CTC components (Part B). Optional for legacy records.
+  employerContributions?: {
+    pf: number;
+    gratuity: number;
+  };
   grossPay: number;
   totalDeductions: number;
   netPay: number;
@@ -287,18 +292,24 @@ function SalarySlipPDF({ data }: { data: SalarySlipData }) {
     { label: "Arrears",           value: data.earnings.arrears },
   ].filter(r => r.value > 0);
 
-  // Contributions: employee PF only
-  const pfAmount = data.deductions.pf;
+  // Benefits & Contributions (Part B) — employer cost, part of CTC, NOT deducted.
+  const benefitRows: { label: string; value: number }[] = [
+    { label: "PF – Employer",  value: data.employerContributions?.pf ?? 0 },
+    { label: "Gratuity",       value: data.employerContributions?.gratuity ?? 0 },
+  ].filter(r => r.value > 0);
+  const subTotalB = benefitRows.reduce((s, r) => s + r.value, 0);
+  const ctcTotal  = data.grossPay + subTotalB;   // Total (A + B)
 
-  // Taxes & Deductions: ESI + TDS + Advance + Other
-  const taxRows: { label: string; value: number }[] = [
+  // Deductions (Part D): employee PF + ESI + TDS + Advance + Other
+  const dedRows: { label: string; value: number }[] = [
+    { label: "PF Employee",          value: data.deductions.pf },
     { label: "ESI",                  value: data.deductions.esi },
     { label: "Total Income Tax",     value: data.deductions.tax },
     { label: "Advance",              value: data.deductions.advance },
     { label: "Other Deductions",     value: data.deductions.other },
   ].filter(r => r.value > 0);
 
-  const totalTaxDeductions = taxRows.reduce((s, r) => s + r.value, 0);
+  const totalDeductions = dedRows.reduce((s, r) => s + r.value, 0);
 
   return (
     <Document
@@ -371,50 +382,50 @@ function SalarySlipPDF({ data }: { data: SalarySlipData }) {
 
         <View style={s.hr} />
 
-        {/* ── Two-column: Earnings | Contributions + Taxes ────── */}
+        {/* ── Two-column: Earnings + Benefits (CTC) | Deductions ─ */}
         <View style={s.twoCol}>
 
-          {/* LEFT: Earnings */}
+          {/* LEFT: Earnings (A) + Benefits & Contributions (B) = CTC */}
           <View style={s.leftCol}>
             <Text style={s.subHead}>EARNINGS</Text>
             {earnRows.map((r) => (
               <SalRow key={r.label} label={r.label} value={r.value} />
             ))}
+            <TotalRow label="Sub-Total (A)" value={data.grossPay} />
+
+            {benefitRows.length > 0 && (
+              <>
+                <Text style={s.subHeadSpaced}>BENEFITS &amp; CONTRIBUTIONS (B)</Text>
+                {benefitRows.map((r) => (
+                  <SalRow key={r.label} label={r.label} value={r.value} />
+                ))}
+                <TotalRow label="Sub-Total (B)" value={subTotalB} />
+                <TotalRow label="Total CTC (A + B)" value={ctcTotal} />
+              </>
+            )}
             <View style={s.spacer} />
-            <TotalRow label="Total Earnings (A)" value={data.grossPay} />
           </View>
 
-          {/* RIGHT: Contributions + Taxes & Deductions */}
+          {/* RIGHT: Deductions (D) */}
           <View style={s.rightCol}>
-
-            <Text style={s.subHead}>CONTRIBUTIONS</Text>
-            {pfAmount > 0 ? (
-              <SalRow label="PF Employee" value={pfAmount} />
-            ) : (
-              <View style={s.salRow}>
-                <Text style={s.salLabel}>PF Employee</Text>
-                <Text style={s.salAmt}>—</Text>
-              </View>
-            )}
-            <TotalRow label="Total Contributions (B)" value={pfAmount} />
-
-            <Text style={s.subHeadSpaced}>TAXES &amp; DEDUCTIONS</Text>
-            {taxRows.length > 0 ? (
-              taxRows.map((r) => <SalRow key={r.label} label={r.label} value={r.value} />)
+            <Text style={s.subHead}>DEDUCTIONS</Text>
+            {dedRows.length > 0 ? (
+              dedRows.map((r) => <SalRow key={r.label} label={r.label} value={r.value} />)
             ) : (
               <View style={s.salRow}>
                 <Text style={s.salLabel}>No deductions</Text>
                 <Text style={s.salAmt}>—</Text>
               </View>
             )}
-            <TotalRow label="Total Taxes &amp; Deductions (C)" value={totalTaxDeductions} />
+            <TotalRow label="Total Deductions (D)" value={totalDeductions} />
+            <View style={s.spacer} />
           </View>
         </View>
 
         {/* ── Net salary ──────────────────────────────────────── */}
         <View style={s.hr} />
         <View style={s.netRow}>
-          <Text style={s.netLabel}>Net Salary Payable ( A - B - C )</Text>
+          <Text style={s.netLabel}>Net Salary Payable ( A - D )</Text>
           <Text style={s.netAmt}>{fmt(data.netPay)}</Text>
         </View>
 

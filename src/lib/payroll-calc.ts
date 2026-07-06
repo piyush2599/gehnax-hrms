@@ -35,6 +35,7 @@ export interface EmployeeSalary {
   tds?: number | null;          // income tax TDS, monthly (new records)
   pfType?: PFType | null;
   esiApplicable?: boolean;      // ESI only deducted when explicitly enabled
+  gratuityApplicable?: boolean; // gratuity provision only when eligible (see hasGratuity)
 }
 
 export interface ComputeOptions {
@@ -96,8 +97,21 @@ export function fullMonthTDS(sal: EmployeeSalary): number {
   return round(sal.tds || 0);
 }
 
-/** Gratuity provision (employer cost) for a full month. */
+/**
+ * Whether this employee gets a gratuity provision at all.
+ * An explicit flag always wins. When unset (existing records that predate the
+ * flag), gratuity FOLLOWS PF — an employee who contributes PF is treated as
+ * gratuity-eligible; one with no PF gets no gratuity. This matches the rule
+ * "if PF is deducted, only then the employee has gratuity".
+ */
+export function hasGratuity(sal: EmployeeSalary): boolean {
+  if (typeof sal.gratuityApplicable === "boolean") return sal.gratuityApplicable;
+  return sal.pfType !== "none" && (sal.pf ?? 0) > 0;
+}
+
+/** Gratuity provision (employer cost) for a full month — 0 when not eligible. */
 export function fullMonthGratuity(sal: EmployeeSalary): number {
+  if (!hasGratuity(sal)) return 0;
   return round((sal.basic * 15) / 26 / 12);
 }
 

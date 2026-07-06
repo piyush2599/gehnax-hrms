@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
       payPeriod,
       earnings: row.earnings,
       deductions: row.deductions,
+      employerContributions: row.employerContributions,
       grossPay: row.grossPay,
       totalDeductions: row.totalDeductions,
       netPay: row.netPay,

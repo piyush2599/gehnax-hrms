@@ -19,6 +19,7 @@ export interface PayrollRow {
   designation?: string;
   earnings: any;
   deductions: any;
+  employerContributions: { pf: number; gratuity: number };
   grossPay: number;
   totalDeductions: number;
   netPay: number;
@@ -123,6 +124,7 @@ export async function buildPayrollRows(
       designation: employee.designation,
       earnings: b.earnings,
       deductions: b.deductions,
+      employerContributions: { pf: b.employerPF, gratuity: b.gratuity },
       grossPay: b.grossPay,
       totalDeductions: b.totalDeductions,
       netPay: b.netPay,

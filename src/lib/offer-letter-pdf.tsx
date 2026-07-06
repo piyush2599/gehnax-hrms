@@ -425,16 +425,20 @@ function OfferLetterPDF({ data }: { data: OfferLetterData }) {
           <View style={s.tHdBen}>
             <Text style={[s.tHdTxt, { flex: 1 }]}>Benefits and Contributions (Part - B)</Text>
           </View>
-          <View style={s.tRow}>
-            <Text style={[s.tCell, s.col1]}>PF – Employer</Text>
-            <Text style={[s.tCell, s.col2]}>{fmt(sal.employerPF)}</Text>
-            <Text style={[s.tCell, s.col3]}>{fmt(sal.employerPF * 12)}</Text>
-          </View>
-          <View style={s.tRowAlt}>
-            <Text style={[s.tCell, s.col1]}>Gratuity (Payment of Gratuity Act, 1972)</Text>
-            <Text style={[s.tCell, s.col2]}>{fmt(sal.gratuity)}</Text>
-            <Text style={[s.tCell, s.col3]}>{fmt(sal.gratuity * 12)}</Text>
-          </View>
+          {sal.employerPF > 0 && (
+            <View style={s.tRow}>
+              <Text style={[s.tCell, s.col1]}>PF – Employer</Text>
+              <Text style={[s.tCell, s.col2]}>{fmt(sal.employerPF)}</Text>
+              <Text style={[s.tCell, s.col3]}>{fmt(sal.employerPF * 12)}</Text>
+            </View>
+          )}
+          {sal.gratuity > 0 && (
+            <View style={s.tRowAlt}>
+              <Text style={[s.tCell, s.col1]}>Gratuity (Payment of Gratuity Act, 1972)</Text>
+              <Text style={[s.tCell, s.col2]}>{fmt(sal.gratuity)}</Text>
+              <Text style={[s.tCell, s.col3]}>{fmt(sal.gratuity * 12)}</Text>
+            </View>
+          )}
           <View style={s.tRowSub}>
             <Text style={[s.tCellBold, s.col1]}>SUB-TOTAL (B)</Text>
             <Text style={[s.tCellBold, s.col2]}>{fmt(subTotalB)}</Text>

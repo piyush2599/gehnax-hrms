@@ -33,6 +33,7 @@ export interface IEmployee extends Document {
     tds: number;                           // income tax TDS (monthly)
     pfType?: "fixed" | "percent" | "none"; // fixed = never pro-rate; percent = scale with basic
     esiApplicable?: boolean;               // ESI only deducted when true
+    gratuityApplicable?: boolean;          // gratuity provision only when eligible (defaults to: has PF)
   };
   pendingArrears?: number;                 // back-pay queued for the next payroll run
   statutory?: {
@@ -131,6 +132,7 @@ const EmployeeSchema = new Schema<IEmployee>(
       tds:        { type: Number },
       pfType:     { type: String, enum: ["fixed", "percent", "none"] },
       esiApplicable: { type: Boolean, default: false },
+      gratuityApplicable: { type: Boolean },   // unset → engine defaults to "has PF"
     },
     pendingArrears: { type: Number, default: 0 },
     statutory: {

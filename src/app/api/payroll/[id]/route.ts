@@ -119,6 +119,7 @@ export async function PATCH(
 
   payroll.earnings = b.earnings;
   payroll.deductions = b.deductions;
+  payroll.employerContributions = { pf: b.employerPF, gratuity: b.gratuity };
   payroll.grossPay = b.grossPay;
   payroll.totalDeductions = b.totalDeductions;
   payroll.netPay = b.netPay;

@@ -66,6 +66,7 @@ export async function POST(
     leaveDays:    payroll.leaveDays,
     earnings:     payroll.earnings,
     deductions:   payroll.deductions,
+    employerContributions: payroll.employerContributions,
     grossPay:     payroll.grossPay,
     totalDeductions: payroll.totalDeductions,
     netPay:       payroll.netPay,

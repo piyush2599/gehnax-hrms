@@ -4,7 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import Employee from "@/models/Employee";
 import SalaryAdvance from "@/models/SalaryAdvance";
 import FinalSettlement from "@/models/FinalSettlement";
-import { computeSalary, daysInMonth, istParts } from "@/lib/payroll-calc";
+import { computeSalary, daysInMonth, istParts, hasGratuity } from "@/lib/payroll-calc";
 import { getSalaryForPeriod } from "@/lib/salary-history";
 
 function canManage(session: any): boolean {
@@ -44,9 +44,10 @@ async function buildSettlement(empId: string, lwdInput?: string, extra?: any) {
   const perDayBasic = (periodSalary.basic || 0) / 30;
   const leaveEncashment = Math.round(encashableLeaves * perDayBasic);
 
-  // Gratuity if tenure ≥ 5 years (Payment of Gratuity Act): basic × 15/26 × years
+  // Gratuity if tenure ≥ 5 years (Payment of Gratuity Act): basic × 15/26 × years.
+  // Only for employees whose salary card is gratuity-eligible (defaults to: has PF).
   let gratuity = 0;
-  if (emp.joiningDate) {
+  if (emp.joiningDate && hasGratuity(periodSalary)) {
     const years = (lwd.getTime() - new Date(emp.joiningDate).getTime()) / (365.25 * 24 * 3600 * 1000);
     if (years >= 5) gratuity = Math.round((periodSalary.basic || 0) * (15 / 26) * Math.floor(years));
   }

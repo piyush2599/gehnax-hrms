@@ -101,6 +101,9 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
         tds:         emp.salary?.tds ?? 0,
         pfType:      emp.salary?.pfType,
         esiApplicable: emp.salary?.esiApplicable ?? false,
+        // Reflect the engine's effective default (gratuity follows PF) when unset
+        gratuityApplicable: emp.salary?.gratuityApplicable
+          ?? ((emp.salary?.pf ?? 0) > 0 && emp.salary?.pfType !== "none"),
       },
       bankDetails: {
         accountNumber:     emp.bankDetails?.accountNumber || "",
@@ -682,7 +685,7 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
                     setSalary("deductions", s.deductions);
                     setSalary("pf",  s.pf);
                     setSalary("tds", s.tds);
-                    setForm((f: any) => ({ ...f, salary: { ...f.salary, pfType: s.pfType } }));
+                    setForm((f: any) => ({ ...f, salary: { ...f.salary, pfType: s.pfType, gratuityApplicable: s.includeGratuity } }));
                     setShowCTC(false);
                   }}
                 />
@@ -740,25 +743,48 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
                     <span className="text-sm text-slate-600">Deduct ESI (0.75%, gross ≤ ₹21k)</span>
                   </label>
                 </Field>
+                <Field label="Gratuity">
+                  <label className="flex items-center gap-2 h-9 px-3 rounded-lg border border-slate-200 bg-white cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-blue-600"
+                      checked={!!form.salary?.gratuityApplicable}
+                      onChange={(e) => setForm((f: any) => ({ ...f, salary: { ...f.salary, gratuityApplicable: e.target.checked } }))}
+                    />
+                    <span className="text-sm text-slate-600">Include gratuity (employer CTC, Basic × 15/26/12)</span>
+                  </label>
+                </Field>
               </div>
 
               {((form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0)) > 0 && (() => {
                 const fGross = (form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0);
+                const fBasic = form.salary?.basic || 0;
                 const fPF    = form.salary?.pf  || 0;
                 const fTDS   = form.salary?.tds || 0;
                 const fESI   = form.salary?.esiApplicable && fGross <= 21_000 ? Math.round(fGross * 0.0075) : 0;
                 const fNet   = fGross - fPF - fTDS - fESI;
+                const fEmployerPF = fPF; // employer mirrors employee PF
+                const fGratuity   = form.salary?.gratuityApplicable ? Math.round(fBasic * 15 / 26 / 12) : 0;
+                const fCTC        = fGross + fEmployerPF + fGratuity;
                 return (
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-1.5">
                     <div className="flex justify-between text-slate-600">
-                      <span>Gross Pay</span>
+                      <span>Gross Pay (A)</span>
                       <span className="font-semibold">₹{fGross.toLocaleString()}</span>
                     </div>
+                    {fEmployerPF > 0 && <div className="flex justify-between text-slate-500"><span>Employer PF (B)</span><span>+₹{fEmployerPF.toLocaleString()}</span></div>}
+                    {fGratuity > 0   && <div className="flex justify-between text-slate-500"><span>Gratuity (B)</span><span>+₹{fGratuity.toLocaleString()}</span></div>}
+                    {(fEmployerPF > 0 || fGratuity > 0) && (
+                      <div className="flex justify-between font-semibold text-slate-700 pt-1 border-t border-slate-200">
+                        <span>Total CTC (A + B)</span>
+                        <span>₹{fCTC.toLocaleString()}</span>
+                      </div>
+                    )}
                     {fPF > 0  && <div className="flex justify-between text-red-500"><span>Employee PF</span><span>−₹{fPF.toLocaleString()}</span></div>}
                     {fTDS > 0 && <div className="flex justify-between text-red-500"><span>Income Tax (TDS)</span><span>−₹{fTDS.toLocaleString()}</span></div>}
                     {fESI > 0 && <div className="flex justify-between text-red-500"><span>ESI (0.75%)</span><span>−₹{fESI.toLocaleString()}</span></div>}
                     <div className="flex justify-between font-bold text-emerald-700 pt-1 border-t border-slate-200">
-                      <span>Net Pay</span>
+                      <span>Net Pay (A − D)</span>
                       <span>₹{fNet.toLocaleString()}</span>
                     </div>
                   </div>
