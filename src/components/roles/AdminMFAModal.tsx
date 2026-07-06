@@ -175,6 +175,8 @@ export default function AdminMFAModal({
       toast.success(msgs[selectedAction]);
       onSuccess();
       onClose();
+    } catch (err) {
+      toast.error("Something went wrong. Please try again.");
     } finally { setLoading(false); }
   };
 
