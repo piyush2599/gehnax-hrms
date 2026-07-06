@@ -32,6 +32,7 @@ export interface IEmployee extends Document {
     pf: number;                            // employee PF contribution (monthly)
     tds: number;                           // income tax TDS (monthly)
     pfType?: "fixed" | "percent" | "none"; // fixed = never pro-rate; percent = scale with basic
+    pfValue?: number;                      // percent when pfType==="percent" (e.g. 12); engine recomputes PF live
     esiApplicable?: boolean;               // ESI only deducted when true
     gratuityApplicable?: boolean;          // gratuity provision only when eligible (defaults to: has PF)
   };
@@ -131,6 +132,7 @@ const EmployeeSchema = new Schema<IEmployee>(
       pf:         { type: Number },
       tds:        { type: Number },
       pfType:     { type: String, enum: ["fixed", "percent", "none"] },
+      pfValue:    { type: Number },            // % of basic when pfType==="percent"
       esiApplicable: { type: Boolean, default: false },
       gratuityApplicable: { type: Boolean },   // unset → engine defaults to "has PF"
     },

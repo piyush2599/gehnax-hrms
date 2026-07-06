@@ -99,7 +99,8 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
         deductions:  emp.salary?.deductions || 0,
         pf:          emp.salary?.pf ?? 0,
         tds:         emp.salary?.tds ?? 0,
-        pfType:      emp.salary?.pfType,
+        pfType:      emp.salary?.pfType ?? ((emp.salary?.pf ?? 0) > 0 ? "fixed" : "none"),
+        pfValue:     emp.salary?.pfValue ?? 12,
         esiApplicable: emp.salary?.esiApplicable ?? false,
         // Reflect the engine's effective default (gratuity follows PF) when unset
         gratuityApplicable: emp.salary?.gratuityApplicable
@@ -685,7 +686,7 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
                     setSalary("deductions", s.deductions);
                     setSalary("pf",  s.pf);
                     setSalary("tds", s.tds);
-                    setForm((f: any) => ({ ...f, salary: { ...f.salary, pfType: s.pfType, gratuityApplicable: s.includeGratuity } }));
+                    setForm((f: any) => ({ ...f, salary: { ...f.salary, pfType: s.pfType, pfValue: s.pfValue, gratuityApplicable: s.includeGratuity } }));
                     setShowCTC(false);
                   }}
                 />
@@ -704,19 +705,50 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
                     </div>
                   </Field>
                 ))}
-                <Field label="Employee PF (Monthly)">
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-                    <Input
-                      type="number" min="0" className="pl-7"
-                      value={form.salary?.pf || ""}
+                <Field label="Employee PF">
+                  <div className="flex gap-2">
+                    <select
+                      className="h-9 rounded-lg border border-slate-200 bg-white text-sm px-2 text-slate-700"
+                      value={form.salary?.pfType ?? "none"}
                       onChange={(e) => {
-                        const val = parseInt(e.target.value) || 0;
-                        setSalary("pf", val);
-                        setSalary("deductions", val + (form.salary?.tds || 0));
+                        const t = e.target.value;
+                        setForm((f: any) => ({ ...f, salary: { ...f.salary, pfType: t } }));
+                        if (t === "none") { setSalary("pf", 0); setSalary("deductions", form.salary?.tds || 0); }
                       }}
-                    />
+                    >
+                      <option value="none">No PF</option>
+                      <option value="fixed">Fixed ₹</option>
+                      <option value="percent">% of Basic</option>
+                    </select>
+                    {form.salary?.pfType === "percent" ? (
+                      <div className="relative flex-1">
+                        <Input
+                          type="number" min="0" max="100" step="0.1" className="pr-7"
+                          value={form.salary?.pfValue ?? ""}
+                          onChange={(e) => setForm((f: any) => ({ ...f, salary: { ...f.salary, pfValue: parseFloat(e.target.value) || 0 } }))}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                      </div>
+                    ) : form.salary?.pfType === "fixed" ? (
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                        <Input
+                          type="number" min="0" className="pl-7"
+                          value={form.salary?.pf || ""}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            setSalary("pf", val);
+                            setSalary("deductions", val + (form.salary?.tds || 0));
+                          }}
+                        />
+                      </div>
+                    ) : null}
                   </div>
+                  {form.salary?.pfType === "percent" && (
+                    <p className="text-xs text-slate-400 mt-1">
+                      = ₹{Math.round(Math.min(form.salary?.basic || 0, 15000) * (form.salary?.pfValue ?? 12) / 100).toLocaleString()}/mo (capped at ₹15k wage)
+                    </p>
+                  )}
                 </Field>
                 <Field label="Income Tax / TDS (Monthly)">
                   <div className="relative">
@@ -759,7 +791,9 @@ export default function EmployeeDetail({ employeeId, onUpdate = () => {} }: Prop
               {((form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0)) > 0 && (() => {
                 const fGross = (form.salary?.basic || 0) + (form.salary?.hra || 0) + (form.salary?.allowances || 0);
                 const fBasic = form.salary?.basic || 0;
-                const fPF    = form.salary?.pf  || 0;
+                const fPF    = form.salary?.pfType === "percent"
+                  ? Math.round(Math.min(fBasic, 15000) * (form.salary?.pfValue ?? 12) / 100)
+                  : form.salary?.pfType === "none" ? 0 : (form.salary?.pf || 0);
                 const fTDS   = form.salary?.tds || 0;
                 const fESI   = form.salary?.esiApplicable && fGross <= 21_000 ? Math.round(fGross * 0.0075) : 0;
                 const fNet   = fGross - fPF - fTDS - fESI;

@@ -34,6 +34,7 @@ export interface EmployeeSalary {
   pf?: number | null;           // employee PF, monthly — 0/unset means NO PF
   tds?: number | null;          // income tax TDS, monthly (new records)
   pfType?: PFType | null;
+  pfValue?: number | null;      // when pfType==="percent": the % of basic (e.g. 12). Capped at the ₹15k wage ceiling.
   esiApplicable?: boolean;      // ESI only deducted when explicitly enabled
   gratuityApplicable?: boolean; // gratuity provision only when eligible (see hasGratuity)
 }
@@ -83,12 +84,19 @@ function round(n: number): number {
 }
 
 /**
- * Employee PF for a FULL month = exactly what's configured in the salary tab.
- * No auto-fallback: an unset/zero PF (or pfType "none") means NO PF deduction.
- * PF is only deducted for employees you explicitly enrol.
+ * Employee PF for a FULL month.
+ *   • pfType "none"    → 0 (not enrolled).
+ *   • pfType "percent" → pfValue% of Basic, computed LIVE and capped at the
+ *     ₹15,000 wage ceiling (so it stays correct after any basic revision —
+ *     never a stale stored snapshot). Defaults to 12% if pfValue is unset.
+ *   • pfType "fixed" / legacy unset → the fixed amount stored in `pf`.
  */
 export function fullMonthEmployeePF(sal: EmployeeSalary): number {
   if (sal.pfType === "none") return 0;
+  if (sal.pfType === "percent") {
+    const pct = (sal.pfValue ?? 12) / 100;
+    return round(Math.min(sal.basic || 0, PF_WAGE_CEILING) * pct);
+  }
   return round(sal.pf || 0);
 }
 
@@ -106,7 +114,7 @@ export function fullMonthTDS(sal: EmployeeSalary): number {
  */
 export function hasGratuity(sal: EmployeeSalary): boolean {
   if (typeof sal.gratuityApplicable === "boolean") return sal.gratuityApplicable;
-  return sal.pfType !== "none" && (sal.pf ?? 0) > 0;
+  return sal.pfType !== "none" && fullMonthEmployeePF(sal) > 0;
 }
 
 /** Gratuity provision (employer cost) for a full month — 0 when not eligible. */
